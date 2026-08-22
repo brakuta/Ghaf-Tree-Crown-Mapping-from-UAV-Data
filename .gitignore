@@ -1,0 +1,122 @@
+# ---------------------------------------------------------------------------
+# Ghaf Tree Crown Mapping from UAV Data
+#
+# NOTE ON ANCHORING: patterns below are anchored with a leading "/" where they
+# are meant to match only a top-level directory. An unanchored "datasets/"
+# matches at EVERY level and silently deletes mmseg/datasets/ from the repo.
+# ---------------------------------------------------------------------------
+
+# --- Model weights (never commit; release via Zenodo / GitHub Releases) ---
+*.pth
+*.pt
+*.pyth
+*.ckpt
+*.onnx
+*.safetensors
+*.engine
+
+# --- Data and run outputs (top-level only) ---
+/data/
+/datasets/
+/checkpoints/
+/work_dirs/
+/outputs/
+/results/
+mmseg/.mim/
+
+# --- Large raster / vector artefacts ---
+*.tif
+*.tiff
+*.sid
+*.img
+*.vrt
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.gpkg
+
+# --- Serialized arrays / predictions ---
+*.pkl
+*.pkl.json
+*.npy
+*.npz
+
+# --- Logs ---
+*.log
+*.log.json
+
+# Training logs of the released runs ARE tracked: they back the loss curves
+# and the reported metrics, and they are small.
+!pretrained/**/*.log
+!pretrained/**/*.log.json
+!pretrained/**/scalars.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Testing / typing ---
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+.mypy_cache/
+
+# --- Environments ---
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# --- Docs build ---
+docs/en/_build/
+docs/zh_cn/_build/
+/site/
+target/
+
+# --- Notebooks ---
+.ipynb_checkpoints/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.spyderproject
+.spyproject
+.ropeproject
+.DS_Store
+Thumbs.db
