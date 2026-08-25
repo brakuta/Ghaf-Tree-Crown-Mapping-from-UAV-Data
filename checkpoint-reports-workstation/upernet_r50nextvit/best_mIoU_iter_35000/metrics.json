@@ -1,0 +1,57 @@
+{
+  "log_scalars": {
+    "train/base_lr": "(array([1.00000000e-04, 9.99994375e-05, 9.99988750e-05, ...,\n       8.00791997e-05, 8.00786231e-05, 8.00780465e-05]), array([1, 1, 1, ..., 1, 1, 1], dtype=int64))",
+    "train/lr": "(array([1.00000000e-05, 9.99994375e-06, 9.99988750e-06, ...,\n       8.00791997e-06, 8.00786231e-06, 8.00780465e-06]), array([1, 1, 1, ..., 1, 1, 1], dtype=int64))",
+    "train/data_time": "(array([0.01172781, 0.01638055, 0.01864052, ..., 0.01605511, 0.01511788,\n       0.01586175]), array([1, 1, 1, ..., 1, 1, 1], dtype=int64))",
+    "train/grad_norm": "(array([6.06815004, 5.25858307, 5.42270136, ..., 0.34981757, 1.92052329,\n       0.15137608]), array([1, 1, 1, ..., 1, 1, 1], dtype=int64))",
+    "train/loss": "(array([1.0020833 , 0.95286298, 0.91206944, ..., 0.00195237, 0.0116708 ,\n       0.00236722]), array([1, 1, 1, ..., 1, 1, 1], dtype=int64))",
+    "train/decode.loss_ce": "(array([0.72939205, 0.68396449, 0.64873272, ..., 0.00136307, 0.00765109,\n       0.00157523]), array([1, 1, 1, ..., 1, 1, 1], dtype=int64))",
+    "train/decode.acc_seg": "(array([42.73342896, 49.87368774, 74.6702652 , ..., 99.94502258,\n       99.69229889, 99.93586731]), array([1, 1, 1, ..., 1, 1, 1], dtype=int64))",
+    "train/aux.loss_ce": "(array([0.27269131, 0.26889852, 0.26333675, ..., 0.0005893 , 0.00401971,\n       0.00079199]), array([1, 1, 1, ..., 1, 1, 1], dtype=int64))",
+    "train/aux.acc_seg": "(array([59.10477448, 70.95899963, 81.15158081, ..., 99.93981934,\n       99.58443451, 99.92675781]), array([1, 1, 1, ..., 1, 1, 1], dtype=int64))",
+    "train/time": "(array([15.10791802,  1.12796926,  0.77138662, ...,  0.79609179,\n        0.79304147,  0.79139256]), array([1, 1, 1, ..., 1, 1, 1], dtype=int64))",
+    "val/data_time": "(array([0.39964843, 0.00225186, 0.0142262 , ..., 0.00496244, 0.00431895,\n       0.00415659]), array([1, 1, 1, ..., 1, 1, 1], dtype=int64))",
+    "val/time": "(array([4.71240044, 0.20304298, 0.13120341, ..., 0.12094784, 0.12091708,\n       0.12080836]), array([1, 1, 1, ..., 1, 1, 1], dtype=int64))",
+    "val/aAcc": "(array([98.20999908, 97.97000122, 98.30999756, 98.34999847, 98.12000275,\n       98.33999634, 98.58000183]), array([1, 1, 1, 1, 1, 1, 1], dtype=int64))",
+    "val/mIoU": "(array([79.90000153, 78.51999664, 80.79000092, 82.37000275, 80.63999939,\n       81.77999878, 84.05000305]), array([1, 1, 1, 1, 1, 1, 1], dtype=int64))",
+    "val/mAcc": "(array([85.23000336, 85.72000122, 85.66999817, 89.93000031, 89.26000214,\n       88.16000366, 89.66999817]), array([1, 1, 1, 1, 1, 1, 1], dtype=int64))",
+    "val/mFscore": "(array([87.66999817, 86.62999725, 88.33000183, 89.48999786, 88.25      ,\n       89.06999969, 90.65000153]), array([1, 1, 1, 1, 1, 1, 1], dtype=int64))",
+    "val/mPrecision": "(array([90.51000214, 87.59999847, 91.47000122, 89.05000305, 87.29000092,\n       90.01999664, 91.69000244]), array([1, 1, 1, 1, 1, 1, 1], dtype=int64))",
+    "val/mRecall": "(array([85.23000336, 85.72000122, 85.66999817, 89.93000031, 89.26000214,\n       88.16000366, 89.66999817]), array([1, 1, 1, 1, 1, 1, 1], dtype=int64))"
+  },
+  "runtime_info": {
+    "cfg": "crop_size = (\n    1024,\n    1024,\n)\ncustom_imports = dict(allow_failed_imports=False, imports='mmdet.models')\ndata_preprocessor = dict(\n    bgr_to_rgb=True,\n    mean=[\n        123.675,\n        116.28,\n        103.53,\n    ],\n    pad_val=0,\n    seg_pad_val=255,\n    size=(\n        1024,\n        1024,\n    ),\n    std=[\n        58.395,\n        57.12,\n        57.375,\n    ],\n    test_cfg=dict(size_divisor=32),\n    type='SegDataPreProcessor')\ndata_root = '/data'\ndataset_type = 'ADE20KDataset'\ndefault_hooks = dict(\n    checkpoint=dict(\n        by_epoch=False, interval=5000, save_best='mIoU',\n        type='CheckpointHook'),\n    logger=dict(interval=50, log_metric_by_epoch=False, type='LoggerHook'),\n    param_scheduler=dict(type='ParamSchedulerHook'),\n    sampler_seed=dict(type='DistSamplerSeedHook'),\n    timer=dict(type='IterTimerHook'),\n    visualization=dict(type='SegVisualizationHook'))\ndefault_scope = 'mmseg'\nembed_multi = dict(decay_mult=0.0, lr_mult=1.0)\nenv_cfg = dict(\n    cudnn_benchmark=True,\n    dist_cfg=dict(backend='nccl'),\n    mp_cfg=dict(mp_start_method='fork', opencv_num_threads=0))\nimg_ratios = [\n    0.5,\n    0.75,\n    1.0,\n    1.25,\n    1.5,\n    1.75,\n]\nlauncher = 'none'\nload_from = None\nlog_level = 'INFO'\nlog_processor = dict(by_epoch=False)\nmodel = dict(\n    auxiliary_head=dict(\n        align_corners=False,\n        channels=256,\n        concat_input=False,\n        dropout_ratio=0.1,\n        in_channels=512,\n        in_index=2,\n        loss_decode=dict(\n            loss_weight=0.4, type='CrossEntropyLoss', use_sigmoid=False),\n        norm_cfg=dict(requires_grad=True, type='SyncBN'),\n        num_classes=2,\n        num_convs=1,\n        type='FCNHead'),\n    backbone=dict(type='mamba_small_vision_timm'),\n    data_preprocessor=dict(\n        bgr_to_rgb=True,\n        mean=[\n            123.675,\n            116.28,\n            103.53,\n        ],\n        pad_val=0,\n        seg_pad_val=255,\n        size=(\n            1024,\n            1024,\n        ),\n        std=[\n            58.395,\n            57.12,\n            57.375,\n        ],\n        test_cfg=dict(size_divisor=32),\n        type='SegDataPreProcessor'),\n    decode_head=dict(\n        align_corners=False,\n        channels=512,\n        dropout_ratio=0.1,\n        in_channels=[\n            128,\n            256,\n            512,\n            1024,\n        ],\n        in_index=[\n            0,\n            1,\n            2,\n            3,\n        ],\n        loss_decode=dict(\n            loss_weight=1.0, type='CrossEntropyLoss', use_sigmoid=False),\n        norm_cfg=dict(requires_grad=True, type='SyncBN'),\n        num_classes=2,\n        pool_scales=(\n            1,\n            2,\n            3,\n            6,\n        ),\n        type='UPerHead'),\n    pretrained='open-mmlab://resnet50_v1c',\n    test_cfg=dict(mode='whole'),\n    train_cfg=dict(),\n    type='EncoderDecoder')\nnorm_cfg = dict(requires_grad=True, type='SyncBN')\noptim_wrapper = dict(\n    clip_grad=dict(max_norm=0.01, norm_type=2),\n    optimizer=dict(\n        betas=(\n            0.9,\n            0.999,\n        ),\n        eps=1e-08,\n        lr=0.0001,\n        type='AdamW',\n        weight_decay=0.05),\n    paramwise_cfg=dict(\n        custom_keys=dict(\n            backbone=dict(decay_mult=1.0, lr_mult=0.1),\n            level_embed=dict(decay_mult=0.0, lr_mult=1.0),\n            query_embed=dict(decay_mult=0.0, lr_mult=1.0),\n            query_feat=dict(decay_mult=0.0, lr_mult=1.0)),\n        norm_decay_mult=0.0),\n    type='OptimWrapper')\noptimizer = dict(\n    betas=(\n        0.9,\n        0.999,\n    ),\n    eps=1e-08,\n    lr=0.0001,\n    type='AdamW',\n    weight_decay=0.05)\nparam_scheduler = [\n    dict(\n        begin=0,\n        by_epoch=False,\n        end=160000,\n        eta_min=0,\n        power=0.9,\n        type='PolyLR'),\n]\nresume = False\ntest_cfg = dict(type='TestLoop')\ntest_dataloader = dict(\n    batch_size=1,\n    dataset=dict(\n        data_prefix=dict(img_path='img_dir/val', seg_map_path='ann_dir/val'),\n        data_root='/data',\n        pipeline=[\n            dict(type='LoadImageFromFile'),\n            dict(reduce_zero_label=False, type='LoadAnnotations'),\n            dict(type='PackSegInputs'),\n        ],\n        type='ADE20KDataset'),\n    num_workers=2,\n    persistent_workers=True,\n    sampler=dict(shuffle=False, type='DefaultSampler'))\ntest_evaluator = dict(\n    iou_metrics=[\n        'mIoU',\n        'mFscore',\n    ], type='IoUMetric')\ntest_pipeline = [\n    dict(type='LoadImageFromFile'),\n    dict(reduce_zero_label=False, type='LoadAnnotations'),\n    dict(type='PackSegInputs'),\n]\ntrain_cfg = dict(\n    max_iters=160000, type='IterBasedTrainLoop', val_interval=5000)\ntrain_dataloader = dict(\n    batch_size=2,\n    dataset=dict(\n        data_prefix=dict(\n            img_path='New Training/images',\n            seg_map_path='New Training/labels'),\n        data_root='/data',\n        pipeline=[\n            dict(type='LoadImageFromFile'),\n            dict(reduce_zero_label=False, type='LoadAnnotations'),\n            dict(prob=0.5, type='RandomFlip'),\n            dict(type='PackSegInputs'),\n        ],\n        type='ADE20KDataset'),\n    num_workers=2,\n    persistent_workers=True,\n    sampler=dict(shuffle=True, type='InfiniteSampler'))\ntrain_pipeline = [\n    dict(type='LoadImageFromFile'),\n    dict(reduce_zero_label=False, type='LoadAnnotations'),\n    dict(prob=0.5, type='RandomFlip'),\n    dict(type='PackSegInputs'),\n]\ntta_model = dict(type='SegTTAModel')\nval_cfg = dict(type='ValLoop')\nval_dataloader = dict(\n    batch_size=1,\n    dataset=dict(\n        data_prefix=dict(img_path='img_dir/val', seg_map_path='ann_dir/val'),\n        data_root='/data',\n        pipeline=[\n            dict(type='LoadImageFromFile'),\n            dict(reduce_zero_label=False, type='LoadAnnotations'),\n            dict(type='PackSegInputs'),\n        ],\n        type='ADE20KDataset'),\n    num_workers=2,\n    persistent_workers=True,\n    sampler=dict(shuffle=False, type='DefaultSampler'))\nval_evaluator = dict(\n    iou_metrics=[\n        'mIoU',\n        'mFscore',\n    ], type='IoUMetric')\nvis_backends = [\n    dict(type='LocalVisBackend'),\n]\nvisualizer = dict(\n    name='visualizer',\n    type='SegLocalVisualizer',\n    vis_backends=[\n        dict(type='LocalVisBackend'),\n    ])\nwork_dir = './work_dirs/upernet_r50nextvit'\n",
+    "seed": 278643984,
+    "experiment_name": "upernet_r50_20250505_154322",
+    "mmengine_version": "0.10.7b040e147adfa027bbc071b624bedf0ae84dfc922",
+    "loop_stage": "val",
+    "epoch": 0,
+    "iter": 34999,
+    "max_epochs": 1,
+    "max_iters": 160000,
+    "dataset_meta": {
+      "classes": [
+        "background",
+        "ghaf"
+      ],
+      "palette": [
+        [
+          120,
+          120,
+          120
+        ],
+        [
+          180,
+          120,
+          120
+        ]
+      ],
+      "label_map": null,
+      "reduce_zero_label": false
+    },
+    "eta": "<memory at 0x00000166E2BDD680>",
+    "last_ckpt": "/mmsegmentation/work_dirs/upernet_r50nextvit/iter_35000.pth",
+    "best_score": "<memory at 0x00000166E2BDD680>",
+    "best_ckpt": "/mmsegmentation/work_dirs/upernet_r50nextvit/best_mIoU_iter_35000.pth"
+  }
+}

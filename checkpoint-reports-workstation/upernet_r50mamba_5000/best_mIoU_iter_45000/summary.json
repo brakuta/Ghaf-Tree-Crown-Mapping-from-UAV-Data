@@ -1,0 +1,64 @@
+{
+  "checkpoint": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50mamba_5000\\best_mIoU_iter_45000.pth",
+  "load_mode": "full",
+  "size_bytes": 537744966,
+  "iter": 45000,
+  "epoch": 0,
+  "experiment_name": "upernet_r50_20250430_132514",
+  "seed": 1731789395,
+  "time": "20250501_004041",
+  "mmengine_version": "0.10.7b040e147adfa027bbc071b624bedf0ae84dfc922",
+  "dataset_meta": {
+    "classes": [
+      "background",
+      "ghaf"
+    ],
+    "palette": [
+      [
+        120,
+        120,
+        120
+      ],
+      [
+        180,
+        120,
+        120
+      ]
+    ],
+    "label_map": null,
+    "reduce_zero_label": false
+  },
+  "config_recovered": true,
+  "total_parameters": 132125896,
+  "parameters_by_module": {
+    "backbone": 97692343,
+    "decode_head": 33252366,
+    "auxiliary_head": 1181187
+  },
+  "backbone_stage_widths": [
+    [
+      "backbone.backbone.model.patch_embed.conv_down.0.weight",
+      64
+    ],
+    [
+      "backbone.backbone.model.patch_embed.conv_down.3.weight",
+      128
+    ],
+    [
+      "backbone.backbone.model.levels.0.downsample.reduction.0.weight",
+      256
+    ],
+    [
+      "backbone.backbone.model.levels.1.downsample.reduction.0.weight",
+      512
+    ],
+    [
+      "backbone.backbone.model.levels.2.downsample.reduction.0.weight",
+      1024
+    ]
+  ],
+  "top_level_keys": [
+    "message_hub",
+    "meta"
+  ]
+}

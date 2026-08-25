@@ -1,0 +1,67 @@
+{
+  "checkpoint": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_r50_8xb2-160k_ade20k-512x512\\best_mIoU_iter_38500.pth",
+  "load_mode": "full",
+  "size_bytes": 196545149,
+  "iter": 38500,
+  "epoch": 0,
+  "experiment_name": "mask2former_r50_8xb2-160k_ade20k-512x512_20250311_230401",
+  "seed": 1347878816,
+  "time": "20250312_074245",
+  "mmengine_version": "0.10.6b040e147adfa027bbc071b624bedf0ae84dfc922",
+  "dataset_meta": {
+    "classes": [
+      "background",
+      "ghaf"
+    ],
+    "palette": [
+      [
+        120,
+        120,
+        120
+      ],
+      [
+        180,
+        120,
+        120
+      ]
+    ],
+    "label_map": null,
+    "reduce_zero_label": false
+  },
+  "config_recovered": true,
+  "total_parameters": 44056504,
+  "parameters_by_module": {
+    "backbone": 23561205,
+    "decode_head": 20495299
+  },
+  "backbone_stage_widths": [
+    [
+      "backbone.conv1.weight",
+      64
+    ],
+    [
+      "backbone.layer1.0.conv3.weight",
+      256
+    ],
+    [
+      "backbone.layer2.0.conv1.weight",
+      128
+    ],
+    [
+      "backbone.layer2.0.conv3.weight",
+      512
+    ],
+    [
+      "backbone.layer3.0.conv3.weight",
+      1024
+    ],
+    [
+      "backbone.layer4.0.conv3.weight",
+      2048
+    ]
+  ],
+  "top_level_keys": [
+    "message_hub",
+    "meta"
+  ]
+}
