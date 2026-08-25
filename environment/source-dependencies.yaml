@@ -1,0 +1,48 @@
+# Source-built dependencies
+#
+# These packages were compiled from source rather than installed from PyPI, so a
+# version number alone does not identify them. The commit each was built from is
+# recorded here; the repositories themselves are deliberately NOT vendored into
+# this repository (they carry their own licences and histories).
+#
+# Recorded from the original training workstation, 2026-08-25.
+#
+# To reconstruct:
+#   git clone <url> <name> && git -C <name> checkout <commit>
+
+dependencies:
+  - name: mamba
+    url: https://github.com/state-spaces/mamba.git
+    commit: 2e16fc3062cdcd4ebef27a9aa4442676e1c7edf4
+    note: >-
+      Selective-scan CUDA kernels. Required only by the Mamba/VMamba backbones
+      carried over from the earlier Acacia study; the Ghaf models reported in
+      this paper do not depend on it.
+
+  - name: mmcv
+    url: https://github.com/open-mmlab/mmcv.git
+    commit: 90d83c94cfb967ef162c449faf559616f31f28c2
+    note: >-
+      Built from source rather than the pip wheel. requirements.txt pins
+      mmcv==2.1.0; treat this commit as authoritative where the two disagree.
+
+  - name: mmdetection
+    url: https://github.com/open-mmlab/mmdetection.git
+    commit: cfd5d3a985b0249de009b67d04f37263e11cdf3d
+    note: Supplies the Mask2Former decode head used by the proposed model.
+
+  - name: mmpretrain
+    url: https://github.com/open-mmlab/mmpretrain.git
+    commit: ee7f2e88501f61aa95c742dd5f429f039935ee90
+    note: Supplies ImageNet-pretrained backbone weights and model definitions.
+
+  - name: LocalMamba
+    url: null
+    commit: null
+    note: >-
+      Present in the workstation dependency tree but with no git metadata
+      recovered; provenance unresolved. Not required by the Ghaf models.
+
+# Observed but not treated as a dependency: a second clone of state-spaces/mamba
+# nested at mmcv/mamba, at the same commit as the top-level one. It appears to be
+# an accidental nested clone rather than a deliberate vendored copy.

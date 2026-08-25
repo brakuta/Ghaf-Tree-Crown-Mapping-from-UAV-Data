@@ -97,13 +97,15 @@ coverage.xml
 .mypy_cache/
 
 # --- Environments ---
+# Anchored to the repository root: an unanchored "env/" would also swallow any
+# nested directory of that name, including tracked project metadata.
 .env
-.venv/
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+/.venv/
+/env/
+/venv/
+/ENV/
+/env.bak/
+/venv.bak/
 .python-version
 
 # --- Docs build ---
