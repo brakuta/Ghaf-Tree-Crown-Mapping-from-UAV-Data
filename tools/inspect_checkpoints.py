@@ -89,44 +89,54 @@ def _tolerant_pickle_module():
 def load_checkpoint(path):
     """Load a checkpoint, preferring full metadata but degrading gracefully.
 
-    Three attempts, most informative first:
+    torch.load's signature has moved across releases: ``weights_only`` arrived
+    in 1.13 and became the default in 2.6. Builds older than that forward any
+    unrecognised keyword to ``Unpickler()``, which rejects it - so the argument
+    is passed only where the running torch actually declares it.
 
-    1. ``weights_only=False`` - everything, when every referenced class imports.
-    2. a tolerant unpickler - everything, with stubs for classes that do not.
-    3. ``weights_only=True`` - tensors only, the last resort.
-
-    Returns the payload and a label naming which path succeeded, so the report
-    records how much of the metadata is trustworthy.
+    Attempts run most-informative first and stop at the first success. The
+    returned label names which path succeeded, so the report can record how
+    much of the metadata is trustworthy.
     """
+    import inspect
     import torch
 
-    errors = []
-
     try:
-        return torch.load(path, map_location="cpu", weights_only=False), "full"
-    except Exception as exc:
-        errors.append(f"weights_only=False: {exc}")
-
-    try:
-        return (
-            torch.load(
-                path,
-                map_location="cpu",
-                weights_only=False,
-                pickle_module=_tolerant_pickle_module(),
-            ),
-            "full-with-stubs",
+        accepts_weights_only = (
+            "weights_only" in inspect.signature(torch.load).parameters
         )
-    except Exception as exc:
-        errors.append(f"tolerant unpickler: {exc}")
+    except (TypeError, ValueError):
+        accepts_weights_only = False
 
-    try:
-        return torch.load(path, map_location="cpu", weights_only=True), "weights-only"
-    except Exception as exc:
-        errors.append(f"weights_only=True: {exc}")
+    attempts = []
+    if accepts_weights_only:
+        attempts.append(("full", {"weights_only": False}))
+        attempts.append((
+            "full-with-stubs",
+            {"weights_only": False, "pickle_module": _tolerant_pickle_module()},
+        ))
+        attempts.append(("weights-only", {"weights_only": True}))
+    else:
+        # Older torch unpickles everything by default; naming the argument
+        # would be forwarded to Unpickler() and raise.
+        attempts.append(("full", {}))
+        attempts.append((
+            "full-with-stubs",
+            {"pickle_module": _tolerant_pickle_module()},
+        ))
+    # Last resort, whatever the signature turned out to be.
+    attempts.append(("plain-fallback", {}))
+
+    errors = []
+    for label, kwargs in attempts:
+        try:
+            return torch.load(path, map_location="cpu", **kwargs), label
+        except Exception as exc:
+            errors.append(f"{label}: {type(exc).__name__}: {exc}")
 
     raise RuntimeError(
-        "could not load checkpoint; attempts:\n  " + "\n  ".join(errors)
+        f"could not load checkpoint (torch {torch.__version__}); attempts:\n  "
+        + "\n  ".join(errors)
     )
 
 
@@ -258,6 +268,9 @@ def main(argv=None):
                              "each directory (default: no limit)")
     parser.add_argument("--dry-run", action="store_true",
                         help="list what would be read, with sizes, and stop")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="print a full traceback for every failure instead "
+                             "of one summary line plus the first error")
     args = parser.parse_args(argv)
 
     checkpoints = sorted(args.root.rglob(args.glob))
@@ -287,16 +300,22 @@ def main(argv=None):
     print(f"Found {len(checkpoints)} checkpoint(s) under {args.root} "
           f"({total_bytes / 2**30:.2f} GB to read)\n")
     failures = 0
+    first_error = None
     for path in checkpoints:
         # Mirror the layout under root so sibling runs stay distinguishable.
         rel = path.relative_to(args.root)
         outdir = args.outdir / rel.parent / rel.stem
         try:
             summary = report(path, outdir)
-        except Exception:
+        except Exception as exc:
             failures += 1
             print(f"FAILED  {rel}")
-            traceback.print_exc(limit=3)
+            if args.verbose:
+                traceback.print_exc(limit=5)
+            elif first_error is None:
+                # Repeating one shared cause 24 times buries it; show the
+                # detail once, at the end.
+                first_error = (rel, exc)
             continue
         print(
             f"  {str(rel):<58} iter={summary['iter']}  "
@@ -306,7 +325,14 @@ def main(argv=None):
 
     print(f"\nReports written to {args.outdir}/")
     if failures:
-        print(f"{failures} checkpoint(s) failed to load.", file=sys.stderr)
+        print(f"{failures} of {len(checkpoints)} checkpoint(s) failed to load.",
+              file=sys.stderr)
+        if first_error is not None:
+            rel, exc = first_error
+            print(f"\nFirst failure was {rel}:", file=sys.stderr)
+            for line in str(exc).splitlines():
+                print(f"  {line}", file=sys.stderr)
+            print("\nRe-run with --verbose for full tracebacks.", file=sys.stderr)
     return 0
 
 
