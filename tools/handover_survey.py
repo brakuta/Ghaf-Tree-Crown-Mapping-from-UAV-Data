@@ -45,6 +45,37 @@ def dir_size(path):
     return total, files
 
 
+def resolve_checkpoint(raw, work_dirs):
+    """Turn a recorded load_from into a real path.
+
+    mmengine stores whatever was typed on the command line, so the value may be
+    absolute, or relative to the MMSegmentation root rather than to wherever
+    this script runs. Resolving against the wrong base makes an existing
+    checkpoint look deleted - a dangerous thing to get wrong when deciding what
+    to rescue before losing a machine.
+
+    Tries the bases a relative path is plausibly written against, then walks
+    leading components off the path, so a value like "work_dirs/run/x.pth"
+    still resolves when pointed straight at the work_dirs directory.
+    """
+    if not raw or raw in ("None", None):
+        return None, False
+    text = str(raw).replace("\\", "/")
+    direct = pathlib.Path(text)
+    if direct.is_absolute():
+        return str(direct), direct.is_file()
+
+    root = work_dirs.resolve()
+    parts = pathlib.PurePosixPath(text).parts
+    for base in (root.parent, root, root.parent.parent):
+        for i in range(len(parts)):
+            candidate = base.joinpath(*parts[i:])
+            if candidate.is_file():
+                return str(candidate), True
+    # Nothing matched; report the most likely intended location.
+    return str(root.parent / text), False
+
+
 def config_beside(log_path):
     """The dumped config mmengine writes next to a log, if it is there."""
     candidate = log_path.parent / "vis_data" / "config.py"
@@ -156,9 +187,12 @@ def main(argv=None):
     # Everything the evaluations depend on.
     checkpoints, data_roots = {}, {}
     for r in records:
-        ck = r.get("load_from")
-        if ck and ck not in (None, "None"):
-            checkpoints.setdefault(ck, []).append(pathlib.Path(r["log"]).parent.name)
+        resolved, exists = resolve_checkpoint(r.get("load_from"), args.work_dirs)
+        r["load_from_resolved"] = resolved
+        r["load_from_exists"] = exists
+        if resolved:
+            checkpoints.setdefault(resolved, []).append(
+                pathlib.Path(r["log"]).parent.name)
         for split in ("train", "val", "test"):
             block = r.get(split) or {}
             if block.get("data_root"):
