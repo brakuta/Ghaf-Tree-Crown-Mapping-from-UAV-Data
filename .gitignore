@@ -47,14 +47,17 @@ mmseg/.mim/
 *.log
 *.log.json
 
-# Training logs of the released runs ARE tracked: they back the loss curves
-# and the reported metrics, and they are small.
+# Logs of the released runs ARE tracked: they are the evidence behind every
+# reported figure, and without weights they are small.
 !pretrained/**/*.log
 !pretrained/**/*.log.json
 !pretrained/**/scalars.json
 !Pretrained-weights/**/*.log
 !Pretrained-weights/**/*.log.json
 !Pretrained-weights/**/scalars.json
+!provenance/**/*.log
+!provenance/**/*.log.json
+!provenance/**/scalars.json
 
 # --- Python ---
 __pycache__/
