@@ -52,6 +52,9 @@ mmseg/.mim/
 !pretrained/**/*.log
 !pretrained/**/*.log.json
 !pretrained/**/scalars.json
+!Pretrained-weights/**/*.log
+!Pretrained-weights/**/*.log.json
+!Pretrained-weights/**/scalars.json
 
 # --- Python ---
 __pycache__/
