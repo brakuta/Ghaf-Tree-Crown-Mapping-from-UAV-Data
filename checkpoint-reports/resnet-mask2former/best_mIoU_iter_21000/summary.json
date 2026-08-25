@@ -1,0 +1,47 @@
+{
+  "checkpoint": "Pretrained-weights\\resnet-mask2former\\best_mIoU_iter_21000.pth",
+  "load_mode": "full",
+  "size_bytes": 286585967,
+  "iter": 21000,
+  "epoch": 0,
+  "experiment_name": "mask2former_swin-s_8xb2-160k_ade20k-512x512_20250225_151956",
+  "seed": 1603177949,
+  "time": "20250225_211406",
+  "mmengine_version": "0.10.6b040e147adfa027bbc071b624bedf0ae84dfc922",
+  "dataset_meta": {
+    "classes": [
+      "background",
+      "ghaf"
+    ],
+    "palette": [
+      [
+        120,
+        120,
+        120
+      ],
+      [
+        180,
+        120,
+        120
+      ]
+    ],
+    "label_map": null,
+    "reduce_zero_label": false
+  },
+  "config_recovered": true,
+  "total_parameters": 68777125,
+  "parameters_by_module": {
+    "backbone": 48896226,
+    "decode_head": 19880899
+  },
+  "backbone_stage_widths": [
+    [
+      "backbone.patch_embed.projection.weight",
+      96
+    ]
+  ],
+  "top_level_keys": [
+    "message_hub",
+    "meta"
+  ]
+}

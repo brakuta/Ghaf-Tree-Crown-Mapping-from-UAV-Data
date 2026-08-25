@@ -1,0 +1,62 @@
+{
+  "checkpoint": "Pretrained-weights\\convnext\\iter_14000.pth",
+  "load_mode": "full",
+  "size_bytes": 983511196,
+  "iter": 14000,
+  "epoch": 0,
+  "experiment_name": "convnext-small_upernet_8xb2-amp-160k_ade20k-512x512_20250306_142034",
+  "seed": 898754552,
+  "time": "20250306_165755",
+  "mmengine_version": "0.10.6b040e147adfa027bbc071b624bedf0ae84dfc922",
+  "dataset_meta": {
+    "classes": [
+      "background",
+      "ghaf"
+    ],
+    "palette": [
+      [
+        120,
+        120,
+        120
+      ],
+      [
+        180,
+        120,
+        120
+      ]
+    ],
+    "label_map": null,
+    "reduce_zero_label": false
+  },
+  "config_recovered": true,
+  "total_parameters": 81776049,
+  "parameters_by_module": {
+    "backbone": 49456032,
+    "decode_head": 31433742,
+    "auxiliary_head": 886275
+  },
+  "backbone_stage_widths": [
+    [
+      "backbone.downsample_layers.0.0.weight",
+      96
+    ],
+    [
+      "backbone.downsample_layers.1.1.weight",
+      192
+    ],
+    [
+      "backbone.downsample_layers.2.1.weight",
+      384
+    ],
+    [
+      "backbone.downsample_layers.3.1.weight",
+      768
+    ]
+  ],
+  "top_level_keys": [
+    "message_hub",
+    "meta",
+    "optimizer",
+    "param_schedulers"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "log_scalars": {
+    "train/lr": "(array([0.0002    , 0.0002    , 0.00019999, ..., 0.00015346, 0.00015346,\n       0.00015345]), array([1, 1, 1, ..., 1, 1, 1]))",
+    "train/data_time": "(array([0.00300646, 0.00904465, 0.00704956, ..., 0.00700021, 0.00800014,\n       0.00699949]), array([1, 1, 1, ..., 1, 1, 1]))",
+    "train/loss": "(array([0.6079098 , 0.56031787, 0.54909241, ..., 0.0663083 , 0.02574047,\n       0.05176463]), array([1, 1, 1, ..., 1, 1, 1]))",
+    "train/decode.loss_ce": "(array([0.6079098 , 0.56031787, 0.54909241, ..., 0.0663083 , 0.02574047,\n       0.05176463]), array([1, 1, 1, ..., 1, 1, 1]))",
+    "train/decode.acc_seg": "(array([85.63709259, 91.46942902, 88.75479889, ..., 97.73249817,\n       98.86698914, 97.94239807]), array([1, 1, 1, ..., 1, 1, 1]))",
+    "train/time": "(array([19.55478382,  0.39726019,  0.40679812, ...,  0.41100001,\n        0.42000079,  0.39799905]), array([1, 1, 1, ..., 1, 1, 1]))",
+    "val/data_time": "(array([1.50194964e+01, 4.99939919e-03, 3.04532051e-03, ...,\n       2.00009346e-03, 2.00223923e-03, 2.00080872e-03]), array([1, 1, 1, ..., 1, 1, 1]))",
+    "val/time": "(array([20.23571277,  0.1869669 ,  0.16037631, ...,  0.16299748,\n        0.15899754,  0.16295767]), array([1, 1, 1, ..., 1, 1, 1]))",
+    "val/aAcc": "(array([96.21, 97.24]), array([1, 1]))",
+    "val/mIoU": "(array([72.71, 76.45]), array([1, 1]))",
+    "val/mAcc": "(array([93.38, 91.45]), array([1, 1]))",
+    "val/mFscore": "(array([82.04, 85.07]), array([1, 1]))",
+    "val/mPrecision": "(array([75.85, 80.56]), array([1, 1]))",
+    "val/mRecall": "(array([93.38, 91.45]), array([1, 1]))"
+  },
+  "runtime_info": {
+    "cfg": "checkpoint_file = 'https://download.openmmlab.com/mmclassification/v0/poolformer/poolformer-s36_3rdparty_32xb128_in1k_20220414-d78ff3e8.pth'\ncrop_size = (\n    1024,\n    1024,\n)\ncustom_imports = dict(\n    allow_failed_imports=False, imports=[\n        'mmpretrain.models',\n    ])\ndata_preprocessor = dict(\n    bgr_to_rgb=True,\n    mean=[\n        123.675,\n        116.28,\n        103.53,\n    ],\n    pad_val=0,\n    seg_pad_val=255,\n    size=(\n        1024,\n        1024,\n    ),\n    std=[\n        58.395,\n        57.12,\n        57.375,\n    ],\n    type='SegDataPreProcessor')\ndata_root = 'C:\\\\ghaf'\ndataset_type = 'ADE20KDataset'\ndefault_hooks = dict(\n    checkpoint=dict(by_epoch=False, interval=3400, type='CheckpointHook'),\n    logger=dict(interval=50, log_metric_by_epoch=False, type='LoggerHook'),\n    param_scheduler=dict(type='ParamSchedulerHook'),\n    sampler_seed=dict(type='DistSamplerSeedHook'),\n    timer=dict(type='IterTimerHook'),\n    visualization=dict(type='SegVisualizationHook'))\ndefault_scope = 'mmseg'\nenv_cfg = dict(\n    cudnn_benchmark=True,\n    dist_cfg=dict(backend='nccl'),\n    mp_cfg=dict(mp_start_method='fork', opencv_num_threads=0))\nimg_norm_cfg = dict(\n    mean=[\n        123.675,\n        116.28,\n        103.53,\n    ],\n    std=[\n        58.395,\n        57.12,\n        57.375,\n    ],\n    to_rgb=True)\nimg_ratios = [\n    0.5,\n    0.75,\n    1.0,\n    1.25,\n    1.5,\n    1.75,\n]\nlauncher = 'none'\nload_from = None\nlog_level = 'INFO'\nlog_processor = dict(by_epoch=False)\nmodel = dict(\n    backbone=dict(\n        arch='s36',\n        down_pad=1,\n        down_patch_size=3,\n        down_stride=2,\n        drop_path_rate=0.0,\n        drop_rate=0.0,\n        frozen_stages=0,\n        in_pad=2,\n        in_patch_size=7,\n        in_stride=4,\n        init_cfg=dict(\n            checkpoint=\n            'https://download.openmmlab.com/mmclassification/v0/poolformer/poolformer-s36_3rdparty_32xb128_in1k_20220414-d78ff3e8.pth',\n            prefix='backbone.',\n            type='Pretrained'),\n        out_indices=(\n            0,\n            2,\n            4,\n            6,\n        ),\n        type='mmpretrain.PoolFormer'),\n    data_preprocessor=dict(\n        bgr_to_rgb=True,\n        mean=[\n            123.675,\n            116.28,\n            103.53,\n        ],\n        pad_val=0,\n        seg_pad_val=255,\n        size=(\n            1024,\n            1024,\n        ),\n        std=[\n            58.395,\n            57.12,\n            57.375,\n        ],\n        type='SegDataPreProcessor'),\n    decode_head=dict(\n        align_corners=False,\n        channels=128,\n        dropout_ratio=0.1,\n        feature_strides=[\n            4,\n            8,\n            16,\n            32,\n        ],\n        in_channels=[\n            256,\n            256,\n            256,\n            256,\n        ],\n        in_index=[\n            0,\n            1,\n            2,\n            3,\n        ],\n        loss_decode=dict(\n            loss_weight=1.0, type='CrossEntropyLoss', use_sigmoid=False),\n        norm_cfg=dict(requires_grad=True, type='SyncBN'),\n        num_classes=2,\n        type='FPNHead'),\n    neck=dict(\n        in_channels=[\n            64,\n            128,\n            320,\n            512,\n        ],\n        num_outs=4,\n        out_channels=256,\n        type='FPN'),\n    test_cfg=dict(mode='whole'),\n    train_cfg=dict(),\n    type='EncoderDecoder')\nnorm_cfg = dict(requires_grad=True, type='SyncBN')\noptim_wrapper = dict(\n    optimizer=dict(lr=0.0002, type='AdamW', weight_decay=0.0001),\n    type='AmpOptimWrapper')\noptimizer = dict(lr=0.01, momentum=0.9, type='SGD', weight_decay=0.0005)\nparam_scheduler = [\n    dict(\n        begin=0,\n        by_epoch=False,\n        end=40000,\n        eta_min=0.0,\n        power=0.9,\n        type='PolyLR'),\n]\nresume = False\ntest_cfg = dict(type='TestLoop')\ntest_dataloader = dict(\n    batch_size=1,\n    dataset=dict(\n        data_prefix=dict(\n            img_path='validation/images', seg_map_path='validation/masks'),\n        data_root='C:\\\\ghaf',\n        pipeline=[\n            dict(type='LoadImageFromFile'),\n            dict(reduce_zero_label=False, type='LoadAnnotations'),\n            dict(type='PackSegInputs'),\n        ],\n        type='ADE20KDataset'),\n    num_workers=2,\n    persistent_workers=True,\n    sampler=dict(shuffle=False, type='DefaultSampler'))\ntest_evaluator = dict(\n    iou_metrics=[\n        'mIoU',\n        'mFscore',\n    ], type='IoUMetric')\ntest_pipeline = [\n    dict(type='LoadImageFromFile'),\n    dict(reduce_zero_label=False, type='LoadAnnotations'),\n    dict(type='PackSegInputs'),\n]\ntrain_cfg = dict(\n    max_iters=160000, type='IterBasedTrainLoop', val_interval=3500)\ntrain_dataloader = dict(\n    batch_size=2,\n    dataset=dict(\n        data_prefix=dict(\n            img_path='training/images', seg_map_path='training/masks'),\n        data_root='C:\\\\ghaf',\n        pipeline=[\n            dict(type='LoadImageFromFile'),\n            dict(reduce_zero_label=False, type='LoadAnnotations'),\n            dict(prob=0.5, type='RandomFlip'),\n            dict(type='PackSegInputs'),\n        ],\n        type='ADE20KDataset'),\n    num_workers=2,\n    persistent_workers=True,\n    sampler=dict(shuffle=True, type='InfiniteSampler'))\ntrain_pipeline = [\n    dict(type='LoadImageFromFile'),\n    dict(reduce_zero_label=False, type='LoadAnnotations'),\n    dict(prob=0.5, type='RandomFlip'),\n    dict(type='PackSegInputs'),\n]\ntta_model = dict(type='SegTTAModel')\nval_cfg = dict(type='ValLoop')\nval_dataloader = dict(\n    batch_size=1,\n    dataset=dict(\n        data_prefix=dict(\n            img_path='validation/images', seg_map_path='validation/masks'),\n        data_root='C:\\\\ghaf',\n        pipeline=[\n            dict(type='LoadImageFromFile'),\n            dict(reduce_zero_label=False, type='LoadAnnotations'),\n            dict(type='PackSegInputs'),\n        ],\n        type='ADE20KDataset'),\n    num_workers=2,\n    persistent_workers=True,\n    sampler=dict(shuffle=False, type='DefaultSampler'))\nval_evaluator = dict(\n    iou_metrics=[\n        'mIoU',\n        'mFscore',\n    ], type='IoUMetric')\nvis_backends = [\n    dict(type='LocalVisBackend'),\n]\nvisualizer = dict(\n    name='visualizer',\n    type='SegLocalVisualizer',\n    vis_backends=[\n        dict(type='LocalVisBackend'),\n    ])\nwork_dir = './work_dirs\\\\fpn_poolformer_s36_8x4_512x512_40k_ade20kpool'\n",
+    "seed": 1090326572,
+    "experiment_name": "fpn_poolformer_s36_8x4_512x512_40k_ade20k_20250309_005445",
+    "mmengine_version": "0.10.6b040e147adfa027bbc071b624bedf0ae84dfc922",
+    "loop_stage": "train",
+    "epoch": 0,
+    "iter": 10199,
+    "max_epochs": 1,
+    "max_iters": 160000,
+    "dataset_meta": {
+      "classes": [
+        "background",
+        "ghaf"
+      ],
+      "palette": [
+        [
+          120,
+          120,
+          120
+        ],
+        [
+          180,
+          120,
+          120
+        ]
+      ],
+      "label_map": null,
+      "reduce_zero_label": false
+    },
+    "eta": "<memory at 0x0000018036380F40>",
+    "last_ckpt": "G:\\experiments\\mmsegmentation\\work_dirs\\fpn_poolformer_s36_8x4_512x512_40k_ade20kpool\\iter_10200.pth"
+  }
+}

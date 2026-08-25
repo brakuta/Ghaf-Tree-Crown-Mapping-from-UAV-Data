@@ -1,0 +1,134 @@
+{
+  "checkpoint": "Pretrained-weights\\efficientnet\\iter_6800.pth",
+  "load_mode": "full",
+  "size_bytes": 108104299,
+  "iter": 6800,
+  "epoch": 0,
+  "experiment_name": "efficient_20250309_140341",
+  "seed": 1807058728,
+  "time": "20250309_143458",
+  "mmengine_version": "0.10.6b040e147adfa027bbc071b624bedf0ae84dfc922",
+  "dataset_meta": {
+    "classes": [
+      "background",
+      "ghaf"
+    ],
+    "palette": [
+      [
+        120,
+        120,
+        120
+      ],
+      [
+        180,
+        120,
+        120
+      ]
+    ],
+    "label_map": null,
+    "reduce_zero_label": false
+  },
+  "config_recovered": true,
+  "total_parameters": 13734524,
+  "parameters_by_module": {
+    "backbone": 10783606,
+    "neck": 1916416,
+    "decode_head": 1034502
+  },
+  "backbone_stage_widths": [
+    [
+      "backbone.layers.0.conv.weight",
+      40
+    ],
+    [
+      "backbone.layers.1.0.se.conv1.conv.weight",
+      10
+    ],
+    [
+      "backbone.layers.1.0.linear_conv.conv.weight",
+      24
+    ],
+    [
+      "backbone.layers.1.1.se.conv1.conv.weight",
+      6
+    ],
+    [
+      "backbone.layers.2.0.expand_conv.conv.weight",
+      144
+    ],
+    [
+      "backbone.layers.2.0.linear_conv.conv.weight",
+      32
+    ],
+    [
+      "backbone.layers.2.1.expand_conv.conv.weight",
+      192
+    ],
+    [
+      "backbone.layers.2.1.se.conv1.conv.weight",
+      8
+    ],
+    [
+      "backbone.layers.3.0.linear_conv.conv.weight",
+      48
+    ],
+    [
+      "backbone.layers.3.1.expand_conv.conv.weight",
+      288
+    ],
+    [
+      "backbone.layers.3.1.se.conv1.conv.weight",
+      12
+    ],
+    [
+      "backbone.layers.4.0.linear_conv.conv.weight",
+      96
+    ],
+    [
+      "backbone.layers.4.1.expand_conv.conv.weight",
+      576
+    ],
+    [
+      "backbone.layers.4.5.linear_conv.conv.weight",
+      136
+    ],
+    [
+      "backbone.layers.4.6.expand_conv.conv.weight",
+      816
+    ],
+    [
+      "backbone.layers.4.6.se.conv1.conv.weight",
+      34
+    ],
+    [
+      "backbone.layers.5.0.linear_conv.conv.weight",
+      232
+    ],
+    [
+      "backbone.layers.5.1.expand_conv.conv.weight",
+      1392
+    ],
+    [
+      "backbone.layers.5.1.se.conv1.conv.weight",
+      58
+    ],
+    [
+      "backbone.layers.5.6.linear_conv.conv.weight",
+      384
+    ],
+    [
+      "backbone.layers.5.7.expand_conv.conv.weight",
+      2304
+    ],
+    [
+      "backbone.layers.6.conv.weight",
+      1536
+    ]
+  ],
+  "top_level_keys": [
+    "message_hub",
+    "meta",
+    "optimizer",
+    "param_schedulers"
+  ]
+}
