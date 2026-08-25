@@ -245,18 +245,47 @@ def report(path, outdir):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("root", type=pathlib.Path,
-                        help="directory searched recursively for *.pth")
+                        help="directory searched recursively for checkpoints")
     parser.add_argument("-o", "--outdir", type=pathlib.Path,
                         default=pathlib.Path("checkpoint-reports"),
                         help="where to write the reports")
+    parser.add_argument("--glob", default="*.pth",
+                        help="filename pattern to match (default: %(default)s). "
+                             "A work_dirs tree holds a periodic checkpoint every "
+                             "few thousand iterations; 'best_*.pth' skips those.")
+    parser.add_argument("--max-per-dir", type=int, default=0, metavar="N",
+                        help="keep only the N most recently modified matches in "
+                             "each directory (default: no limit)")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="list what would be read, with sizes, and stop")
     args = parser.parse_args(argv)
 
-    checkpoints = sorted(args.root.rglob("*.pth"))
+    checkpoints = sorted(args.root.rglob(args.glob))
     if not checkpoints:
-        print(f"No .pth files found under {args.root}", file=sys.stderr)
+        print(f"No files matching {args.glob!r} under {args.root}", file=sys.stderr)
         return 1
 
-    print(f"Found {len(checkpoints)} checkpoint(s) under {args.root}\n")
+    if args.max_per_dir:
+        by_dir = {}
+        for path in checkpoints:
+            by_dir.setdefault(path.parent, []).append(path)
+        kept = []
+        for group in by_dir.values():
+            group.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+            kept.extend(group[: args.max_per_dir])
+        checkpoints = sorted(kept)
+
+    total_bytes = sum(p.stat().st_size for p in checkpoints)
+
+    if args.dry_run:
+        for path in checkpoints:
+            print(f"  {path.stat().st_size / 2**20:9.1f} MB  {path}")
+        print(f"\n{len(checkpoints)} file(s), "
+              f"{total_bytes / 2**30:.2f} GB to read. Re-run without --dry-run.")
+        return 0
+
+    print(f"Found {len(checkpoints)} checkpoint(s) under {args.root} "
+          f"({total_bytes / 2**30:.2f} GB to read)\n")
     failures = 0
     for path in checkpoints:
         # Mirror the layout under root so sibling runs stay distinguishable.
