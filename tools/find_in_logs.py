@@ -20,6 +20,9 @@ def main(argv=None):
     parser.add_argument("pattern", help="literal text to look for, e.g. 80.14")
     parser.add_argument("--ext", nargs="+", default=[".json", ".log", ".txt", ".py"],
                         help="file extensions to search (default: %(default)s)")
+    parser.add_argument("--max-per-file", type=int, default=1, metavar="N",
+                        help="matching lines to show per file (default: %(default)s; "
+                             "0 shows every match)")
     args = parser.parse_args(argv)
 
     exts = {e.lower() for e in args.ext}
@@ -35,9 +38,13 @@ def main(argv=None):
         if args.pattern in text:
             hits += 1
             print(path)
+            shown = 0
             for n, line in enumerate(text.splitlines(), 1):
-                if args.pattern in line:
-                    print(f"    {n}: {line.strip()[:180]}")
+                if args.pattern not in line:
+                    continue
+                print(f"    {n}: {line.strip()[:400]}")
+                shown += 1
+                if args.max_per_file and shown >= args.max_per_file:
                     break
 
     print(f"\n{hits} file(s) contain {args.pattern!r}, out of {scanned} searched.",
