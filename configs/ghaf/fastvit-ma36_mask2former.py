@@ -19,7 +19,8 @@ data_preprocessor = {{_base_.data_preprocessor}}
 
 model = dict(
     data_preprocessor=data_preprocessor,
-    **{'backbone': {'resume': 'https://docs-assets.developer.apple.com/ml-research/models/fastvit/image_classification_distilled_models/fastvit_ma36.pth.tar',
+    **{'backbone': {'init_cfg': {'checkpoint': 'https://docs-assets.developer.apple.com/ml-research/models/fastvit/image_classification_distilled_models/fastvit_ma36.pth.tar',
+                                'type': 'Pretrained'},
                   'type': 'FastViTMA36'},
      'decode_head': {'align_corners': False,
                      'enforce_decoder_input_project': False,

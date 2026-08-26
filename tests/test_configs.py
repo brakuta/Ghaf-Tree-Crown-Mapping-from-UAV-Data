@@ -101,3 +101,33 @@ def test_custom_backbone_widths_match_their_consumers(name, channels):
     c = load(name)
     node = c.model.get('neck') or c.model.decode_head
     assert list(node['in_channels']) == channels
+
+
+@pytest.mark.parametrize('name', NAMES)
+def test_every_backbone_declares_its_pretrained_weights(name):
+    """Every model starts from ImageNet, and must say so in a form that works.
+
+    mmseg loads pretrained weights through ``init_cfg``; any other keyword is
+    absorbed by the backbone's ``**kwargs`` and silently ignored, leaving the
+    model randomly initialised while the config appears to ask otherwise.
+    DPN-98 is the exception: timm fetches its own weights via ``pretrained``.
+    """
+    backbone = load(name).model.backbone
+    if backbone.type == 'DPN98Backbone':
+        assert backbone.get('init_cfg') is None
+        return
+
+    init_cfg = backbone.get('init_cfg')
+    assert init_cfg is not None, f'{name} declares no pretrained weights'
+    assert init_cfg['type'] == 'Pretrained'
+    assert init_cfg.get('checkpoint'), f'{name} init_cfg has no checkpoint'
+
+
+@pytest.mark.parametrize('name', NAMES)
+def test_no_backbone_uses_an_ignored_initialisation_keyword(name):
+    """``resume`` and friends look like they load weights, and do not."""
+    backbone = load(name).model.backbone
+    for ignored in ('resume', 'pretrained_path', 'weights'):
+        assert ignored not in backbone, (
+            f'{name} passes {ignored}=..., which the backbone swallows in '
+            f'**kwargs; use init_cfg=dict(type="Pretrained", checkpoint=...)')

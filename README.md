@@ -196,7 +196,7 @@ tools/
 ├── train.py · test.py     thin wrappers over the mmengine runner
 ├── smoke_test.py          build every model, check parameter counts
 └── export_release.py      assemble the shareable bundle
-tests/                     120 tests; mmengine and NumPy, plus
+tests/                     153 tests; mmengine and NumPy, plus torch, timm,
                            rasterio and geopandas for the end-to-end ones
 docs/                      model zoo, area-wide inference, release bundle
 ```
@@ -204,7 +204,7 @@ docs/                      model zoo, area-wide inference, release bundle
 ## Testing
 
 ```bash
-pytest tests/ -q            # 120 tests: no GPU, mmcv or dataset required
+pytest tests/ -q            # 153 tests: no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
 ```
 
@@ -216,6 +216,12 @@ result), the configurations (each declares its intended recipe, the binary task
 stays consistently specified, all six share one evaluation protocol), and the
 released-model registry (digests well-formed and unique, integrity checks
 reject wrong sizes and wrong contents).
+
+The two custom backbones are built and executed: FastViT-MA36 is checked to
+have stage depths `[6, 6, 18, 6]` and widths `[76, 152, 304, 608]`, DPN-98 to
+emit five scales at `[96, 336, 768, 1728, 2688]`, each config to consume
+exactly what its backbone produces, and pretrained weights to load through
+`init_cfg`.
 
 Area-wide inference is tested end to end against real GeoTIFFs with a stubbed
 segmentor: outputs are georeferenced to the source CRS, a uniform prediction
@@ -271,7 +277,9 @@ Machine-readable metadata is in [`CITATION.cff`](CITATION.cff); GitHub's
 
 ## License
 
-Released under the Apache License 2.0, following mmsegmentation.
+Apache License 2.0 — see [`LICENSE`](LICENSE), with third-party attributions in
+[`NOTICE`](NOTICE).
+
 `ghaf/models/fastvit.py` and `ghaf/models/modules/` derive from
 [Apple's FastViT](https://github.com/apple/ml-fastvit) and retain its copyright
 notice. DPN-98 and several baseline backbones are obtained through

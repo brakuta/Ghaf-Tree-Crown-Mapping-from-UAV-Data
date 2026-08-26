@@ -1,4 +1,8 @@
-Copyright 2020 The MMSegmentation Authors. All rights reserved.
+Copyright 2025 The Ghaf Tree-Crown Mapping Authors. All rights reserved.
+
+Portions of this work derive from MMSegmentation (Copyright 2020 The
+MMSegmentation Authors) and from Apple FastViT (Copyright 2023 Apple
+Inc.), both under this same licence. See the NOTICE file.
 
                                  Apache License
                            Version 2.0, January 2004

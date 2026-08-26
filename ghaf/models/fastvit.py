@@ -11,8 +11,9 @@ import torch
 import torch.nn as nn
 # from mmseg.models.builder import BACKBONES
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
-from timm.models.layers import DropPath, trunc_normal_
-from timm.models.registry import register_model
+# timm.models.layers was relocated to timm.layers; the old path still works but
+# emits a FutureWarning on every import.
+from timm.layers import DropPath, trunc_normal_
 from mmseg.registry import MODELS
 
 from ghaf.models.modules.mobileone import MobileOneBlock

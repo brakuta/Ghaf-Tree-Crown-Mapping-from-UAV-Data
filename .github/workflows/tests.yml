@@ -30,9 +30,9 @@ jobs:
           # Optional: enables the end-to-end inference tests, which write and
           # read real GeoTIFFs. Without these the suite skips them rather than
           # failing.
-          pip install "rasterio>=1.3" "geopandas>=0.13" torch --index-url \
-            https://download.pytorch.org/whl/cpu || \
-            pip install "rasterio>=1.3" "geopandas>=0.13" torch
+          pip install "rasterio>=1.3" "geopandas>=0.13" "timm==1.0.19" \
+            torch --index-url https://download.pytorch.org/whl/cpu || \
+            pip install "rasterio>=1.3" "geopandas>=0.13" "timm==1.0.19" torch
 
       - name: Lint
         run: |

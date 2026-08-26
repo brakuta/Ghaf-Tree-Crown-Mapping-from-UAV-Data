@@ -35,10 +35,22 @@ iterations with the best-mIoU checkpoint retained.
 | `poolformer-s36_fpn` | AdamW | 2e-4 | 1e-4 | mixed |
 | `efficientnet-b3_fpn` | SGD | 0.01 | 5e-4 | fp32 |
 
-Backbone weights are initialised from ImageNet. ResNet-50 uses
-`torchvision://resnet50`; ConvNeXt-S, PoolFormer-S36 and EfficientNet-B3 use
-the mmpretrain releases named in their configs; DPN-98 uses timm's
-`dpn98.mx_in1k`.
+All six backbones start from ImageNet weights, declared in each config as
+`init_cfg=dict(type='Pretrained', checkpoint=...)`:
+
+| Backbone | Weights |
+|---|---|
+| FastViT-MA36 | Apple's `fastvit_ma36.pth.tar` |
+| ResNet-50 | `torchvision://resnet50` |
+| ConvNeXt-S | `convnext-small_3rdparty_32xb128-noema_in1k` (mmpretrain) |
+| PoolFormer-S36 | `poolformer-s36_3rdparty_32xb128_in1k` (mmpretrain) |
+| EfficientNet-B3 | `efficientnet-b3_3rdparty_8xb32-aa_in1k` (mmpretrain) |
+| DPN-98 | `dpn98.mx_in1k`, fetched by timm |
+
+`init_cfg` is the only keyword mmsegmentation acts on. Anything else is
+absorbed by a backbone's `**kwargs` and silently ignored, so
+`tests/test_configs.py` asserts that every config declares its weights this
+way and that none uses a keyword that would be dropped.
 
 ## Feature widths
 
