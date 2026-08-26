@@ -4,8 +4,8 @@
     python tools/test.py configs/ghaf/fastvit-ma36_mask2former.py \
         checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth
 
-Reports mIoU, mDice and mFscore over ``testing/ghaf26`` -- the protocol every
-published number in the paper was produced under.
+Reports mIoU, mDice and mFscore over the held-out ``testing/ghaf26`` split --
+the protocol all published results use.
 """
 
 import argparse

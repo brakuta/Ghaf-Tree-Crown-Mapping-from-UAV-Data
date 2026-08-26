@@ -1,8 +1,9 @@
-"""The six published configs must keep matching the archived training runs.
+"""Guard the training recipe of the six published configs.
 
-These tests need only mmengine (pure Python) -- not mmcv, torch or a GPU -- so
-they guard the configs in CI. They check the recipe, not that a model can be
-built; ``tools/smoke_test.py`` does that on a machine with the full stack.
+These need only mmengine (pure Python) -- not mmcv, torch, a GPU or the
+dataset -- so they run in CI on every change. They check that each config still
+declares the recipe it is supposed to, and that the six remain mutually
+comparable. Building an actual model is ``tools/smoke_test.py``'s job.
 """
 
 from pathlib import Path
@@ -13,7 +14,7 @@ from mmengine.config import Config
 CONFIG_DIR = Path(__file__).resolve().parent.parent / 'configs' / 'ghaf'
 
 #: backbone, decode head, optimiser, lr, weight decay, optim wrapper.
-#: Transcribed from ``provenance/``; see ``docs/PROVENANCE.md``.
+#: These are the settings each published model was trained with.
 EXPECTED = {
     'fastvit-ma36_mask2former': ('FastViTMA36', 'Mask2FormerHead', 'AdamW', 1e-4, 0.05, 'OptimWrapper'),
     'resnet-50_mask2former':    ('ResNet', 'Mask2FormerHead', 'AdamW', 1e-4, 0.05, 'OptimWrapper'),
@@ -31,13 +32,13 @@ def load(name: str) -> Config:
 
 
 def test_every_config_is_covered():
-    """A new config must not slip in without an expected recipe."""
+    """A new config must not slip in without a declared expected recipe."""
     on_disk = {p.stem for p in CONFIG_DIR.glob('*.py')}
     assert on_disk == set(EXPECTED), f'untested configs: {on_disk ^ set(EXPECTED)}'
 
 
 @pytest.mark.parametrize('name', NAMES)
-def test_recipe_matches_the_archived_run(name):
+def test_recipe_is_unchanged(name):
     c, (bb, head, opt, lr, wd, wrapper) = load(name), EXPECTED[name]
     assert c.model.backbone.type == bb
     assert c.model.decode_head.type == head
@@ -49,7 +50,7 @@ def test_recipe_matches_the_archived_run(name):
 
 @pytest.mark.parametrize('name', NAMES)
 def test_binary_task_is_configured_consistently(name):
-    """num_classes=2 with reduce_zero_label=False, or the background class dies."""
+    """num_classes=2 with reduce_zero_label=False, or background is dropped."""
     c = load(name)
     assert c.model.decode_head.num_classes == 2
     for loader in (c.train_dataloader, c.val_dataloader, c.test_dataloader):
@@ -60,8 +61,8 @@ def test_binary_task_is_configured_consistently(name):
 
 
 @pytest.mark.parametrize('name', NAMES)
-def test_crop_size_is_1024_despite_the_filenames(name):
-    """Every archived directory says 512x512; none of them trained at 512."""
+def test_input_size_is_1024(name):
+    """Tiles are fed at native resolution; the preprocessor must agree."""
     c = load(name)
     assert c.crop_size == (1024, 1024)
     assert tuple(c.model.data_preprocessor['size']) == (1024, 1024)
@@ -80,7 +81,7 @@ def test_all_models_share_one_evaluation_protocol(name):
 
 @pytest.mark.parametrize('name', NAMES)
 def test_custom_backbones_are_importable_by_the_registry(name):
-    """Configs must declare custom_imports or the registry lookup fails."""
+    """Configs must declare custom_imports, or the registry lookup fails."""
     c = load(name)
     assert 'ghaf.models' in c.custom_imports['imports']
     assert 'ghaf.datasets' in c.custom_imports['imports']
@@ -91,11 +92,11 @@ def test_custom_backbones_are_importable_by_the_registry(name):
     ('fastvit-ma36_mask2former', [76, 152, 304, 608]),
     ('dpn98_fpn', [96, 336, 768, 1728, 2688]),
 ])
-def test_custom_backbone_widths_match_the_checkpoints(name, channels):
-    """These widths identify the architecture; they are the audit's evidence.
+def test_custom_backbone_widths_match_their_consumers(name, channels):
+    """A neck or head must consume exactly the widths its backbone emits.
 
-    FastViT-SA12 would be [64, 128, 256, 512]; DPN-92 would not produce a
-    2688-wide final stage.
+    A mismatch here builds a model whose weights cannot load, so it is worth
+    pinning the numbers rather than trusting them to stay in sync.
     """
     c = load(name)
     node = c.model.get('neck') or c.model.decode_head

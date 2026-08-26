@@ -1,12 +1,12 @@
 """Ghaf tree-crown mapping from area-wide UAV imagery.
 
 An overlay on a stock mmsegmentation install: importing the submodules
-registers this project's dataset and custom backbones, and no file inside
-``mmseg`` is patched.
+registers this project's dataset and backbones, and no file inside ``mmseg``
+is modified.
 
-Registration is explicit rather than a side effect of ``import ghaf``, so that
-the dependency-free parts of the package (``ghaf.inference.tiling``) stay
-importable without mmcv, torch, or a GPU.
+Registration is explicit rather than a side effect of ``import ghaf``, so the
+dependency-free parts of the package (``ghaf.inference.tiling``) stay
+importable without mmcv, torch or a GPU.
 
 The configs pull the registrations in the idiomatic mmengine way::
 
@@ -31,6 +31,6 @@ def register_all() -> None:
 
     Raises:
         ImportError: if mmsegmentation or its dependencies are missing. See
-            ``docs/REPRODUCE.md`` for the supported versions.
+            the README for the supported versions.
     """
     from . import datasets, models  # noqa: F401  (imported for registration)

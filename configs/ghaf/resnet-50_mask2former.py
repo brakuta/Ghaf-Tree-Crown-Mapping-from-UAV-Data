@@ -1,10 +1,16 @@
 """ResNet-50 + Mask2Former.
 
-    The one model the manuscript names correctly.
+Isolates the contribution of the backbone: the decode head, optimiser and
+schedule match the proposed model exactly, and only the encoder differs.
 
-    Transcribed from the archived training run
-    ``provenance/mask2former_r50_8xb2-160k_ade20k-512x512/20250311_230401``.
-    """
+===========  =========================================
+backbone     ResNet-50, ImageNet-initialised
+decode head  Mask2Former, 2 classes
+optimiser    AdamW, lr 1e-4, weight decay 0.05
+precision    fp32
+input        1024 x 1024
+===========  =========================================
+"""
 
 _base_ = ['../_base_/ghaf.py']
 

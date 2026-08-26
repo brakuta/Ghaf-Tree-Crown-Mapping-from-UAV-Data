@@ -24,8 +24,8 @@ def parse_args(argv=None):
     p.add_argument('--resume', action='store_true',
                    help='resume from the latest checkpoint in --work-dir')
     p.add_argument('--amp', action='store_true',
-                   help='enable mixed precision (already on for ConvNeXt and '
-                        'PoolFormer, whose configs set AmpOptimWrapper)')
+                   help='enable mixed precision; a no-op for configs that '
+                        'already set AmpOptimWrapper')
     p.add_argument('--cfg-options', nargs='+', action=DictAction,
                    help='override config entries, e.g. data_root=/data/ghaf')
     p.add_argument('--launcher', default='none',

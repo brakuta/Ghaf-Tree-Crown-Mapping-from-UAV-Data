@@ -1,4 +1,4 @@
-"""Dataset definition for the Ghaf (*Prosopis cineraria*) crown-mapping task."""
+"""Dataset definition for Ghaf (*Prosopis cineraria*) crown segmentation."""
 
 from mmseg.datasets import BaseSegDataset
 from mmseg.registry import DATASETS
@@ -13,22 +13,20 @@ class GhafDataset(BaseSegDataset):
         0  background
         1  ghaf
 
-    ``reduce_zero_label`` is ``False``: label 0 is a real, supervised class
-    here, not the "ignore" index it denotes in ADE20K-style datasets. Setting
-    it to ``True`` would silently drop the background class and leave a
-    one-class problem behind a ``num_classes=2`` config.
-
-    Images and masks are single-channel-indexed GeoTIFFs sharing a stem::
+    Images and masks are GeoTIFFs sharing a stem, organised as::
 
         <data_root>/
-          training/{images,masks}/*.tif      7005 tiles
-          validation/{images,masks}/*.tif     869 tiles
-          testing/ghaf26/{images,masks}/*.tif 767 tiles
+          training/{images,masks}/*.tif
+          validation/{images,masks}/*.tif
+          testing/ghaf26/{images,masks}/*.tif
 
-    Notes:
-        The original code obtained this by editing ``mmseg/datasets/ade.py``
-        in place, which is why every archived config and working directory is
-        named ``*ade20k*`` despite ADE20K never being involved.
+    Masks are single-band, with pixel values equal to the class index.
+
+    Note:
+        ``reduce_zero_label`` must stay ``False``. Background is a supervised
+        class here, not the ignore index it denotes in ADE20K-style datasets;
+        setting it ``True`` would drop that class and leave a one-class problem
+        behind a ``num_classes=2`` configuration.
     """
 
     METAINFO = dict(

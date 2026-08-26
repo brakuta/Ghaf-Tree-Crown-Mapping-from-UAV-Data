@@ -1,11 +1,15 @@
 """ConvNeXt-S + UPerNet.
 
-    ``arch='small'``, not the tiny variant the manuscript names.
-    Trained with mixed precision (``AmpOptimWrapper``).
+A modernised convolutional encoder with a pyramid-pooling decode head.
 
-    Transcribed from the archived training run
-    ``provenance/convnext-small_upernet_8xb2-amp-160k_ade20k-512x512convnext/20250306_142034``.
-    """
+===========  =========================================
+backbone     ConvNeXt-S (``arch='small'``), 96/192/384/768
+decode head  UPerNet, 2 classes
+optimiser    AdamW, lr 1e-4, weight decay 0.05
+precision    mixed (``AmpOptimWrapper``)
+input        1024 x 1024
+===========  =========================================
+"""
 
 _base_ = ['../_base_/ghaf.py']
 

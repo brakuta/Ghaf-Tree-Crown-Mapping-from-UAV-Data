@@ -1,11 +1,17 @@
 """PoolFormer-S36 + FPN.
 
-    ``arch='s36'``, not S12. Trained with mixed precision.
-    AdamW at lr 2e-4 / wd 1e-4 -- a different setting from the other models.
+MetaFormer with pooling as the token mixer: it tests how much of the
+transformer benefit comes from the architecture rather than attention itself.
 
-    Transcribed from the archived training run
-    ``provenance/fpn_poolformer_s36_8x4_512x512_40k_ade20kpool/20250309_005445``.
-    """
+===========  =========================================
+backbone     PoolFormer-S36 (``arch='s36'``), 64/128/320/512
+neck         FPN, 4 -> 256 channels
+decode head  FPNHead, 2 classes
+optimiser    AdamW, lr 2e-4, weight decay 1e-4
+precision    mixed (``AmpOptimWrapper``)
+input        1024 x 1024
+===========  =========================================
+"""
 
 _base_ = ['../_base_/ghaf.py']
 

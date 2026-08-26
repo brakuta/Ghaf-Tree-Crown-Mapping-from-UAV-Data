@@ -1,16 +1,19 @@
 """DPN-98 + FPN.
 
-    The manuscript calls this DPN-92; the checkpoint is DPN-98
-    (stem 96 channels, bottleneck widths 160/320/640/1280 from ``k_r=160``).
+Dual Path Networks carry a residual path for feature reuse alongside a densely
+connected path for new features. The five feature scales feed a feature
+pyramid, which is why this configuration's neck takes five inputs where the
+others take three or four.
 
-    The backbone is registered as ``coatnet_small_timm`` -- a misnomer. It was
-    never CoAtNet. The recovered source file had its DPN line commented out and
-    built ``nextvit_base`` instead; ``ghaf/models/dpn.py`` restores DPN-98 and
-    keeps the original verbatim under ``ghaf/models/_original/``.
-
-    Transcribed from the archived training run
-    ``provenance/dual_path/20250313_125512``.
-    """
+===========  ==============================================
+backbone     DPN-98, widths 96/336/768/1728/2688
+neck         FPN, 5 -> 256 channels
+decode head  FPNHead, 2 classes
+optimiser    AdamW, lr 1e-4, weight decay 0.05
+precision    fp32
+input        1024 x 1024
+===========  ==============================================
+"""
 
 _base_ = ['../_base_/ghaf.py']
 

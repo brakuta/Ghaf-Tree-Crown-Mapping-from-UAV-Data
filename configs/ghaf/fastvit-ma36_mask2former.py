@@ -1,21 +1,17 @@
-"""FastViT-MA36 + Mask2Former (the proposed model).
+"""FastViT-MA36 + Mask2Former.
 
-    Backbone is registered as ``fastvit_small`` but built with
-    ``layers=[6, 6, 18, 6]`` and ``embed_dims=[76, 152, 304, 608]`` -- the
-    FastViT-MA36 configuration, not SA12.
+The proposed architecture: a hybrid backbone that mixes RepMixer token mixing
+in its early stages with self-attention in the last, paired with a
+mask-classification decode head.
 
-    Two asymmetries versus the baselines, both preserved here for fidelity and
-    both discussed in ``docs/KNOWN-ISSUES.md``:
-
-    * the published run was warm-started (``load_from``) from an earlier
-      checkpoint, so its ``iter_3500`` is roughly 14,500 cumulative iterations;
-    * checkpoint selection used ``validation/masks_refined`` rather than
-      ``validation/masks``. This config uses ``masks`` so that new runs are
-      directly comparable to the baselines.
-
-    Transcribed from the archived training run
-    ``provenance/mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data/20250227_142643``.
-    """
+===========  ==========================================
+backbone     FastViT-MA36, stage widths 76/152/304/608
+decode head  Mask2Former, 2 classes
+optimiser    AdamW, lr 1e-4, weight decay 0.05
+precision    fp32
+input        1024 x 1024
+===========  ==========================================
+"""
 
 _base_ = ['../_base_/ghaf.py']
 

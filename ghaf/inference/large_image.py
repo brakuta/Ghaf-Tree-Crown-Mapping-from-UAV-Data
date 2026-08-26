@@ -11,12 +11,10 @@ Outputs, all sharing the source CRS and geotransform:
 ``--out-mask``
     ``uint8`` GeoTIFF, 1 where P(ghaf) >= ``--threshold``, else 0.
 ``--out-polygons``
-    optional vector file of the crown polygons.
+    optional vector layer of the delineated crowns.
 
-This replaces ``tools/analysis_tools/large_infernce.py`` from the original
-code, which hard-coded its paths, held the whole mosaic in RAM, and dropped
-pixels in the final row and column of windows. Its behaviour is otherwise
-preserved, including the Gaussian blending and its default sigma of 0.4.
+Accumulators are memory-mapped, so the mosaic size that can be processed is
+bounded by free disk rather than RAM.
 """
 
 from __future__ import annotations

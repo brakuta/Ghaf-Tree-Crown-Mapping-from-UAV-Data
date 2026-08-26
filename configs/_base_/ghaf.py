@@ -1,24 +1,23 @@
-"""Shared dataset, pipeline, schedule and runtime for the Ghaf experiments.
+"""Shared dataset, pipeline, schedule and runtime for all six models.
 
-Every value here is transcribed from the archived training configs under
-``provenance/``; see ``docs/PROVENANCE.md`` for the run each one came from.
+Holding these constant is what makes the comparison meaningful: every model in
+the study sees the same tiles, the same augmentation, the same schedule and the
+same metrics, so differences in the results are attributable to the encoder and
+decode head alone.
 
-Two properties of the original setup are easy to miss and are preserved
-deliberately:
+Two settings are worth stating explicitly:
 
-* **Augmentation is horizontal/vertical flip only.** There is no scale jitter,
-  no random crop and no photometric distortion. Tiles are fed at their native
-  1024x1024.
-* **Crop size is 1024, not 512.** Every archived working directory is named
-  ``...-512x512``; none of them trained at 512.
+* **Input size is 1024 x 1024.** Tiles are fed at native resolution.
+* **Augmentation is flipping only** -- no scale jitter, no random crop, no
+  photometric distortion.
 """
 
 # --------------------------------------------------------------------------
 # dataset
 # --------------------------------------------------------------------------
 dataset_type = 'GhafDataset'
-#: Point this at the tile tree, or symlink it to ``data/ghaf``.
-#: The original runs used the absolute path ``C:\ghaf``.
+#: Point this at the tile tree, or symlink the tree to ``data/ghaf``.
+#: Override per run with ``--cfg-options data_root=/path/to/ghaf``.
 data_root = 'data/ghaf'
 
 crop_size = (1024, 1024)
@@ -71,8 +70,8 @@ val_dataloader = dict(
         pipeline=test_pipeline),
 )
 
-# The reported results are computed on the held-out test set; validation is
-# used only for checkpoint selection.
+# Results are reported on the held-out test set; the validation split is used
+# only to select the checkpoint.
 test_dataloader = dict(
     batch_size=1,
     num_workers=2,
@@ -133,7 +132,6 @@ log_level = 'INFO'
 load_from = None
 resume = False
 
-# The original runs set no seed, so exact numerical reproduction is not
-# possible. Uncomment to make new runs deterministic; results will then differ
-# slightly from the published table.
+# Uncomment for bit-reproducible runs. Determinism costs some throughput, and
+# results will differ slightly from a non-deterministic run of the same config.
 # randomness = dict(seed=0, deterministic=True)

@@ -7,8 +7,8 @@ Run this first on any new machine::
     python tools/smoke_test.py --strict   # also require exact parameter counts
 
 For each config it constructs the model from scratch, runs one forward pass on
-a random 1024x1024 batch, and compares the parameter count against the count
-measured directly from the published checkpoint's tensors.
+a random 1024x1024 batch, and checks the parameter count against the published
+model's.
 
 Unlike ``tests/``, this needs the full stack: torch, mmcv, mmsegmentation,
 mmdet (for Mask2Former) and mmpretrain. It needs no dataset and no GPU,
@@ -18,19 +18,19 @@ though a GPU makes it much faster.
 import argparse
 import sys
 
-#: Parameter counts summed over each published checkpoint's ``state_dict``.
-#: See ``docs/PROVENANCE.md`` for how these were measured.
+#: Parameter count of each published model, summed over its checkpoint
+#: tensors. A build that does not match these is not the published model.
 EXPECTED_PARAMS = {
     'fastvit-ma36_mask2former': 62_549_115,
     'resnet-50_mask2former':    44_056_504,
     'convnext-small_upernet':   81_776_049,
     'dpn98_fpn':                65_346_639,
-    'poolformer-s36_fpn':       34_600_137,   # PoolFormer-S36 + FPN
+    'poolformer-s36_fpn':       34_600_137,
     'efficientnet-b3_fpn':      13_734_524,
 }
 
-#: Checkpoints hold no ImageNet-download side effects, so backbones are built
-#: without pretrained weights: the count must match regardless.
+#: Backbones are built without downloading ImageNet weights -- the parameter
+#: count is identical either way, and this keeps the check offline.
 NO_PRETRAINED = dict(model=dict(backbone=dict(init_cfg=None)))
 
 

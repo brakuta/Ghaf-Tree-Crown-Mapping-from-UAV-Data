@@ -1126,25 +1126,32 @@ class FastViT(nn.Module):
 #         raise ValueError("Functionality not implemented.")
 #     return model
 @MODELS.register_module()
-class fastvit_small(FastViT):
-    def __init__(self,  **kwargs):
-        layers = [6, 6, 18, 6]
-        embed_dims = [76, 152, 304, 608]
-        mlp_ratios = [4, 4, 4, 4]
-        downsamples = [True, True, True, True]
-        pos_embs = [None, None, None, partial(RepCPE, spatial_shape=(7, 7))]
-        token_mixers = ("repmixer", "repmixer", "repmixer", "attention")
-        super(fastvit_small, self).__init__(
-            layers,
-            embed_dims=embed_dims,
-            token_mixers=token_mixers,
-            pos_embs=pos_embs,
-            mlp_ratios=mlp_ratios,
-            downsamples=downsamples,
+class FastViTMA36(FastViT):
+    """FastViT-MA36 backbone.
+
+    The largest FastViT variant: 36 blocks over four stages, with a
+    self-attention token mixer in the final stage and RepMixer in the first
+    three.
+
+    ==============  ======================
+    layers          ``[6, 6, 18, 6]``
+    embed dims      ``[76, 152, 304, 608]``
+    MLP ratios      ``[4, 4, 4, 4]``
+    token mixers    repmixer x3, attention
+    ==============  ======================
+
+    Returns four feature maps at strides 4, 8, 16 and 32, so a decode head
+    consuming it must declare ``in_channels=[76, 152, 304, 608]``.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(
+            layers=[6, 6, 18, 6],
+            embed_dims=[76, 152, 304, 608],
+            mlp_ratios=[4, 4, 4, 4],
+            downsamples=[True, True, True, True],
+            pos_embs=[None, None, None, partial(RepCPE, spatial_shape=(7, 7))],
+            token_mixers=('repmixer', 'repmixer', 'repmixer', 'attention'),
             layer_scale_init_value=1e-6,
             **kwargs,
         )
-        # super(fastvit_small, self).__init__(
-        #     stem_chs=[64, 32, 64], depths=[3, 4, 10, 3], path_dropout=0.2, resume=resume, **kwargs
-        # )
-

@@ -1,8 +1,8 @@
 """Sliding-window planning and overlap-add blending.
 
-Pure NumPy: no mmseg, no rasterio, no torch. Everything here is exercised by
-``tests/test_tiling.py``, which is why the geometry lives in its own module
-rather than inline in the inference script.
+Pure NumPy: no mmseg, no rasterio, no torch. Keeping the geometry separate
+from the inference script means it can be tested without a GPU or a model, and
+``tests/test_tiling.py`` exercises every branch here.
 
 The scheme is overlap-add with Gaussian weights. Each tile's prediction is
 multiplied by a bell-shaped weight that decays toward the tile edge, summed

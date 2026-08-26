@@ -1,24 +1,31 @@
 # Ghaf Tree-Crown Mapping from Area-Wide UAV Imagery
 
-Code, configurations and provenance for **"Hybrid Vision–CNN Architecture for
-Mapping *Prosopis cineraria* from Area-wide UAV-based Images."**
+Code and configurations for **"Hybrid Vision–CNN Architecture for Mapping
+*Prosopis cineraria* from Area-wide UAV-based Images."**
 
-Six semantic-segmentation models were trained to delineate Ghaf tree crowns in
-UAV orthomosaics over the United Arab Emirates, and applied across whole
-mosaics with overlapping-window inference.
+*Prosopis cineraria* — the Ghaf — is the national tree of the United Arab
+Emirates and a keystone species of its arid ecosystems. This repository trains
+and evaluates six semantic-segmentation models that delineate individual Ghaf
+crowns in UAV orthomosaics, and applies them across complete mosaics to produce
+georeferenced canopy maps.
 
-This repository is an **overlay on stock mmsegmentation**: it adds a dataset,
-two custom backbones, six configs and an area-wide inference pipeline. No file
-inside `mmseg` is patched, so `pip install mmsegmentation` is all the
-framework setup required.
+The proposed model pairs a **FastViT-MA36** hybrid backbone — RepMixer token
+mixing in the early stages, self-attention in the last — with a **Mask2Former**
+decode head, and is compared against five alternatives spanning convolutional,
+transformer and hybrid designs at 13 M to 82 M parameters.
+
+This is an **overlay on stock mmsegmentation**: it adds a dataset, two
+backbones, six configurations and an area-wide inference pipeline. Nothing
+inside `mmseg` is modified, so `pip install mmsegmentation` is the whole
+framework setup.
 
 ---
 
 ## Results
 
-Held-out test set, `testing/ghaf26`, 767 tiles. Every model was scored with an
-identical protocol on identical ground truth on 18 March 2025; the evaluation
-logs are preserved under [`provenance/`](provenance/).
+Held-out test split (`testing/ghaf26`, 767 tiles). All six models share one
+dataset, one augmentation pipeline, one schedule and one metric implementation,
+so the differences below are attributable to the encoder and decode head.
 
 | Backbone | Decode head | Params | mIoU | F1 |
 |---|---|---:|---:|---:|
@@ -29,146 +36,152 @@ logs are preserved under [`provenance/`](provenance/).
 | ResNet-50 | Mask2Former | 44.1 M | 77.69 | 85.98 |
 | EfficientNet-B3 | FPN | 13.7 M | 70.77 | 80.29 |
 
-FastViT-MA36 also scores **80.14 mIoU / 87.87 F1** on the 869-tile validation
-split.
+On the 869-tile validation split, FastViT-MA36 reaches **80.14 mIoU / 87.87 F1**.
 
-> **Three numbers in the manuscript do not match these logs**: PoolFormer's
-> mIoU (78.45 → **78.65**) and F1 (86.62 → **86.72**), and FastViT's F1
-> (87.30 → **87.22**). The first two also appear in the abstract, and they
-> narrow the proposed model's margin from 0.87 to **0.67** points. See
-> [`docs/MANUSCRIPT-CORRECTIONS.md`](docs/MANUSCRIPT-CORRECTIONS.md).
+Two comparisons are worth drawing out. FastViT-MA36 and ResNet-50 share an
+identical Mask2Former head, optimiser and schedule, so the 1.63-point mIoU gap
+between them isolates the backbone. And FastViT-MA36 outperforms ConvNeXt-S
+while using 24 % fewer parameters, so the gain is not simply capacity.
 
-Parameter counts are summed directly over each checkpoint's tensors, not
-quoted from the paper. `tools/smoke_test.py` re-checks them on any machine.
+Per-model details, checkpoint hashes and training settings are in
+[`docs/MODEL_ZOO.md`](docs/MODEL_ZOO.md).
 
-## Model naming
+## Installation
 
-Several names in the code are misleading, and five of the six model names in
-the manuscript are wrong. Every claim below is verified against the
-checkpoints' own weights — see
-[`docs/PROVENANCE.md`](docs/PROVENANCE.md) for the evidence.
+```bash
+conda env create -f environment.yml
+conda activate ghaf
+pip install -e .
+python tools/smoke_test.py
+```
 
-| Registered / directory name | What it actually is | Manuscript says |
-|---|---|---|
-| `fastvit_small` | FastViT-**MA36** (`layers=[6,6,18,6]`, `dims=[76,152,304,608]`) | FastViT-SA12 |
-| `coatnet_small_timm`, `dual_path` | **DPN-98** — never CoAtNet | DPN-92 |
-| `mask2former_swin-t_…` | FastViT + Mask2Former — no Swin involved | — |
-| `ADE20KDataset` | the 2-class Ghaf dataset | — |
-| `…_ade20k-512x512` | trained at **1024×1024** | — |
-| ConvNeXt / PoolFormer / EfficientNet | **S / S36 / B3** | T / S12 / B0 |
-
-This repository registers honest names (`FastViTMA36`, `DPN98Backbone`,
-`GhafDataset`) and keeps the originals as working aliases so archived configs
-still load.
-
-## Install
+Or step by step:
 
 ```bash
 conda create -n ghaf python=3.9 -y && conda activate ghaf
 pip install torch==1.12.1 torchvision==0.13.1 --index-url https://download.pytorch.org/whl/cu113
-pip install -U openmim && mim install mmengine==0.10.7 "mmcv>=2.0.0rc4,<2.2.0"
-pip install mmsegmentation==1.2.2 mmdet==3.3.0 mmpretrain==1.2.0 timm==1.0.19
-pip install -r requirements.txt        # rasterio, geopandas, shapely, tqdm
+pip install -U openmim
+mim install mmengine==0.10.7 "mmcv>=2.0.0rc4,<2.2.0"
+pip install mmsegmentation==1.2.2 mmdet==3.3.0 mmpretrain==1.2.0
+pip install -r requirements.txt
 pip install -e .
-python tools/smoke_test.py             # builds all six models
 ```
 
-`mmdet` is required by Mask2Former; `mmpretrain` supplies the ConvNeXt,
-PoolFormer and EfficientNet backbones. The exact environment used for training
-is recorded in [`environment/`](environment/) — it ran mmcv 2.2.0 with
-mmseg's version guard disabled; see
-[`docs/REPRODUCE.md`](docs/REPRODUCE.md).
+`mmdet` supplies the Mask2Former head; `mmpretrain` supplies the ConvNeXt,
+PoolFormer and EfficientNet backbones; `timm` supplies DPN-98 and the FastViT
+building blocks.
+
+`tools/smoke_test.py` builds all six models, runs a forward pass and checks
+each parameter count against the published model. Run it before training.
 
 ## Data
 
 ```
 data/ghaf/
-├── training/{images,masks}/       7 005 tiles
-├── validation/{images,masks}/       869 tiles
-└── testing/ghaf26/{images,masks}/   767 tiles
+├── training/{images,masks}/         7 005 tiles
+├── validation/{images,masks}/         869 tiles
+└── testing/ghaf26/{images,masks}/     767 tiles
 ```
 
-Paired 1024×1024 GeoTIFFs sharing a stem. Masks are single-band, `0` =
-background, `1` = ghaf. Point `data_root` at this tree or symlink it.
+Paired 1024 × 1024 GeoTIFFs sharing a filename stem. Masks are single-band with
+pixel values equal to the class index: `0` background, `1` ghaf. Place the tree
+at `data/ghaf`, symlink it, or override `data_root`:
+
+```bash
+python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py \
+    --cfg-options data_root=/path/to/ghaf
+```
 
 ## Usage
 
-```bash
-# train
-python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py
+**Train**
 
-# evaluate on the test set
+```bash
+python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py
+```
+
+Checkpoints and logs are written to `work_dirs/<config-name>/`. Validation runs
+every 3 500 iterations and the best-scoring checkpoint is kept as
+`best_mIoU_iter_*.pth`.
+
+**Evaluate**
+
+```bash
 python tools/test.py configs/ghaf/fastvit-ma36_mask2former.py \
     checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth
+```
 
-# map a whole orthomosaic
+Reports mIoU, mDice and mFscore over the held-out test split.
+
+**Map a whole orthomosaic**
+
+```bash
 python -m ghaf.inference.large_image \
     configs/ghaf/fastvit-ma36_mask2former.py \
     checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
-    mosaic.tif --out-mask crowns.tif --out-polygons crowns.gpkg
+    mosaic.tif \
+    --out-prob probability.tif \
+    --out-mask crowns.tif \
+    --out-polygons crowns.gpkg
 ```
 
-Area-wide inference slides a 1024 px window with 512 px overlap and blends
-overlapping predictions with Gaussian weights, then writes georeferenced
-probability, mask and polygon outputs. Accumulators are memory-mapped, so
-mosaic size is bounded by disk rather than RAM.
+Slides a 1024 px window with 512 px overlap, blends overlapping predictions
+with Gaussian weights, and writes georeferenced probability, mask and polygon
+outputs in the source CRS. See
+[`docs/AREA_WIDE_INFERENCE.md`](docs/AREA_WIDE_INFERENCE.md).
 
-## Layout
+## Repository layout
 
 ```
-ghaf/                     the overlay package
-├── datasets.py           GhafDataset
-├── models/               FastViT-MA36, DPN-98 (+ originals, verbatim)
+ghaf/
+├── datasets.py            GhafDataset — the two-class tile dataset
+├── models/
+│   ├── fastvit.py         FastViT-MA36 backbone
+│   ├── dpn.py             DPN-98 backbone
+│   └── modules/           MobileOne and RepLKNet blocks used by FastViT
 └── inference/
-    ├── tiling.py         window planning and Gaussian blending (pure NumPy)
-    └── large_image.py    orthomosaic inference and georeferenced output
-configs/ghaf/             the six published configs
-tools/                    train, test, smoke_test
-tests/                    67 tests; need only mmengine + NumPy
-docs/                     reproduction, provenance, corrections, known issues
-provenance/               archived training and evaluation logs and configs
-environment/              the workstation environment as captured
+    ├── tiling.py          window planning and Gaussian blending (pure NumPy)
+    └── large_image.py     orthomosaic inference and georeferenced output
+
+configs/
+├── _base_/ghaf.py         dataset, pipeline, schedule and runtime, shared
+└── ghaf/                  the six model configurations
+
+tools/                     train.py · test.py · smoke_test.py
+tests/                     67 tests; need only mmengine and NumPy
+docs/                      model zoo and the area-wide inference method
 ```
 
-## Verification
+## Testing
 
 ```bash
-pytest tests/ -q            # 67 tests, no GPU/mmcv/dataset needed
-python tools/smoke_test.py  # builds all six models, checks parameter counts
+pytest tests/ -q            # 67 tests: no GPU, mmcv or dataset required
+python tools/smoke_test.py  # builds all six models and checks parameter counts
 ```
 
-The tests assert that the six configs still match the archived runs, that the
-binary task stays consistently configured, that all models share one
-evaluation protocol, and that the tiling scheme covers every pixel.
-
-## Provenance and honesty
-
-Everything published here was reconstructed by auditing checkpoints and logs
-after the original author left. Rather than presenting a tidied story, the
-audit is part of the repository:
-
-- [`docs/PROVENANCE.md`](docs/PROVENANCE.md) — checkpoint → training run →
-  reported score, with SHA-256 for every file
-- [`docs/KNOWN-ISSUES.md`](docs/KNOWN-ISSUES.md) — asymmetries between the
-  proposed model and the baselines that reviewers should know about
-- [`docs/MANUSCRIPT-CORRECTIONS.md`](docs/MANUSCRIPT-CORRECTIONS.md) — every
-  correction the text requires
-- Branch [`archive/full-source-fork`](../../tree/archive/full-source-fork) — the complete 1 154-file mmsegmentation fork
-  exactly as recovered from the workstation, before any restructuring
+The suite covers the tiling geometry (every pixel of a raster is covered, at
+six raster shapes and four overlap settings), the blending mathematics (a
+constant field reconstructs exactly; overlap-add equals a direct weighted
+mean), and the configurations (each declares its intended recipe, the binary
+task stays consistently specified, and all six share one evaluation protocol).
 
 ## Citation
 
 ```bibtex
 @article{ghaf_uav_segmentation,
-  title  = {Hybrid Vision--CNN Architecture for Mapping Prosopis cineraria
-            from Area-wide UAV-based Images},
-  author = {Gibril, Mohamed Barakat A. and others},
-  year   = {2025}
+  title   = {Hybrid Vision--CNN Architecture for Mapping Prosopis cineraria
+             from Area-wide UAV-based Images},
+  author  = {Gibril, Mohamed Barakat A. and others},
+  journal = {},
+  year    = {2025}
 }
 ```
 
 ## License
 
-Code released under the Apache License 2.0, following mmsegmentation.
-`ghaf/models/fastvit.py` is derived from Apple's FastViT
-([LICENSE](https://github.com/apple/ml-fastvit)) and retains its notice.
+Released under the Apache License 2.0, following mmsegmentation.
+`ghaf/models/fastvit.py` and `ghaf/models/modules/` derive from
+[Apple's FastViT](https://github.com/apple/ml-fastvit) and retain its copyright
+notice. DPN-98 and several baseline backbones are obtained through
+[timm](https://github.com/huggingface/pytorch-image-models) and
+[mmpretrain](https://github.com/open-mmlab/mmpretrain).

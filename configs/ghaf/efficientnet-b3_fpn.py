@@ -1,15 +1,18 @@
 """EfficientNet-B3 + FPN.
 
-    ``arch='b3'``, not B0.
+The lightest model in the study at 13.7 M parameters, included to establish
+what a compound-scaled convolutional encoder achieves at a fraction of the
+capacity.
 
-    This is the only model trained with **SGD at lr 0.01, wd 5e-4** -- a
-    100x larger learning rate than the AdamW 1e-4 used elsewhere, and a
-    different optimiser entirely. It is also the weakest result in the table.
-    Preserved as-run; see ``docs/KNOWN-ISSUES.md``.
-
-    Transcribed from the archived training run
-    ``provenance/efficientefficient/20250309_140341``.
-    """
+===========  =========================================
+backbone     EfficientNet-B3 (``arch='b3'``), 48/136/384
+neck         FPN, 3 -> 256 channels
+decode head  FPNHead, 2 classes
+optimiser    SGD, lr 0.01, momentum 0.9, weight decay 5e-4
+precision    fp32
+input        1024 x 1024
+===========  =========================================
+"""
 
 _base_ = ['../_base_/ghaf.py']
 
