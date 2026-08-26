@@ -1,152 +1,55 @@
-# Copyright (c) OpenMMLab. All rights reserved.
+#!/usr/bin/env python
+"""Evaluate a checkpoint on the held-out test set.
+
+    python tools/test.py configs/ghaf/fastvit-ma36_mask2former.py \
+        checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth
+
+Reports mIoU, mDice and mFscore over ``testing/ghaf26`` -- the protocol every
+published number in the paper was produced under.
+"""
+
 import argparse
-import os
-import os.path as osp
+from pathlib import Path
 
 from mmengine.config import Config, DictAction
 from mmengine.runner import Runner
-from models import fastvit
-from models import coatnet
-from models import nextvit
-import torch
 
-from mmengine.logging.history_buffer import HistoryBuffer
-from numpy.core.multiarray import _reconstruct
-import torch
-from models import mamba
-from models import mamba_vision
+import ghaf
 
 
-from mmengine.logging.history_buffer import HistoryBuffer
-from numpy.core.multiarray import _reconstruct
-import torch
-torch.serialization.add_safe_globals([HistoryBuffer])
-_orig_torch_load = torch.load
-# 2. Define the patched loader
-def _patched_torch_load(filename, map_location=None, *args, **kwargs):
-    # Force weights_only=False exactly once
-    kwargs.pop('weights_only', None)
-    return _orig_torch_load(
-        filename,
-        map_location=map_location,
-        weights_only=False,
-        *args,
-        **kwargs
-    )
-
-torch.load = _patched_torch_load
-
-# TODO: support fuse_conv_bn, visualization, and format_only
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description='MMSeg test (and eval) a model')
-    parser.add_argument('config', help='train config file path')
-    parser.add_argument('checkpoint', help='checkpoint file')
-    parser.add_argument(
-        '--work-dir',
-        help=('if specified, the evaluation metric results will be dumped'
-              'into the directory as json'))
-    parser.add_argument(
-        '--out',
-        type=str,
-        help='The directory to save output prediction for offline evaluation')
-    parser.add_argument(
-        '--show', action='store_true', help='show prediction results')
-    parser.add_argument(
-        '--show-dir',
-        help='directory where painted images will be saved. '
-        'If specified, it will be automatically saved '
-        'to the work_dir/timestamp/show_dir')
-    parser.add_argument(
-        '--wait-time', type=float, default=2, help='the interval of show (s)')
-    parser.add_argument(
-        '--cfg-options',
-        nargs='+',
-        action=DictAction,
-        help='override some settings in the used config, the key-value pair '
-        'in xxx=yyy format will be merged into config file. If the value to '
-        'be overwritten is a list, it should be like key="[a,b]" or key=a,b '
-        'It also allows nested list/tuple values, e.g. key="[(a,b),(c,d)]" '
-        'Note that the quotation marks are necessary and that no white space '
-        'is allowed.')
-    parser.add_argument(
-        '--launcher',
-        choices=['none', 'pytorch', 'slurm', 'mpi'],
-        default='none',
-        help='job launcher')
-    parser.add_argument(
-        '--tta', action='store_true', help='Test time augmentation')
-    # When using PyTorch version >= 2.0.0, the `torch.distributed.launch`
-    # will pass the `--local-rank` parameter to `tools/train.py` instead
-    # of `--local_rank`.
-    parser.add_argument('--local_rank', '--local-rank', type=int, default=0)
-    args = parser.parse_args()
-    if 'LOCAL_RANK' not in os.environ:
-        os.environ['LOCAL_RANK'] = str(args.local_rank)
-
-    return args
+def parse_args(argv=None):
+    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p.add_argument('config', help='config file path')
+    p.add_argument('checkpoint', help='checkpoint file')
+    p.add_argument('--work-dir', help='directory for logs')
+    p.add_argument('--show-dir', help='directory for prediction visualisations')
+    p.add_argument('--cfg-options', nargs='+', action=DictAction)
+    p.add_argument('--launcher', default='none',
+                   choices=['none', 'pytorch', 'slurm', 'mpi'])
+    p.add_argument('--local_rank', '--local-rank', type=int, default=0)
+    return p.parse_args(argv)
 
 
-def trigger_visualization_hook(cfg, args):
-    default_hooks = cfg.default_hooks
-    if 'visualization' in default_hooks:
-        visualization_hook = default_hooks['visualization']
-        # Turn on visualization
-        visualization_hook['draw'] = True
-        if args.show:
-            visualization_hook['show'] = True
-            visualization_hook['wait_time'] = args.wait_time
-        if args.show_dir:
-            visualizer = cfg.visualizer
-            visualizer['save_dir'] = args.show_dir
-    else:
-        raise RuntimeError(
-            'VisualizationHook must be included in default_hooks.'
-            'refer to usage '
-            '"visualization=dict(type=\'VisualizationHook\')"')
+def main(argv=None) -> int:
+    args = parse_args(argv)
+    ghaf.register_all()
 
-    return cfg
-
-
-def main():
-    args = parse_args()
-
-    # load config
     cfg = Config.fromfile(args.config)
     cfg.launcher = args.launcher
-    if args.cfg_options is not None:
+    if args.cfg_options:
         cfg.merge_from_dict(args.cfg_options)
-
-    # work_dir is determined in this priority: CLI > segment in file > filename
-    if args.work_dir is not None:
-        # update configs according to CLI args if args.work_dir is not None
-        cfg.work_dir = args.work_dir
-    elif cfg.get('work_dir', None) is None:
-        # use config filename as default work_dir if cfg.work_dir is None
-        cfg.work_dir = osp.join('./work_dirs',
-                                osp.splitext(osp.basename(args.config))[0])
-
     cfg.load_from = args.checkpoint
+    cfg.work_dir = args.work_dir or str(
+        Path('work_dirs') / Path(args.config).stem)
 
-    if args.show or args.show_dir:
-        cfg = trigger_visualization_hook(cfg, args)
+    if args.show_dir:
+        hook = cfg.default_hooks.visualization
+        hook.update(draw=True, show=False, img_shape=None)
+        cfg.visualizer.setdefault('save_dir', args.show_dir)
 
-    if args.tta:
-        cfg.test_dataloader.dataset.pipeline = cfg.tta_pipeline
-        cfg.tta_model.module = cfg.model
-        cfg.model = cfg.tta_model
-
-    # add output_dir in metric
-    if args.out is not None:
-        cfg.test_evaluator['output_dir'] = args.out
-        cfg.test_evaluator['keep_results'] = True
-
-    # build the runner from config
-    runner = Runner.from_cfg(cfg)
-
-    # start testing
-    runner.test()
+    Runner.from_cfg(cfg).test()
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

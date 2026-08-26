@@ -128,3 +128,11 @@ target/
 .ropeproject
 .DS_Store
 Thumbs.db
+
+# --- Restructured repository ---
+/data/
+/checkpoints/
+/work_dirs/
+__pycache__/
+*.egg-info/
+.pytest_cache/

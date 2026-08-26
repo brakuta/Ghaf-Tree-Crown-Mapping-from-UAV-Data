@@ -1,27 +1,11 @@
-ftfy
-regex
-matplotlib
-numpy
-packaging
-prettytable
-scipy
-timm
-diffusers
+# Runtime dependencies beyond the OpenMMLab stack.
+#
+# Install PyTorch, mmengine, mmcv, mmsegmentation, mmdet and mmpretrain first;
+# see docs/REPRODUCE.md for the pinned versions and the mmcv range.
 
-imageio==2.9.0
-imageio-ffmpeg==0.4.2
-invisible-watermark
-kornia==0.6
-albumentations>=0.3.2 
-nibabel
-omegaconf==2.1.1
-torchmetrics==0.6.0
-
-mamba-ssm==2.2.4
-timm==1.0.15
-tensorboardX==2.6.2.2
-einops==0.8.1
-transformers==4.50.0
-Pillow==11.1.0
-requests==2.32.3
-
+timm==1.0.19          # FastViT building blocks and the DPN-98 backbone
+rasterio>=1.3         # windowed reads and georeferenced GeoTIFF output
+geopandas>=0.13       # crown polygon export
+shapely>=2.0
+numpy>=1.24
+tqdm>=4.65            # optional progress bar
