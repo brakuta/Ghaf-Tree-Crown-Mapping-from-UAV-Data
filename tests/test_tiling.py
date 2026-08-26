@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from ghaf.inference.tiling import (Accumulator, Window, gaussian_weights,
-                                   iter_batches, plan_windows)
+                                   plan_windows)
 
 
 # --------------------------------------------------------------------------
@@ -161,17 +161,46 @@ def test_mismatched_accumulator_shape_is_rejected():
 
 
 # --------------------------------------------------------------------------
-# iter_batches
+# streaming
 # --------------------------------------------------------------------------
 
-def test_batches_partition_the_input():
-    windows = plan_windows(4096, 2048, tile=1024, overlap=512)
-    batches = list(iter_batches(windows, 4))
-    assert sum(len(b) for b in batches) == len(windows)
-    assert [w for b in batches for w in b] == windows
-    assert all(len(b) <= 4 for b in batches)
+def test_blocks_tile_the_result_without_gaps_or_overlap():
+    """Streaming must reconstruct exactly what result() returns, in order."""
+    tile, height, width = 32, 205, 120
+    acc = Accumulator(height, width)
+    weights = gaussian_weights(tile)
+    for win in plan_windows(width, height, tile, overlap=8):
+        acc.add(win, np.full((tile, tile), 0.4, np.float32), weights)
+
+    seen, rebuilt = 0, np.empty((height, width), np.float32)
+    for rows, values in acc.blocks(64):
+        assert rows.start == seen, 'stripes must be contiguous'
+        assert values.shape == (rows.stop - rows.start, width)
+        assert values.dtype == np.float32
+        rebuilt[rows] = values
+        seen = rows.stop
+    assert seen == height, 'stripes must cover every row'
+    np.testing.assert_allclose(rebuilt, acc.result(), rtol=1e-6)
 
 
-def test_invalid_batch_size_is_rejected():
+def test_a_final_short_stripe_is_handled():
+    acc = Accumulator(100, 10)
+    acc.numerator[:] = 2.0
+    acc.denominator[:] = 1.0
+    heights = [rows.stop - rows.start for rows, _ in acc.blocks(30)]
+    assert heights == [30, 30, 30, 10]
+
+
+def test_streaming_reports_uncovered_pixels_rather_than_filling_them():
+    acc = Accumulator(40, 40)
+    acc.add(Window(0, 0, 10, 10), np.ones((10, 10), np.float32),
+            np.ones((10, 10), np.float32))
+    with pytest.raises(RuntimeError, match='no tile coverage'):
+        list(acc.blocks(8))
+
+
+@pytest.mark.parametrize('rows', [0, -1])
+def test_invalid_stripe_height_is_rejected(rows):
+    acc = Accumulator(10, 10)
     with pytest.raises(ValueError):
-        list(iter_batches([Window(0, 0, 1, 1)], 0))
+        list(acc.blocks(rows))

@@ -113,6 +113,18 @@ python tools/test.py configs/ghaf/fastvit-ma36_mask2former.py \
 
 Reports mIoU, mDice and mFscore over the held-out test split.
 
+**Package the models for sharing**
+
+```bash
+python tools/export_release.py --checkpoints /path/to/checkpoints \
+                               --output      /path/to/ghaf-release
+```
+
+Writes one self-contained folder per model — a resolved config beside its
+weights, in mmsegmentation's working-directory layout — with every checkpoint
+hashed before and after the copy. See
+[`docs/RELEASE_BUNDLE.md`](docs/RELEASE_BUNDLE.md).
+
 **Map a whole orthomosaic**
 
 ```bash
@@ -127,7 +139,9 @@ python -m ghaf.inference.large_image \
 
 Slides a 1024 px window with 512 px overlap, blends overlapping predictions
 with Gaussian weights, and writes georeferenced probability, mask and polygon
-outputs in the source CRS. See
+outputs in the source CRS. Peak memory does not grow with the mosaic — windows
+are read one at a time, the accumulators are memory-mapped, and results stream
+back to disk a stripe at a time. See
 [`docs/AREA_WIDE_INFERENCE.md`](docs/AREA_WIDE_INFERENCE.md).
 
 ## Repository layout
@@ -135,6 +149,7 @@ outputs in the source CRS. See
 ```
 ghaf/
 ├── datasets.py            GhafDataset — the two-class tile dataset
+├── release.py             the published models: digests, params, scores
 ├── models/
 │   ├── fastvit.py         FastViT-MA36 backbone
 │   ├── dpn.py             DPN-98 backbone
@@ -147,23 +162,40 @@ configs/
 ├── _base_/ghaf.py         dataset, pipeline, schedule and runtime, shared
 └── ghaf/                  the six model configurations
 
-tools/                     train.py · test.py · smoke_test.py
-tests/                     67 tests; need only mmengine and NumPy
-docs/                      model zoo and the area-wide inference method
+tools/                     train.py · test.py · smoke_test.py · export_release.py
+tests/                     120 tests; mmengine and NumPy, plus
+                           rasterio and geopandas for the end-to-end ones
+docs/                      model zoo, area-wide inference, release bundle
 ```
 
 ## Testing
 
 ```bash
-pytest tests/ -q            # 67 tests: no GPU, mmcv or dataset required
+pytest tests/ -q            # 120 tests: no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
 ```
 
 The suite covers the tiling geometry (every pixel of a raster is covered, at
 six raster shapes and four overlap settings), the blending mathematics (a
 constant field reconstructs exactly; overlap-add equals a direct weighted
-mean), and the configurations (each declares its intended recipe, the binary
-task stays consistently specified, and all six share one evaluation protocol).
+mean), the streaming path (stripes are contiguous and reconstruct the whole
+result), the configurations (each declares its intended recipe, the binary task
+stays consistently specified, all six share one evaluation protocol), and the
+released-model registry (digests well-formed and unique, integrity checks
+reject wrong sizes and wrong contents).
+
+Area-wide inference is tested end to end against real GeoTIFFs with a stubbed
+segmentor: outputs are georeferenced to the source CRS, a uniform prediction
+survives blending unchanged, awkward raster sizes leave no pixel unwritten,
+nodata is never reported as canopy, crown polygons carry the source CRS, and
+each failure mode — 16-bit input, a missing band, a single-class model, a tile
+size the model disagrees with — is rejected with a message that says what to
+do. Scratch directories are asserted to be cleaned up even when a run fails.
+
+`ghaf/release.py` is the single source of truth for what was published — the
+digests, parameter counts and scores that `tools/smoke_test.py` checks built
+models against and `tools/export_release.py` verifies copies against. A model
+therefore cannot be documented one way and shipped another.
 
 ## Citation
 

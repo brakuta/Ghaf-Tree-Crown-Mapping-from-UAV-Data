@@ -1,0 +1,48 @@
+name: tests
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  test:
+    # The suite deliberately avoids torch, mmcv and the dataset, so it runs on a
+    # plain runner in seconds. Model construction needs the full stack and is
+    # covered by tools/smoke_test.py instead.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.11']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "mmengine==0.10.7" "numpy>=1.24" "pytest>=7.0"
+          # Optional: enables the end-to-end inference tests, which write and
+          # read real GeoTIFFs. Without these the suite skips them rather than
+          # failing.
+          pip install "rasterio>=1.3" "geopandas>=0.13" torch --index-url \
+            https://download.pytorch.org/whl/cpu || \
+            pip install "rasterio>=1.3" "geopandas>=0.13" torch
+
+      - name: Run tests
+        run: pytest tests/ -q
+
+      - name: Confirm the configs still resolve
+        run: |
+          python - <<'PY'
+          import glob
+          from mmengine.config import Config
+          for path in sorted(glob.glob('configs/**/*.py', recursive=True)):
+              Config.fromfile(path, import_custom_modules=False)
+              print('ok', path)
+          PY

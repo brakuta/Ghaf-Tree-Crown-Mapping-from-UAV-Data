@@ -55,11 +55,20 @@ tile, and extreme aspect ratios.
 
 ## Memory
 
-A float32 numerator and denominator over the whole raster costs 8 bytes per
-source pixel, which exceeds RAM for a large survey. Both accumulators are
-memory-mapped to temporary files, so the limit is free disk rather than memory,
-and windows are read from the source with rasterio's windowed reads rather than
-by loading the mosaic.
+Peak memory does not grow with the mosaic. Three things make that true:
+
+- **Windows are read one at a time** with rasterio's windowed reads, never by
+  loading the mosaic.
+- **The accumulators are memory-mapped** to a temporary directory rather than
+  allocated. They cost 4 bytes per pixel each, plus a 1-byte validity plane —
+  **9 bytes of scratch disk per source pixel** while a run is in progress,
+  reported at startup so a full disk fails with an explanation.
+- **Results are written back a stripe at a time.** The blended output is never
+  materialised whole; `Accumulator.blocks()` yields 1024-row stripes that go
+  straight into the output GeoTIFF.
+
+The one exception is `--out-polygons`, which reads the finished mask raster
+back to vectorise it — one byte per pixel, and only when requested.
 
 ## Outputs
 
@@ -114,8 +123,14 @@ ghaf.register_all()
 model = init_model('configs/ghaf/fastvit-ma36_mask2former.py',
                    'checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth')
 
-probability = predict_large_image(model, 'mosaic.tif', out_mask='crowns.tif')
+summary = predict_large_image(model, 'mosaic.tif', out_mask='crowns.tif')
+print(summary.canopy_fraction, summary.outputs)
 ```
+
+`predict_large_image` returns a small `PredictionSummary` — raster dimensions,
+window count, canopy and valid pixel counts, and the paths written — rather
+than the array. Returning pixels would force the whole raster into memory and
+undo the streaming; read the written GeoTIFF back if you need them.
 
 The tiling and blending are importable on their own — `ghaf.inference.tiling`
 depends on nothing but NumPy — if you need the same scheme for a different

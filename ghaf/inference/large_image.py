@@ -13,8 +13,11 @@ Outputs, all sharing the source CRS and geotransform:
 ``--out-polygons``
     optional vector layer of the delineated crowns.
 
-Accumulators are memory-mapped, so the mosaic size that can be processed is
-bounded by free disk rather than RAM.
+Memory is bounded regardless of mosaic size. Windows are read one at a time,
+the blending accumulators are memory-mapped to a temporary directory, and the
+results are written back a stripe at a time, so peak resident memory is a few
+stripes rather than a multiple of the raster. The cost is disk: roughly nine
+bytes of scratch per source pixel while a run is in progress.
 """
 
 from __future__ import annotations
@@ -22,8 +25,9 @@ from __future__ import annotations
 import argparse
 import logging
 import tempfile
+from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -34,8 +38,38 @@ LOGGER = logging.getLogger(__name__)
 #: Index of the foreground class in :class:`ghaf.datasets.GhafDataset`.
 GHAF_CLASS_INDEX = 1
 
+#: Rows per write when streaming results back to disk.
+_STRIPE_ROWS = 1024
 
-def _require(module: str, package: str):
+#: Scratch bytes per source pixel: two float32 accumulators plus a uint8
+#: validity plane. Reported up front so a run fails on a full disk with an
+#: explanation rather than a partial file.
+SCRATCH_BYTES_PER_PIXEL = 4 + 4 + 1
+
+
+@dataclass(frozen=True)
+class PredictionSummary:
+    """What a run produced. Returned instead of the raster itself.
+
+    Returning the array would force it into memory and undo the streaming, so
+    callers that want pixels read the written GeoTIFF back.
+    """
+
+    width: int
+    height: int
+    windows: int
+    canopy_pixels: int
+    valid_pixels: int
+    outputs: Tuple[Path, ...]
+
+    @property
+    def canopy_fraction(self) -> float:
+        """Share of valid (non-nodata) pixels classified as ghaf."""
+        return self.canopy_pixels / self.valid_pixels if self.valid_pixels else 0.0
+
+
+def _import(module: str, package: str):
+    """Import an optional dependency, or explain how to install it."""
     try:
         return __import__(module, fromlist=['_'])
     except ImportError as exc:  # pragma: no cover - environment guard
@@ -44,35 +78,39 @@ def _require(module: str, package: str):
             f'Install it with `pip install {package}`.') from exc
 
 
-def _read_window(src, window: Window, bands: Sequence[int], tile: int) -> np.ndarray:
-    """Read one window as an ``(tile, tile, 3)`` uint8 array, zero-padded.
+def _read_window(src, window: Window, bands: Sequence[int],
+                 tile: int) -> Tuple[np.ndarray, np.ndarray]:
+    """Read one window as a zero-padded BGR tile plus its validity mask.
 
-    mmseg's preprocessing expects BGR, which is the order ``inference_model``
-    assumes for a raw array, so the RGB bands are reversed on the way out.
+    mmseg's ``inference_model`` treats a raw array as BGR, so the RGB bands are
+    reversed on the way out.
+
+    Returns:
+        ``(tile_bgr, valid)`` -- ``(tile, tile, 3)`` uint8 and ``(h, w)`` bool
+        covering only the window's real extent.
     """
-    rasterio = _require('rasterio', 'rasterio')
     from rasterio.windows import Window as RioWindow
 
-    data = src.read(
-        indexes=list(bands),
-        window=RioWindow(window.col_off, window.row_off, window.width, window.height),
-    )                                                    # (bands, h, w)
+    box = RioWindow(window.col_off, window.row_off, window.width, window.height)
+    data = src.read(indexes=list(bands), window=box)          # (bands, h, w)
     if data.dtype != np.uint8:
         raise ValueError(
             f'expected an 8-bit raster, got dtype {data.dtype}. Convert the '
-            f'mosaic to Byte first (e.g. gdal_translate -ot Byte -scale).')
+            f'mosaic first, e.g. `gdal_translate -ot Byte -scale in.tif out.tif`.')
 
-    chw = np.zeros((len(bands), tile, tile), np.uint8)
-    chw[:, :window.height, :window.width] = data
-    rgb = np.transpose(chw, (1, 2, 0))                   # (tile, tile, bands)
-    return rgb[:, :, ::-1].copy()                        # RGB -> BGR
+    valid = src.read_masks(bands[0], window=box) > 0
+
+    padded = np.zeros((len(bands), tile, tile), np.uint8)
+    padded[:, :window.height, :window.width] = data
+    rgb = np.transpose(padded, (1, 2, 0))
+    return rgb[:, :, ::-1].copy(), valid
 
 
 def _foreground_probability(result, tile: int) -> np.ndarray:
     """Extract P(foreground) from an mmseg ``SegDataSample``."""
-    torch = _require('torch', 'torch')
+    torch = _import('torch', 'torch')
 
-    logits = result.seg_logits.data                      # (num_classes, h, w)
+    logits = result.seg_logits.data                            # (classes, h, w)
     if logits.ndim != 3:
         raise RuntimeError(f'unexpected seg_logits shape {tuple(logits.shape)}')
     if logits.shape[0] <= GHAF_CLASS_INDEX:
@@ -89,6 +127,17 @@ def _foreground_probability(result, tile: int) -> np.ndarray:
     return prob
 
 
+def _progress(windows, enabled: bool, label: str):
+    if not enabled:
+        return windows
+    try:
+        from tqdm import tqdm
+        return tqdm(windows, unit='tile', desc=label)
+    except ImportError:
+        LOGGER.info('tqdm not installed; running without a progress bar')
+        return windows
+
+
 def predict_large_image(
     model,
     src_path: Path,
@@ -101,7 +150,7 @@ def predict_large_image(
     threshold: float = 0.5,
     bands: Sequence[int] = (1, 2, 3),
     progress: bool = True,
-) -> np.ndarray:
+) -> PredictionSummary:
     """Predict over a whole orthomosaic and write georeferenced outputs.
 
     Args:
@@ -109,8 +158,9 @@ def predict_large_image(
         src_path: georeferenced 8-bit orthomosaic.
         out_prob: where to write the float32 probability GeoTIFF.
         out_mask: where to write the uint8 binary mask GeoTIFF.
-        out_polygons: where to write crown polygons (any OGR-writable format;
-            the driver is inferred from the suffix). Requires geopandas.
+        out_polygons: where to write crown polygons; the OGR driver is inferred
+            from the suffix. Requires geopandas, and reads the finished mask
+            back into memory (one byte per pixel).
         tile: window size; must match the crop size the model was trained at.
         overlap: pixels shared between neighbouring windows.
         sigma: Gaussian blending width, in half-tile units.
@@ -119,13 +169,16 @@ def predict_large_image(
         progress: show a progress bar if tqdm is installed.
 
     Returns:
-        The probability array, shape ``(height, width)``, dtype float32.
+        A :class:`PredictionSummary`. The probability raster is not returned;
+        read ``out_prob`` back if you need the pixels.
 
     Raises:
-        ValueError: on unusable geometry, dtype, or threshold.
+        ValueError: on unusable geometry, dtype, band selection or threshold.
+        FileNotFoundError: if ``src_path`` does not exist.
         RuntimeError: if the model output does not match the requested tile.
     """
-    rasterio = _require('rasterio', 'rasterio')
+    rasterio = _import('rasterio', 'rasterio')
+    inference_model = _import('mmseg.apis', 'mmsegmentation').inference_model
 
     if not 0.0 <= threshold <= 1.0:
         raise ValueError(f'threshold must be in [0, 1], got {threshold}')
@@ -134,8 +187,8 @@ def predict_large_image(
     src_path = Path(src_path)
     if not src_path.is_file():
         raise FileNotFoundError(src_path)
-
-    inference_model = _require('mmseg.apis', 'mmsegmentation').inference_model
+    if not (out_prob or out_mask or out_polygons):
+        raise ValueError('nothing to write: pass at least one output path')
 
     with rasterio.open(src_path) as src:
         height, width = src.height, src.width
@@ -149,93 +202,146 @@ def predict_large_image(
 
         windows = plan_windows(width, height, tile, overlap)
         weights = gaussian_weights(tile, sigma)
-        LOGGER.info('%s: %dx%d px, %d window(s) of %d px (overlap %d)',
-                    src_path.name, width, height, len(windows), tile, overlap)
+        scratch_gb = height * width * SCRATCH_BYTES_PER_PIXEL / 1e9
+        LOGGER.info('%s: %d x %d px, %d window(s) of %d px (overlap %d), '
+                    '%.1f GB scratch', src_path.name, width, height,
+                    len(windows), tile, overlap, scratch_gb)
 
-        # Accumulate out of core: an in-memory float32 pair costs 8 bytes/px,
-        # which a large mosaic will not fit in RAM.
         with tempfile.TemporaryDirectory(prefix='ghaf-infer-') as tmp:
-            num = np.memmap(Path(tmp) / 'num.dat', np.float32, 'w+',
-                            shape=(height, width))
-            den = np.memmap(Path(tmp) / 'den.dat', np.float32, 'w+',
-                            shape=(height, width))
-            acc = Accumulator(height, width, numerator=num, denominator=den)
+            scratch = Path(tmp)
+            shape = (height, width)
+            acc = Accumulator(
+                height, width,
+                numerator=np.memmap(scratch / 'num.dat', np.float32, 'w+', shape=shape),
+                denominator=np.memmap(scratch / 'den.dat', np.float32, 'w+', shape=shape))
+            valid_plane = np.memmap(scratch / 'valid.dat', np.uint8, 'w+', shape=shape)
 
-            iterator = windows
-            if progress:
-                try:
-                    from tqdm import tqdm
-                    iterator = tqdm(windows, unit='tile', desc=src_path.stem)
-                except ImportError:
-                    LOGGER.info('tqdm not installed; running without progress')
-
-            for window in iterator:
-                patch = _read_window(src, window, bands, tile)
+            for window in _progress(windows, progress, src_path.stem):
+                patch, window_valid = _read_window(src, window, bands, tile)
                 prob = _foreground_probability(inference_model(model, patch), tile)
                 acc.add(window, prob, weights)
+                rows = slice(window.row_off, window.row_off + window.height)
+                cols = slice(window.col_off, window.col_off + window.width)
+                np.maximum(valid_plane[rows, cols], window_valid.astype(np.uint8),
+                           out=valid_plane[rows, cols])
 
-            probability = np.array(acc.result(), np.float32)   # into RAM once
-            del num, den
+            summary = _write_outputs(
+                acc, valid_plane, threshold, profile, crs, transform,
+                out_prob, out_mask, len(windows))
 
-    # Mask out source nodata so it cannot be reported as canopy.
-    with rasterio.open(src_path) as src:
-        valid = src.read_masks(bands[0]) > 0
-    if not valid.all():
-        LOGGER.info('masking %d nodata pixel(s)', int((~valid).sum()))
-        probability[~valid] = 0.0
-
-    mask = (probability >= threshold).astype(np.uint8)
-
-    if out_prob:
-        _write_raster(out_prob, probability, profile, crs, transform,
-                      dtype='float32', nodata=None)
-    if out_mask:
-        _write_raster(out_mask, mask, profile, crs, transform,
-                      dtype='uint8', nodata=0)
     if out_polygons:
-        _write_polygons(out_polygons, mask, transform, crs)
+        _write_polygons(out_polygons, out_mask, out_prob, transform, crs, threshold)
+        summary = replace(summary, outputs=summary.outputs + (Path(out_polygons),))
 
-    return probability
+    LOGGER.info('canopy: %d of %d valid px (%.2f%%)', summary.canopy_pixels,
+                summary.valid_pixels, 100 * summary.canopy_fraction)
+    return summary
 
 
-def _write_raster(path: Path, array: np.ndarray, profile: dict, crs, transform,
-                  dtype: str, nodata) -> None:
-    rasterio = _require('rasterio', 'rasterio')
+def _write_outputs(acc: Accumulator, valid_plane, threshold: float,
+                   profile: dict, crs, transform,
+                   out_prob: Optional[Path], out_mask: Optional[Path],
+                   window_count: int) -> PredictionSummary:
+    """Stream the blended result into the output rasters, stripe by stripe."""
+    _import('rasterio', 'rasterio')
+    from rasterio.windows import Window as RioWindow
+
+    written, canopy, valid_total = [], 0, 0
+    prob_dst = _open_raster(out_prob, profile, crs, transform, 'float32', None)
+    mask_dst = _open_raster(out_mask, profile, crs, transform, 'uint8', 0)
+
+    try:
+        for rows, values in acc.blocks(_STRIPE_ROWS):
+            valid = valid_plane[rows].astype(bool)
+            # Nodata in the source is never canopy: zero it before thresholding
+            # so unsurveyed ground cannot be reported as crown.
+            values = np.where(valid, values, 0.0).astype(np.float32, copy=False)
+            binary = ((values >= threshold) & valid).astype(np.uint8)
+
+            valid_total += int(valid.sum())
+            canopy += int(binary.sum())
+
+            band_window = RioWindow(
+                0, rows.start, values.shape[1], values.shape[0])
+            if prob_dst is not None:
+                prob_dst.write(values, 1, window=band_window)
+            if mask_dst is not None:
+                mask_dst.write(binary, 1, window=band_window)
+    finally:
+        for dst, path in ((prob_dst, out_prob), (mask_dst, out_mask)):
+            if dst is not None:
+                dst.close()
+                written.append(Path(path))
+                LOGGER.info('wrote %s', path)
+
+    return PredictionSummary(
+        width=acc.width, height=acc.height, windows=window_count,
+        canopy_pixels=canopy, valid_pixels=valid_total,
+        outputs=tuple(written))
+
+
+def _open_raster(path: Optional[Path], profile: dict, crs, transform,
+                 dtype: str, nodata):
+    """Open a single-band GeoTIFF for windowed writing, or return ``None``."""
+    if path is None:
+        return None
+    rasterio = _import('rasterio', 'rasterio')
+
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     profile = {
         **profile,
         'driver': 'GTiff', 'count': 1, 'dtype': dtype,
         'crs': crs, 'transform': transform,
-        'compress': 'deflate', 'predictor': 2 if dtype == 'float32' else 1,
-        'tiled': True, 'blockxsize': 512, 'blockysize': 512, 'BIGTIFF': 'IF_SAFER',
+        'compress': 'deflate',
+        # Predictor 3 is GDAL's floating-point predictor; 2 is horizontal
+        # differencing and applies to integer data only.
+        'predictor': 3 if dtype == 'float32' else 2,
+        'tiled': True, 'blockxsize': 512, 'blockysize': 512,
+        'BIGTIFF': 'IF_SAFER',
     }
     if nodata is None:
         profile.pop('nodata', None)
     else:
         profile['nodata'] = nodata
-    with rasterio.open(path, 'w', **profile) as dst:
-        dst.write(array.astype(dtype), 1)
-    LOGGER.info('wrote %s', path)
+    return rasterio.open(path, 'w', **profile)
 
 
-def _write_polygons(path: Path, mask: np.ndarray, transform, crs) -> None:
-    rasterio = _require('rasterio', 'rasterio')
-    gpd = _require('geopandas', 'geopandas')
+def _write_polygons(path: Path, mask_path: Optional[Path],
+                    prob_path: Optional[Path], transform, crs,
+                    threshold: float) -> None:
+    """Vectorise the crown mask.
+
+    Reads a finished raster back rather than holding one during inference. The
+    mask is preferred (one byte per pixel); if only a probability raster was
+    written, it is thresholded on the way in.
+    """
+    rasterio = _import('rasterio', 'rasterio')
+    gpd = _import('geopandas', 'geopandas')
     from rasterio.features import shapes
     from shapely.geometry import shape
+
+    source = mask_path or prob_path
+    if source is None:
+        raise ValueError(
+            'polygon output needs --out-mask or --out-prob to vectorise from')
+
+    with rasterio.open(source) as src:
+        band = src.read(1)
+    mask = band.astype(np.uint8) if mask_path else (band >= threshold).astype(np.uint8)
 
     geoms = [
         shape(geom)
         for geom, value in shapes(mask, mask=mask.astype(bool), transform=transform)
         if value == 1
     ]
+
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     frame = gpd.GeoDataFrame({'class': ['ghaf'] * len(geoms)},
                              geometry=geoms, crs=crs)
     if frame.empty:
-        LOGGER.warning('no crowns above threshold; writing an empty layer')
+        LOGGER.warning('no crowns at or above the threshold; writing an empty layer')
     frame.to_file(path)
     LOGGER.info('wrote %s (%d polygon(s))', path, len(frame))
 
@@ -265,6 +371,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     if not (args.out_prob or args.out_mask or args.out_polygons):
         parser.error('nothing to do: pass at least one of --out-prob, '
                      '--out-mask, --out-polygons')
+    if args.out_polygons and not (args.out_mask or args.out_prob):
+        parser.error('--out-polygons needs --out-mask or --out-prob to '
+                     'vectorise from')
     return args
 
 

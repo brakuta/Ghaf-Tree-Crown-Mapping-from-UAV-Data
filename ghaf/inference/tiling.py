@@ -13,7 +13,7 @@ neighbouring tiles are blended instead of stitched.
 
 from __future__ import annotations
 
-from typing import Iterator, List, NamedTuple
+from typing import Iterator, List, NamedTuple, Tuple
 
 import numpy as np
 
@@ -144,25 +144,53 @@ class Accumulator:
         self.numerator[rs:rs + h, cs:cs + w] += v * k
         self.denominator[rs:rs + h, cs:cs + w] += k
 
-    def result(self) -> np.ndarray:
-        """Weighted mean.
+    def _check_covered(self, rows: slice) -> None:
+        block = self.denominator[rows]
+        if not np.all(block > 0):
+            missed = int((block <= 0).sum())
+            raise RuntimeError(
+                f'{missed} pixel(s) in rows {rows.start}:{rows.stop} received '
+                f'no tile coverage; the window plan is incomplete')
+
+    def blocks(self, rows: int = 1024) -> Iterator[Tuple[slice, np.ndarray]]:
+        """Yield the weighted mean a horizontal stripe at a time.
+
+        Streaming keeps peak memory at ``rows * width * 4`` bytes regardless of
+        raster size, which is the whole point of the memory-mapped
+        accumulators -- materialising the full result would undo it.
+
+        Args:
+            rows: stripe height in pixels.
+
+        Yields:
+            ``(row_slice, values)`` where ``values`` is float32 and has shape
+            ``(row_slice.stop - row_slice.start, width)``.
 
         Raises:
-            RuntimeError: if any pixel received no weight, which means the
-                window plan did not cover the raster -- a bug, not a data
-                condition, so it is loud rather than silently filled.
+            ValueError: if ``rows`` is not positive.
+            RuntimeError: if any pixel in a stripe received no weight, which
+                means the window plan did not cover the raster -- a bug, so it
+                is loud rather than silently filled.
         """
-        if not np.all(self.denominator > 0):
-            missed = int((self.denominator <= 0).sum())
-            raise RuntimeError(
-                f'{missed} pixel(s) received no tile coverage; the window plan '
-                f'is incomplete')
-        return self.numerator / self.denominator
+        if rows <= 0:
+            raise ValueError(f'rows must be positive, got {rows}')
+        for start in range(0, self.height, rows):
+            stop = min(start + rows, self.height)
+            band = slice(start, stop)
+            self._check_covered(band)
+            yield band, (self.numerator[band] / self.denominator[band]).astype(
+                np.float32, copy=False)
 
+    def result(self) -> np.ndarray:
+        """The weighted mean over the whole raster, in memory.
 
-def iter_batches(items: List[Window], size: int) -> Iterator[List[Window]]:
-    """Yield ``items`` in chunks of at most ``size``."""
-    if size <= 0:
-        raise ValueError(f'batch size must be positive, got {size}')
-    for i in range(0, len(items), size):
-        yield items[i:i + size]
+        Convenient for tests and small rasters. For anything large, iterate
+        :meth:`blocks` instead -- this allocates ``height * width * 4`` bytes.
+
+        Raises:
+            RuntimeError: if any pixel received no tile coverage.
+        """
+        out = np.empty((self.height, self.width), np.float32)
+        for rows, values in self.blocks():
+            out[rows] = values
+        return out

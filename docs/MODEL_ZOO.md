@@ -73,7 +73,11 @@ Windows.
 | EfficientNet-B3 + FPN | `iter_6800.pth` | `9d6131e21a1ec5f38f36adf8c570d0c09fdd8d067e73ef57509459b970a5aa60` | 108 104 299 |
 
 Arrange them as `checkpoints/<config-name>/<file>.pth` to match the commands in
-the README.
+the README, or build a self-contained bundle with a config beside each
+checkpoint — see [`RELEASE_BUNDLE.md`](RELEASE_BUNDLE.md).
+
+These digests come from `ghaf/release.py`, the single source of truth that
+`tools/smoke_test.py` and `tools/export_release.py` also read.
 
 ## Reproducing
 

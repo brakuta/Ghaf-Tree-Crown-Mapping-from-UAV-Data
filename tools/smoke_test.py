@@ -1,40 +1,38 @@
 #!/usr/bin/env python
-"""Verify every published config builds and matches its checkpoint.
+"""Verify every published config builds and matches its released model.
 
 Run this first on any new machine::
 
-    python tools/smoke_test.py            # build + forward pass, no data needed
-    python tools/smoke_test.py --strict   # also require exact parameter counts
+    python tools/smoke_test.py            # build + forward pass
+    python tools/smoke_test.py --strict   # exit non-zero on any mismatch
 
 For each config it constructs the model from scratch, runs one forward pass on
-a random 1024x1024 batch, and checks the parameter count against the published
-model's.
+a random batch, and checks the parameter count against the released model's.
+A mismatch means the code and the weights have diverged -- investigate before
+training or evaluating.
 
 Unlike ``tests/``, this needs the full stack: torch, mmcv, mmsegmentation,
-mmdet (for Mask2Former) and mmpretrain. It needs no dataset and no GPU,
-though a GPU makes it much faster.
+mmdet (for Mask2Former) and mmpretrain. It needs no dataset and no GPU, though
+a GPU makes it considerably faster.
 """
+
+from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
-#: Parameter count of each published model, summed over its checkpoint
-#: tensors. A build that does not match these is not the published model.
-EXPECTED_PARAMS = {
-    'fastvit-ma36_mask2former': 62_549_115,
-    'resnet-50_mask2former':    44_056_504,
-    'convnext-small_upernet':   81_776_049,
-    'dpn98_fpn':                65_346_639,
-    'poolformer-s36_fpn':       34_600_137,
-    'efficientnet-b3_fpn':      13_734_524,
-}
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-#: Backbones are built without downloading ImageNet weights -- the parameter
+from ghaf.release import RELEASED_MODELS, get, iter_models  # noqa: E402
+
+#: Backbones are built without downloading ImageNet weights: the parameter
 #: count is identical either way, and this keeps the check offline.
 NO_PRETRAINED = dict(model=dict(backbone=dict(init_cfg=None)))
 
 
-def build(name: str, device: str):
+def build(key: str, device: str):
+    """Construct one published model with randomly initialised weights."""
     from mmengine.config import Config
     from mmengine.registry import init_default_scope
     from mmseg.registry import MODELS
@@ -43,56 +41,63 @@ def build(name: str, device: str):
     ghaf.register_all()
     init_default_scope('mmseg')
 
-    cfg = Config.fromfile(f'configs/ghaf/{name}.py')
+    cfg = Config.fromfile(str(get(key).config_path))
     cfg.merge_from_dict(NO_PRETRAINED)
     return MODELS.build(cfg.model).to(device).eval()
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument('--device', default='cpu')
-    p.add_argument('--size', type=int, default=1024)
-    p.add_argument('--strict', action='store_true',
-                   help='fail on any parameter-count mismatch')
-    p.add_argument('--only', nargs='*', help='limit to these config names')
-    args = p.parse_args(argv)
+    parser = argparse.ArgumentParser(
+        description=__doc__.splitlines()[0],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--device', default='cpu')
+    parser.add_argument('--size', type=int, default=1024,
+                        help='forward-pass input size')
+    parser.add_argument('--strict', action='store_true',
+                        help='fail on any parameter-count mismatch')
+    parser.add_argument('--only', nargs='*', metavar='KEY',
+                        choices=sorted(RELEASED_MODELS), help='limit to these models')
+    args = parser.parse_args(argv)
 
     import torch
 
-    names = args.only or sorted(EXPECTED_PARAMS)
+    models = [m for m in iter_models() if not args.only or m.key in set(args.only)]
     failures = []
-    print(f'{"config":30s} {"params":>12s} {"expected":>12s}  {"delta":>8s}  forward')
-    print('-' * 78)
 
-    for name in names:
+    print(f'{"model":30s} {"built":>12s} {"released":>12s} {"delta":>8s}  backbone output')
+    print('-' * 84)
+
+    for model in models:
         try:
-            model = build(name, args.device)
-            n = sum(t.numel() for t in model.parameters())
-            expected = EXPECTED_PARAMS[name]
-            delta = n - expected
+            net = build(model.key, args.device)
+            built = sum(t.numel() for t in net.parameters())
+            delta = built - model.parameters
 
             x = torch.randn(1, 3, args.size, args.size, device=args.device)
             with torch.no_grad():
-                feats = model.backbone(x)
-            shapes = 'OK (%d scales)' % len(feats) if isinstance(
-                feats, (list, tuple)) else 'OK'
+                feats = net.backbone(x)
+            shape = (f'{len(feats)} scales, widths '
+                     f'{[f.shape[1] for f in feats]}'
+                     if isinstance(feats, (list, tuple)) else 'single tensor')
 
-            flag = '' if delta == 0 else '  <-- MISMATCH'
             if delta and args.strict:
-                failures.append(f'{name}: {n} != {expected}')
-            print(f'{name:30s} {n:12,d} {expected:12,d}  {delta:+8d}  {shapes}{flag}')
-        except Exception as exc:                       # noqa: BLE001
-            failures.append(f'{name}: {type(exc).__name__}: {exc}')
-            print(f'{name:30s} {"-":>12s} {EXPECTED_PARAMS[name]:12,d} '
-                  f'{"-":>8s}  FAILED: {type(exc).__name__}: {exc}')
+                failures.append(f'{model.key}: built {built:,}, '
+                                f'released {model.parameters:,}')
+            flag = '' if delta == 0 else '  <-- MISMATCH'
+            print(f'{model.key:30s} {built:12,d} {model.parameters:12,d} '
+                  f'{delta:+8d}  {shape}{flag}')
+        except Exception as exc:                                # noqa: BLE001
+            failures.append(f'{model.key}: {type(exc).__name__}: {exc}')
+            print(f'{model.key:30s} {"-":>12s} {model.parameters:12,d} {"-":>8s}  '
+                  f'FAILED: {type(exc).__name__}: {exc}')
 
     print()
     if failures:
         print(f'{len(failures)} failure(s):')
-        for f in failures:
-            print('  -', f)
+        for failure in failures:
+            print('  -', failure)
         return 1
-    print(f'all {len(names)} config(s) built and ran a forward pass')
+    print(f'all {len(models)} model(s) built and ran a forward pass')
     return 0
 
 
