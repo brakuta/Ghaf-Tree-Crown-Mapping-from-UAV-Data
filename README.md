@@ -153,7 +153,7 @@ audit is part of the repository:
   proposed model and the baselines that reviewers should know about
 - [`docs/MANUSCRIPT-CORRECTIONS.md`](docs/MANUSCRIPT-CORRECTIONS.md) — every
   correction the text requires
-- Tag `archive/full-source-fork` — the complete 1 154-file mmsegmentation fork
+- Branch [`archive/full-source-fork`](../../tree/archive/full-source-fork) — the complete 1 154-file mmsegmentation fork
   exactly as recovered from the workstation, before any restructuring
 
 ## Citation

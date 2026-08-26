@@ -83,7 +83,7 @@ Recorded so that anyone reading the archived logs can navigate them.
   parameter shapes, metric history
 - `environment/` — the conda environment and source-built dependency commits
   as captured from the workstation
-- Tag `archive/full-source-fork` — the complete 1 154-file mmsegmentation
+- Branch [`archive/full-source-fork`](../../tree/archive/full-source-fork) — the complete 1 154-file mmsegmentation
   fork exactly as recovered, before restructuring
 
 The checkpoints themselves (2.07 GB) are not in git. They are held with the
