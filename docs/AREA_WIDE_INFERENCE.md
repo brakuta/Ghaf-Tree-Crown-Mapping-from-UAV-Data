@@ -70,6 +70,28 @@ Peak memory does not grow with the mosaic. Three things make that true:
 The one exception is `--out-polygons`, which reads the finished mask raster
 back to vectorise it — one byte per pixel, and only when requested.
 
+Free space is checked before a run begins, so an undersized filesystem fails
+immediately with the figure it needs rather than part-way through with
+`ENOSPC`. `--scratch-dir` moves the accumulators off the system drive, which on
+Windows is usually where the temporary directory lives and is often the
+smallest volume on the machine.
+
+## Throughput
+
+One tile per forward pass leaves the GPU idle between tiles, and mmseg rebuilds
+its test pipeline on every call — upstream flags this in `_preprare_data` with
+`TODO: Consider using the singleton pattern`. `--batch-size` addresses both:
+tiles are grouped into one call, which amortises the pipeline construction and
+keeps the device busy.
+
+A survey mosaic runs to thousands of tiles — a 50,000 x 50,000 px mosaic at the
+default stride is about 9,500 — so the difference is measured in hours. Raise
+`--batch-size` until VRAM becomes the limit; the default of 1 is the safe
+choice, not the fast one.
+
+Batch size is a throughput knob only. `tests/test_large_image.py` asserts that
+batch sizes of 1, 2, 5 and 64 produce identical output.
+
 ## Outputs
 
 All three carry the source CRS and geotransform:
@@ -104,6 +126,8 @@ python -m ghaf.inference.large_image \
 | `--sigma` | 0.4 | blending width, in half-tile units |
 | `--threshold` | 0.5 | probability at which a pixel is called ghaf |
 | `--bands` | 1 2 3 | 1-based source band indices read as R, G, B |
+| `--batch-size` | 1 | tiles per forward pass; raise until VRAM limits it |
+| `--scratch-dir` | system temp | where the accumulators go |
 | `--device` | `cuda:0` | |
 
 The mosaic must be 8-bit; convert first if necessary:

@@ -194,3 +194,19 @@ class Accumulator:
         for rows, values in self.blocks():
             out[rows] = values
         return out
+
+
+def iter_batches(items: List[Window], size: int) -> Iterator[List[Window]]:
+    """Yield ``items`` in chunks of at most ``size``.
+
+    Used to group windows into inference batches: one forward pass over several
+    tiles amortises both the GPU launch overhead and mmseg's per-call
+    construction of the test pipeline.
+
+    Raises:
+        ValueError: if ``size`` is not positive.
+    """
+    if size <= 0:
+        raise ValueError(f'batch size must be positive, got {size}')
+    for start in range(0, len(items), size):
+        yield items[start:start + size]

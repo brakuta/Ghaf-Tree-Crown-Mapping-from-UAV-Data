@@ -136,3 +136,7 @@ Thumbs.db
 __pycache__/
 *.egg-info/
 .pytest_cache/
+
+# --- Tooling caches ---
+.ruff_cache/
+.mypy_cache/

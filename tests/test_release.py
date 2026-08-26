@@ -13,8 +13,7 @@ from pathlib import Path
 import pytest
 from mmengine.config import Config
 
-from ghaf.release import (RELEASED_MODELS, ReleasedModel, get, iter_models,
-                          sha256_of)
+from ghaf.release import RELEASED_MODELS, ReleasedModel, get, iter_models, sha256_of
 
 MODELS = list(iter_models())
 KEYS = [m.key for m in MODELS]

@@ -19,6 +19,16 @@ backbones, six configurations and an area-wide inference pipeline. Nothing
 inside `mmseg` is modified, so `pip install mmsegmentation` is the whole
 framework setup.
 
+[![tests](https://github.com/brakuta/Ghaf-Tree-Crown-Mapping-from-UAV-Data/actions/workflows/tests.yml/badge.svg)](https://github.com/brakuta/Ghaf-Tree-Crown-Mapping-from-UAV-Data/actions/workflows/tests.yml)
+[![python](https://img.shields.io/badge/python-3.9%20%7C%203.11-blue)](pyproject.toml)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
+**[Results](#results)** · **[Install](#installation)** · **[Data](#data)** ·
+**[Usage](#usage)** · **[Layout](#repository-layout)** ·
+**[Testing](#testing)** · **[Limits](#scope-and-limits)** ·
+[Model zoo](docs/MODEL_ZOO.md) · [Area-wide inference](docs/AREA_WIDE_INFERENCE.md) ·
+[Release bundle](docs/RELEASE_BUNDLE.md)
+
 ---
 
 ## Results
@@ -94,6 +104,17 @@ python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py \
 
 ## Usage
 
+**Check the data first**
+
+```bash
+python tools/check_dataset.py data/ghaf
+```
+
+Verifies that every image has a mask, that pairs agree on size, and that masks
+contain only the two class indices. A fault here shows up during training as a
+confusing loss curve rather than an error, so it is worth the minute. Add
+`--full` to open every tile instead of a sample.
+
 **Train**
 
 ```bash
@@ -134,8 +155,16 @@ python -m ghaf.inference.large_image \
     mosaic.tif \
     --out-prob probability.tif \
     --out-mask crowns.tif \
-    --out-polygons crowns.gpkg
+    --out-polygons crowns.gpkg \
+    --batch-size 4 \
+    --scratch-dir /fast/disk
 ```
+
+`--batch-size` trades VRAM for throughput; raise it until memory is the limit.
+`--scratch-dir` places the temporary accumulators, which need **9 bytes per
+source pixel** — worth pointing at a large disk, since the system temporary
+directory is often on a small system drive. Free space is checked before a run
+starts rather than part-way through.
 
 Slides a 1024 px window with 512 px overlap, blends overlapping predictions
 with Gaussian weights, and writes georeferenced probability, mask and polygon
@@ -162,7 +191,11 @@ configs/
 ├── _base_/ghaf.py         dataset, pipeline, schedule and runtime, shared
 └── ghaf/                  the six model configurations
 
-tools/                     train.py · test.py · smoke_test.py · export_release.py
+tools/
+├── check_dataset.py       validate a tile tree before using it
+├── train.py · test.py     thin wrappers over the mmengine runner
+├── smoke_test.py          build every model, check parameter counts
+└── export_release.py      assemble the shareable bundle
 tests/                     120 tests; mmengine and NumPy, plus
                            rasterio and geopandas for the end-to-end ones
 docs/                      model zoo, area-wide inference, release bundle
@@ -197,7 +230,34 @@ digests, parameter counts and scores that `tools/smoke_test.py` checks built
 models against and `tools/export_release.py` verifies copies against. A model
 therefore cannot be documented one way and shipped another.
 
+## Scope and limits
+
+Stated plainly, so nobody discovers them the hard way.
+
+- **Reproducing the published numbers means evaluating the published
+  checkpoints.** The configs fix no random seed by default, so retraining lands
+  close but not identical — expect the third significant figure to move. Set
+  `randomness` in `configs/_base_/ghaf.py` for deterministic runs.
+- **Area-wide inference needs 8-bit input.** Convert first with
+  `gdal_translate -ot Byte -scale`. 16-bit rasters are rejected with that
+  remedy rather than silently rescaled.
+- **`--tile` must match the training input size (1024).** A model given a
+  different tile size raises rather than resizing, because resizing would
+  change the result without saying so.
+- **Scratch disk, not RAM, is the binding constraint** on how large a mosaic
+  can be processed: 9 bytes per source pixel.
+- **Crown polygons are raster boundaries**, one polygon per connected
+  component. Touching crowns merge; the pipeline does not separate instances.
+- **The two custom backbones are Python, not configuration.** A released model
+  folder is self-contained as a config, but still needs the `ghaf` package
+  installed.
+- **Windows is the platform these models were trained on**, and the tools are
+  path-agnostic, but CI runs on Linux only.
+
 ## Citation
+
+Machine-readable metadata is in [`CITATION.cff`](CITATION.cff); GitHub's
+"Cite this repository" button reads it.
 
 ```bibtex
 @article{ghaf_uav_segmentation,

@@ -98,3 +98,13 @@ ghaf-project/
 Point a config at the tiles with `--cfg-options data_root=/path/to/data/ghaf`,
 or place them at `data/ghaf` relative to the working directory, which is the
 default.
+
+Validate the copy before handing it on:
+
+```bash
+python tools/check_dataset.py /path/to/data/ghaf --full --json dataset-report.json
+```
+
+This confirms every image has a mask, that pairs agree on size, and that masks
+contain only the two class indices — and exits non-zero if not, so it can gate
+a handover script.

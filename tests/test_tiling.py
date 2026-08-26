@@ -7,9 +7,7 @@ mmcv, or the dataset.
 import numpy as np
 import pytest
 
-from ghaf.inference.tiling import (Accumulator, Window, gaussian_weights,
-                                   plan_windows)
-
+from ghaf.inference.tiling import Accumulator, Window, gaussian_weights, plan_windows
 
 # --------------------------------------------------------------------------
 # plan_windows
@@ -29,8 +27,8 @@ def test_windows_cover_every_pixel(width, height):
 @pytest.mark.parametrize('width,height', [(1024, 1024), (3000, 1700), (777, 4096)])
 def test_windows_stay_inside_the_raster(width, height):
     for w in plan_windows(width, height, tile=1024, overlap=512):
-        assert 0 <= w.col_off and w.col_off + w.width <= width
-        assert 0 <= w.row_off and w.row_off + w.height <= height
+        assert w.col_off >= 0 and w.col_off + w.width <= width
+        assert w.row_off >= 0 and w.row_off + w.height <= height
         assert w.width > 0 and w.height > 0
 
 

@@ -19,7 +19,9 @@ shipped another.
 from __future__ import annotations
 
 import hashlib
+import os
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict, Iterator, Optional
 
@@ -27,7 +29,53 @@ from typing import Dict, Iterator, Optional
 #: enough that a 1 GB checkpoint never lands in memory at once.
 _DIGEST_CHUNK = 1 << 20
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+#: Environment variable that overrides config discovery, for installs that
+#: place ``configs/`` somewhere this module cannot infer.
+CONFIG_DIR_ENV = 'GHAF_CONFIG_DIR'
+
+
+@lru_cache(maxsize=1)
+def config_dir() -> Path:
+    """Locate ``configs/ghaf/``.
+
+    If ``GHAF_CONFIG_DIR`` is set it is used, and a bad value raises rather
+    than falling back to somewhere the caller did not ask for. Otherwise the
+    repository layout (an editable install or source checkout) is tried, then
+    the current working directory.
+
+    Returns:
+        The directory holding the six model configs.
+
+    Raises:
+        FileNotFoundError: naming every location tried, because "config not
+            found" is otherwise an unhelpful thing to debug.
+    """
+    override = os.environ.get(CONFIG_DIR_ENV)
+    if override:
+        # An explicit override is honoured or refused -- never silently
+        # ignored in favour of a directory the caller did not ask for.
+        chosen = Path(override)
+        if not (chosen.is_dir() and any(chosen.glob('*.py'))):
+            raise FileNotFoundError(
+                f'{CONFIG_DIR_ENV} is set to {override!r}, which is not a '
+                f'directory containing config files.')
+        return chosen
+
+    candidates = []
+    package_parent = Path(__file__).resolve().parent.parent
+    candidates += [
+        package_parent / 'configs' / 'ghaf',
+        package_parent / 'configs',
+        Path.cwd() / 'configs' / 'ghaf',
+    ]
+    for candidate in candidates:
+        if candidate.is_dir() and any(candidate.glob('*.py')):
+            return candidate
+    raise FileNotFoundError(
+        'could not locate configs/ghaf. Tried:\n  ' +
+        '\n  '.join(str(c) for c in candidates) +
+        f'\nInstall the project in editable mode (`pip install -e .`) or set '
+        f'{CONFIG_DIR_ENV} to the directory holding the model configs.')
 
 
 @dataclass(frozen=True)
@@ -58,8 +106,13 @@ class ReleasedModel:
 
     @property
     def config_path(self) -> Path:
-        """Path to this model's config, relative to the repository root."""
-        return REPO_ROOT / 'configs' / 'ghaf' / f'{self.key}.py'
+        """This model's config file.
+
+        Raises:
+            FileNotFoundError: if ``configs/ghaf`` cannot be located; see
+                :func:`config_dir`.
+        """
+        return config_dir() / f'{self.key}.py'
 
     def verify(self, checkpoint_path: Path) -> None:
         """Check a checkpoint file against the released size and digest.
@@ -168,5 +221,5 @@ def get(key: str) -> ReleasedModel:
             f'{", ".join(sorted(RELEASED_MODELS))}') from None
 
 
-__all__ = ['RELEASED_MODELS', 'REPO_ROOT', 'ReleasedModel', 'get',
-           'iter_models', 'sha256_of']
+__all__ = ['CONFIG_DIR_ENV', 'RELEASED_MODELS', 'ReleasedModel', 'config_dir',
+           'get', 'iter_models', 'sha256_of']

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import shutil
 import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -31,7 +32,7 @@ from typing import Optional, Sequence, Tuple
 
 import numpy as np
 
-from .tiling import Accumulator, Window, gaussian_weights, plan_windows
+from .tiling import Accumulator, Window, gaussian_weights, iter_batches, plan_windows
 
 LOGGER = logging.getLogger(__name__)
 
@@ -66,6 +67,28 @@ class PredictionSummary:
     def canopy_fraction(self) -> float:
         """Share of valid (non-nodata) pixels classified as ghaf."""
         return self.canopy_pixels / self.valid_pixels if self.valid_pixels else 0.0
+
+
+def check_scratch_space(directory: Path, height: int, width: int,
+                        margin: float = 1.1) -> None:
+    """Fail before a long run rather than part-way through it.
+
+    Args:
+        directory: where the accumulators will be written.
+        height, width: source raster dimensions.
+        margin: headroom multiplier over the bare requirement.
+
+    Raises:
+        OSError: if the filesystem holding ``directory`` has too little free
+            space, naming what is needed and what is available.
+    """
+    needed = int(height * width * SCRATCH_BYTES_PER_PIXEL * margin)
+    free = shutil.disk_usage(directory).free
+    if free < needed:
+        raise OSError(
+            f'not enough scratch space in {directory}: need '
+            f'{needed / 1e9:.1f} GB, {free / 1e9:.1f} GB free. Point '
+            f'--scratch-dir at a larger filesystem.')
 
 
 def _import(module: str, package: str):
@@ -127,15 +150,16 @@ def _foreground_probability(result, tile: int) -> np.ndarray:
     return prob
 
 
-def _progress(windows, enabled: bool, label: str):
+def _progress(batches, enabled: bool, label: str, batch_size: int):
     if not enabled:
-        return windows
+        return batches
     try:
         from tqdm import tqdm
-        return tqdm(windows, unit='tile', desc=label)
+        unit = 'batch' if batch_size > 1 else 'tile'
+        return tqdm(batches, unit=unit, desc=label)
     except ImportError:
         LOGGER.info('tqdm not installed; running without a progress bar')
-        return windows
+        return batches
 
 
 def predict_large_image(
@@ -149,6 +173,8 @@ def predict_large_image(
     sigma: float = 0.4,
     threshold: float = 0.5,
     bands: Sequence[int] = (1, 2, 3),
+    batch_size: int = 1,
+    scratch_dir: Optional[Path] = None,
     progress: bool = True,
 ) -> PredictionSummary:
     """Predict over a whole orthomosaic and write georeferenced outputs.
@@ -166,6 +192,12 @@ def predict_large_image(
         sigma: Gaussian blending width, in half-tile units.
         threshold: probability at or above which a pixel is called ghaf.
         bands: 1-based band indices to read as R, G, B.
+        batch_size: tiles per forward pass. Larger batches use the GPU better
+            and amortise mmseg's per-call construction of the test pipeline,
+            at the cost of VRAM. Raise it until memory becomes the limit.
+        scratch_dir: where to place the memory-mapped accumulators. Defaults to
+            the system temporary directory, which on Windows is usually on the
+            system drive and may be far smaller than a run needs.
         progress: show a progress bar if tqdm is installed.
 
     Returns:
@@ -184,6 +216,8 @@ def predict_large_image(
         raise ValueError(f'threshold must be in [0, 1], got {threshold}')
     if len(bands) != 3:
         raise ValueError(f'expected exactly 3 band indices, got {list(bands)}')
+    if batch_size < 1:
+        raise ValueError(f'batch_size must be at least 1, got {batch_size}')
     src_path = Path(src_path)
     if not src_path.is_file():
         raise FileNotFoundError(src_path)
@@ -204,10 +238,17 @@ def predict_large_image(
         weights = gaussian_weights(tile, sigma)
         scratch_gb = height * width * SCRATCH_BYTES_PER_PIXEL / 1e9
         LOGGER.info('%s: %d x %d px, %d window(s) of %d px (overlap %d), '
-                    '%.1f GB scratch', src_path.name, width, height,
-                    len(windows), tile, overlap, scratch_gb)
+                    'batch %d, %.1f GB scratch', src_path.name, width, height,
+                    len(windows), tile, overlap, batch_size, scratch_gb)
 
-        with tempfile.TemporaryDirectory(prefix='ghaf-infer-') as tmp:
+        if scratch_dir is not None:
+            scratch_dir = Path(scratch_dir)
+            scratch_dir.mkdir(parents=True, exist_ok=True)
+        check_scratch_space(scratch_dir or Path(tempfile.gettempdir()),
+                            height, width)
+
+        with tempfile.TemporaryDirectory(prefix='ghaf-infer-',
+                                         dir=scratch_dir) as tmp:
             scratch = Path(tmp)
             shape = (height, width)
             acc = Accumulator(
@@ -216,14 +257,27 @@ def predict_large_image(
                 denominator=np.memmap(scratch / 'den.dat', np.float32, 'w+', shape=shape))
             valid_plane = np.memmap(scratch / 'valid.dat', np.uint8, 'w+', shape=shape)
 
-            for window in _progress(windows, progress, src_path.stem):
-                patch, window_valid = _read_window(src, window, bands, tile)
-                prob = _foreground_probability(inference_model(model, patch), tile)
-                acc.add(window, prob, weights)
-                rows = slice(window.row_off, window.row_off + window.height)
-                cols = slice(window.col_off, window.col_off + window.width)
-                np.maximum(valid_plane[rows, cols], window_valid.astype(np.uint8),
-                           out=valid_plane[rows, cols])
+            batches = list(iter_batches(windows, batch_size))
+            for batch in _progress(batches, progress, src_path.stem, batch_size):
+                patches, valids = zip(
+                    *(_read_window(src, w, bands, tile) for w in batch))
+
+                # A list in, a list out: mmseg batches when given a sequence.
+                results = inference_model(model, list(patches))
+                if not isinstance(results, (list, tuple)):
+                    results = [results]
+                if len(results) != len(batch):
+                    raise RuntimeError(
+                        f'model returned {len(results)} result(s) for a batch '
+                        f'of {len(batch)}')
+
+                for window, result, window_valid in zip(batch, results, valids):
+                    acc.add(window, _foreground_probability(result, tile), weights)
+                    rows = slice(window.row_off, window.row_off + window.height)
+                    cols = slice(window.col_off, window.col_off + window.width)
+                    np.maximum(valid_plane[rows, cols],
+                               window_valid.astype(np.uint8),
+                               out=valid_plane[rows, cols])
 
             summary = _write_outputs(
                 acc, valid_plane, threshold, profile, crs, transform,
@@ -365,6 +419,11 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument('--threshold', type=float, default=0.5)
     parser.add_argument('--bands', type=int, nargs=3, default=(1, 2, 3),
                         metavar=('R', 'G', 'B'))
+    parser.add_argument('--batch-size', type=int, default=1,
+                        help='tiles per forward pass; raise until VRAM limits it')
+    parser.add_argument('--scratch-dir', type=Path,
+                        help='where to put the temporary accumulators '
+                             '(default: the system temporary directory)')
     parser.add_argument('--device', default='cuda:0')
     parser.add_argument('--no-progress', action='store_true')
     args = parser.parse_args(argv)
@@ -392,6 +451,7 @@ def main(argv=None) -> int:
         out_polygons=args.out_polygons,
         tile=args.tile, overlap=args.overlap, sigma=args.sigma,
         threshold=args.threshold, bands=tuple(args.bands),
+        batch_size=args.batch_size, scratch_dir=args.scratch_dir,
         progress=not args.no_progress,
     )
     return 0

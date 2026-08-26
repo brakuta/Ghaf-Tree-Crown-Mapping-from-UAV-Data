@@ -49,6 +49,9 @@ def _stub_inference(probability, classes=2, tile=64):
             torch.logit(torch.tensor(p)) if 0 < p < 1 else (30.0 if p >= 1 else -30.0))
 
     def run(model, image):
+        # Mirror mmseg: a sequence in, a list of the same length out.
+        if isinstance(image, (list, tuple)):
+            return [_Sample(logits) for _ in image]
         return _Sample(logits)
     return run
 
@@ -254,7 +257,8 @@ def test_scratch_is_removed_even_when_a_run_fails(tmp_path, patched):
     import tempfile
     from pathlib import Path
 
-    scratch_dirs = lambda: set(Path(tempfile.gettempdir()).glob('ghaf-infer-*'))
+    def scratch_dirs():
+        return set(Path(tempfile.gettempdir()).glob('ghaf-infer-*'))
 
     patched(0.9, classes=1)
     src = write_raster(tmp_path / 'm.tif', 64, 64)
@@ -263,3 +267,102 @@ def test_scratch_is_removed_even_when_a_run_fails(tmp_path, patched):
         L.predict_large_image(None, src, out_mask=tmp_path / 'k.tif',
                               tile=64, overlap=16, progress=False)
     assert scratch_dirs() == before, 'scratch directory left behind'
+
+
+# --------------------------------------------------------------------------
+# batching, scratch space and resource guards
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize('batch_size', [1, 2, 5, 64])
+def test_batching_does_not_change_the_result(tmp_path, patched, batch_size):
+    """Batch size is a throughput knob; it must not move a single pixel."""
+    patched(0.85)
+    src = write_raster(tmp_path / 'm.tif', 200, 150)
+    out = tmp_path / f'p{batch_size}.tif'
+    L.predict_large_image(None, src, out_prob=out, tile=64, overlap=16,
+                          batch_size=batch_size, progress=False)
+    with rasterio.open(out) as dst:
+        values = dst.read(1)
+    np.testing.assert_allclose(values, 0.85, atol=1e-4)
+
+
+def test_a_batch_larger_than_the_window_count_is_fine(tmp_path, patched):
+    patched(0.9)
+    src = write_raster(tmp_path / 'm.tif', 64, 64)       # exactly one window
+    summary = L.predict_large_image(None, src, out_mask=tmp_path / 'k.tif',
+                                    tile=64, overlap=16, batch_size=32,
+                                    progress=False)
+    assert summary.windows == 1
+
+
+@pytest.mark.parametrize('batch_size', [0, -3])
+def test_an_invalid_batch_size_is_rejected(tmp_path, patched, batch_size):
+    patched(0.9)
+    src = write_raster(tmp_path / 'm.tif', 64, 64)
+    with pytest.raises(ValueError, match='batch_size'):
+        L.predict_large_image(None, src, out_mask=tmp_path / 'k.tif', tile=64,
+                              overlap=16, batch_size=batch_size, progress=False)
+
+
+def test_a_model_returning_the_wrong_batch_length_is_caught(tmp_path, patched,
+                                                            monkeypatch):
+    """Silently dropping tiles would leave holes that blending would hide."""
+    patched(0.9)
+    src = write_raster(tmp_path / 'm.tif', 200, 200)
+
+    real = L._import
+
+    def truncating(module, package):
+        api = real(module, package) if module != 'mmseg.apis' else None
+        if module != 'mmseg.apis':
+            return api
+
+        class _Api:
+            @staticmethod
+            def inference_model(model, images):
+                return _stub_inference(0.9)(model, list(images)[:1])
+        return _Api
+
+    monkeypatch.setattr(L, '_import', truncating)
+    with pytest.raises(RuntimeError, match='result'):
+        L.predict_large_image(None, src, out_mask=tmp_path / 'k.tif', tile=64,
+                              overlap=16, batch_size=4, progress=False)
+
+
+def test_scratch_dir_is_honoured_and_cleaned(tmp_path, patched):
+    patched(0.9)
+    src = write_raster(tmp_path / 'm.tif', 128, 128)
+    scratch = tmp_path / 'scratch'
+
+    L.predict_large_image(None, src, out_mask=tmp_path / 'k.tif', tile=64,
+                          overlap=16, scratch_dir=scratch, progress=False)
+
+    assert scratch.is_dir(), 'scratch directory should be created'
+    assert list(scratch.iterdir()) == [], 'temporary files left behind'
+
+
+def test_a_run_too_large_for_the_scratch_filesystem_fails_early(tmp_path, patched,
+                                                                monkeypatch):
+    """Better to refuse up front than to die hours in with ENOSPC."""
+    patched(0.9)
+    src = write_raster(tmp_path / 'm.tif', 128, 128)
+
+    Usage = type('Usage', (), {'total': 0, 'used': 0, 'free': 1024})
+    monkeypatch.setattr(L.shutil, 'disk_usage', lambda _p: Usage)
+
+    with pytest.raises(OSError, match='scratch space'):
+        L.predict_large_image(None, src, out_mask=tmp_path / 'k.tif', tile=64,
+                              overlap=16, progress=False)
+
+
+def test_the_space_guard_computes_nine_bytes_per_pixel(tmp_path, monkeypatch):
+    seen = {}
+    Usage = type('Usage', (), {'total': 0, 'used': 0, 'free': 10 ** 12})
+    monkeypatch.setattr(L.shutil, 'disk_usage',
+                        lambda p: seen.setdefault('path', p) and Usage or Usage)
+    L.check_scratch_space(tmp_path, 1000, 2000, margin=1.0)     # 18 MB, passes
+
+    Small = type('Small', (), {'total': 0, 'used': 0, 'free': 17_000_000})
+    monkeypatch.setattr(L.shutil, 'disk_usage', lambda _p: Small)
+    with pytest.raises(OSError, match='need 18.0 GB|need 0.0 GB|scratch space'):
+        L.check_scratch_space(tmp_path, 10_000, 20_000, margin=1.0)
