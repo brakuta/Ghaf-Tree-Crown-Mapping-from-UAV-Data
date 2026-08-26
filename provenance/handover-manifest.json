@@ -1,0 +1,2310 @@
+{
+  "work_dirs": "G:\\experiments\\mmsegmentation\\work_dirs",
+  "evaluations": [
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\coatnet_fpn\\20250318_105935\\20250318_105935.log",
+      "loop": "test",
+      "images": 767,
+      "metrics": {
+        "aAcc": 98.09,
+        "mIoU": 78.19,
+        "mAcc": 85.13,
+        "mFscore": 86.35,
+        "mPrecision": 87.66,
+        "mRecall": 85.13
+      },
+      "backbone": "coatnet_small_timm",
+      "backbone_arch": null,
+      "decode_head": "FPNHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\dual_path\\best_mIoU_iter_14000.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/images",
+        "seg_map_path": "testing/ghaf26/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/images",
+        "seg_map_path": "testing/ghaf26/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\coatnet_fpn\\20250318_105935\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\dual_path\\best_mIoU_iter_14000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\convnext-small_upernet_8xb2-amp-160k_ade20k-512x512\\20250318_104309\\20250318_104309.log",
+      "loop": "test",
+      "images": 767,
+      "metrics": {
+        "aAcc": 98.17,
+        "mIoU": 78.02,
+        "mAcc": 83.03,
+        "mFscore": 86.2,
+        "mPrecision": 90.12,
+        "mRecall": 83.03
+      },
+      "backbone": "mmpretrain.ConvNeXt",
+      "backbone_arch": "small",
+      "decode_head": "UPerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\convnext-small_upernet_8xb2-amp-160k_ade20k-512x512convnext\\iter_14000.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/images",
+        "seg_map_path": "testing/ghaf26/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/images",
+        "seg_map_path": "testing/ghaf26/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\convnext-small_upernet_8xb2-amp-160k_ade20k-512x512\\20250318_104309\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\convnext-small_upernet_8xb2-amp-160k_ade20k-512x512convnext\\iter_14000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\convnext-small_upernet_8xb2-amp-160k_ade20k-512x512convnext\\20250306_142034\\20250306_142034.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.57,
+        "mIoU": 77.67,
+        "mAcc": 89.89,
+        "mFscore": 86.01,
+        "mPrecision": 82.89,
+        "mRecall": 89.89
+      },
+      "backbone": "mmpretrain.ConvNeXt",
+      "backbone_arch": "small",
+      "decode_head": "UPerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\convnext-small_upernet_8xb2-amp-160k_ade20k-512x512convnext\\20250306_142034\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\convnext-small_upernet_8xb2-amp-160k_ade20k-512x512convnext",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\dual_path\\20250313_125512\\20250313_125512.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.37,
+        "mIoU": 76.62,
+        "mAcc": 89.85,
+        "mFscore": 85.19,
+        "mPrecision": 81.61,
+        "mRecall": 89.85
+      },
+      "backbone": "coatnet_small_timm",
+      "backbone_arch": null,
+      "decode_head": "FPNHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\dual_path\\20250313_125512\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\coatnet_fpncoat_timm",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\efficient\\20250318_112006\\20250318_112006.log",
+      "loop": "test",
+      "images": 767,
+      "metrics": {
+        "aAcc": 96.05,
+        "mIoU": 70.77,
+        "mAcc": 92.19,
+        "mFscore": 80.29,
+        "mPrecision": 74.09,
+        "mRecall": 92.19
+      },
+      "backbone": "mmpretrain.EfficientNet",
+      "backbone_arch": "b3",
+      "decode_head": "FPNHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\efficientefficient\\iter_6800.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/images",
+        "seg_map_path": "testing/ghaf26/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/images",
+        "seg_map_path": "testing/ghaf26/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\efficient\\20250318_112006\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\efficientefficient\\iter_6800.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\efficientefficient\\20250309_140341\\20250309_140341.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.2,
+        "mIoU": 75.82,
+        "mAcc": 90.01,
+        "mFscore": 84.55,
+        "mPrecision": 80.54,
+        "mRecall": 90.01
+      },
+      "backbone": "mmpretrain.EfficientNet",
+      "backbone_arch": "b3",
+      "decode_head": "FPNHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\efficientefficient\\20250309_140341\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\efficientefficient",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\fastvit_fpnfastvitfpn\\20250325_171749\\20250325_171749.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.2,
+        "mIoU": 74.63,
+        "mAcc": 86.38,
+        "mFscore": 83.54,
+        "mPrecision": 81.16,
+        "mRecall": 86.38
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "FPNHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\fastvit_fpnfastvitfpn\\20250325_171749\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\fastvit_fpnfastvitfpn",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\fpn_poolformer_s36_8x4_512x512_40k_ade20k\\20250318_110639\\20250318_110639.log",
+      "loop": "test",
+      "images": 767,
+      "metrics": {
+        "aAcc": 98.09,
+        "mIoU": 78.65,
+        "mAcc": 86.3,
+        "mFscore": 86.72,
+        "mPrecision": 87.14,
+        "mRecall": 86.3
+      },
+      "backbone": "mmpretrain.PoolFormer",
+      "backbone_arch": "s36",
+      "decode_head": "FPNHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\fpn_poolformer_s36_8x4_512x512_40k_ade20kpool\\iter_10200.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/images",
+        "seg_map_path": "testing/ghaf26/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/images",
+        "seg_map_path": "testing/ghaf26/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\fpn_poolformer_s36_8x4_512x512_40k_ade20k\\20250318_110639\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\fpn_poolformer_s36_8x4_512x512_40k_ade20kpool\\iter_10200.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\fpn_poolformer_s36_8x4_512x512_40k_ade20kpool\\20250309_005445\\20250309_005445.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 95.91,
+        "mIoU": 47.96,
+        "mAcc": 50.0,
+        "mFscore": 97.91,
+        "mPrecision": 95.91,
+        "mRecall": 50.0
+      },
+      "backbone": "mmpretrain.PoolFormer",
+      "backbone_arch": "s36",
+      "decode_head": "FPNHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\fpn_poolformer_s36_8x4_512x512_40k_ade20kpool\\20250309_005445\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\fpn_poolformer_s36_8x4_512x512_40k_ade20kpool",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mambaout_base\\20250427_173043\\20250427_173043.log",
+      "loop": "val",
+      "images": 2407,
+      "metrics": {
+        "aAcc": 98.59,
+        "mIoU": 83.3,
+        "mAcc": 86.8,
+        "mFscore": 90.13,
+        "mPrecision": 94.21,
+        "mRecall": 86.8
+      },
+      "backbone": "mamba_small_timm",
+      "backbone_arch": null,
+      "decode_head": "UPerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\acacia\\UAV_Data",
+        "img_path": "img_dir/train",
+        "seg_map_path": "ann_dir/train"
+      },
+      "val": {
+        "data_root": "C:\\acacia\\UAV_Data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "test": {
+        "data_root": "C:\\acacia\\UAV_Data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mambaout_base\\20250427_173043\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\upernet_r50segmenter",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mambavision_base\\20250429_101610\\20250429_101610.log",
+      "loop": "val",
+      "images": 2407,
+      "metrics": {
+        "aAcc": 98.73,
+        "mIoU": 84.61,
+        "mAcc": 87.36,
+        "mFscore": 91.03,
+        "mPrecision": 95.59,
+        "mRecall": 87.36
+      },
+      "backbone": "mamba_small_vision_timm",
+      "backbone_arch": null,
+      "decode_head": "UPerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "/data",
+        "img_path": "img_dir/train",
+        "seg_map_path": "ann_dir/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mambavision_base\\20250429_101610\\vis_data\\config.py",
+      "work_dir": "./work_dirs/upernet_r50segmenter",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\20250514_120845\\20250514_120845.log",
+      "loop": "val",
+      "images": 2407,
+      "metrics": {
+        "aAcc": 98.78,
+        "mIoU": 85.87,
+        "mAcc": 90.36,
+        "mFscore": 91.88,
+        "mPrecision": 93.52,
+        "mRecall": 90.36
+      },
+      "backbone": "mamba_small_timm",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "/data",
+        "img_path": "last_data/train",
+        "seg_map_path": "last_data/labels/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\20250514_120845\\vis_data\\config.py",
+      "work_dir": "./work_dirs/mask2former_Mamba_out",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\20250516_100918\\20250516_100918.log",
+      "loop": "test",
+      "images": 1276,
+      "metrics": {
+        "aAcc": 99.39,
+        "mIoU": 91.49,
+        "mAcc": 95.99,
+        "mFscore": 95.38,
+        "mPrecision": 94.78,
+        "mRecall": 95.99
+      },
+      "backbone": "mamba_small_timm",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "work_dirs/mask2former_Mamba_out/best_mIoU_iter_5000.pth",
+      "train": {
+        "data_root": "/data",
+        "img_path": "last_data/train",
+        "seg_map_path": "last_data/labels/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\20250516_100918\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\best_mIoU_iter_5000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\20250516_101522\\20250516_101522.log",
+      "loop": "test",
+      "images": 1276,
+      "metrics": {
+        "aAcc": 99.4,
+        "mIoU": 91.29,
+        "mAcc": 93.66,
+        "mFscore": 95.26,
+        "mPrecision": 96.98,
+        "mRecall": 93.66
+      },
+      "backbone": "mamba_small_timm",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "work_dirs/mask2former_Mamba_out/iter_10000.pth",
+      "train": {
+        "data_root": "/data",
+        "img_path": "last_data/train",
+        "seg_map_path": "last_data/labels/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\20250516_101522\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\iter_10000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\20250516_103045\\20250516_103045.log",
+      "loop": "test",
+      "images": 2162,
+      "metrics": {
+        "aAcc": 99.16,
+        "mIoU": 88.87,
+        "mAcc": 91.51,
+        "mFscore": 93.79,
+        "mPrecision": 96.37,
+        "mRecall": 91.51
+      },
+      "backbone": "mamba_small_timm",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "work_dirs/mask2former_Mamba_out/iter_10000.pth",
+      "train": {
+        "data_root": "/data",
+        "img_path": "last_data/train",
+        "seg_map_path": "last_data/labels/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/Generalizability",
+        "seg_map_path": "ann_dir/Generalizability"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/Generalizability",
+        "seg_map_path": "ann_dir/Generalizability"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\20250516_103045\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\iter_10000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_r50_8xb2-160k_ade20k-512x512\\20250311_230401\\20250311_230401.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.42,
+        "mIoU": 77.26,
+        "mAcc": 91.16,
+        "mFscore": 85.71,
+        "mPrecision": 81.66,
+        "mRecall": 91.16
+      },
+      "backbone": "ResNet",
+      "backbone_arch": 50,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_r50_8xb2-160k_ade20k-512x512\\20250311_230401\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\mask2former_r50_8xb2-160k_ade20k-512x512next_timm",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_r50_8xb2-160k_ade20k-512x512\\20250318_104913\\20250318_104913.log",
+      "loop": "test",
+      "images": 767,
+      "metrics": {
+        "aAcc": 97.89,
+        "mIoU": 77.69,
+        "mAcc": 87.29,
+        "mFscore": 85.98,
+        "mPrecision": 84.77,
+        "mRecall": 87.29
+      },
+      "backbone": "ResNet",
+      "backbone_arch": 50,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_r50_8xb2-160k_ade20k-512x512\\best_mIoU_iter_38500.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/images",
+        "seg_map_path": "testing/ghaf26/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/images",
+        "seg_map_path": "testing/ghaf26/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_r50_8xb2-160k_ade20k-512x512\\20250318_104913\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_r50_8xb2-160k_ade20k-512x512\\best_mIoU_iter_38500.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-s_8xb2-160k_ade20k-512x512\\20250130_090644\\20250130_090644.log",
+      "loop": "val",
+      "images": 384,
+      "metrics": {
+        "aAcc": 98.09,
+        "mIoU": 79.24,
+        "mAcc": 88.23
+      },
+      "backbone": "SwinTransformer",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "ghaf_23_25/images",
+        "seg_map_path": "ghaf_23_25/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "ghaf26\\images",
+        "seg_map_path": "ghaf26\\labels\\masks1"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "ghaf26\\images",
+        "seg_map_path": "ghaf26\\labels\\masks1"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-s_8xb2-160k_ade20k-512x512\\20250130_090644\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\mask2former_swin-s_8xb2-160k_ade20k-512x512",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-s_8xb2-160k_ade20k-512x512_all_data\\20250225_151956\\20250225_151956.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.53,
+        "mIoU": 77.85,
+        "mAcc": 91.25
+      },
+      "backbone": "SwinTransformer",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-s_8xb2-160k_ade20k-512x512_all_data\\20250225_151956\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\mask2former_swin-s_8xb2-160k_ade20k-512x512_all_data",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-s_8xb2-160k_ade20k-512x512_swin\\20250220_165140\\20250220_165140.log",
+      "loop": "val",
+      "images": 767,
+      "metrics": {
+        "aAcc": 98.1,
+        "mIoU": 79.28,
+        "mAcc": 88.11
+      },
+      "backbone": "SwinTransformer",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "ghaf25/images",
+        "seg_map_path": "ghaf25/labels/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "ghaf26/images",
+        "seg_map_path": "ghaf26/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "ghaf26/images",
+        "seg_map_path": "ghaf26/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-s_8xb2-160k_ade20k-512x512_swin\\20250220_165140\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\mask2former_swin-s_8xb2-160k_ade20k-512x512_swin",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-s_8xb2-160k_ade20k-512x512fastvit_olddata\\20250404_222616\\20250404_222616.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 95.14,
+        "mIoU": 66.73,
+        "mAcc": 85.17,
+        "mFscore": 76.5,
+        "mPrecision": 71.62,
+        "mRecall": 85.17
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "H:\\ghaf\\train",
+        "img_path": "images_final",
+        "seg_map_path": "mask_images"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-s_8xb2-160k_ade20k-512x512fastvit_olddata\\20250404_222616\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\mask2former_swin-s_8xb2-160k_ade20k-512x512fastvit_olddata",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512\\20250318_102736\\20250318_102736.log",
+      "loop": "test",
+      "images": 869,
+      "metrics": {
+        "aAcc": 98.09,
+        "mIoU": 80.14,
+        "mAcc": 88.12,
+        "mFscore": 87.87,
+        "mPrecision": 87.62,
+        "mRecall": 88.12
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_3500.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512\\20250318_102736\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_3500.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512\\20250318_103534\\20250318_103534.log",
+      "loop": "test",
+      "images": 767,
+      "metrics": {
+        "aAcc": 98.22,
+        "mIoU": 79.32,
+        "mAcc": 85.68,
+        "mFscore": 87.22,
+        "mPrecision": 88.92,
+        "mRecall": 85.68
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_3500.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/images",
+        "seg_map_path": "testing/ghaf26/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/images",
+        "seg_map_path": "testing/ghaf26/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512\\20250318_103534\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_3500.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512_fastvit1\\20250221_174118\\20250221_174118.log",
+      "loop": "val",
+      "images": 767,
+      "metrics": {
+        "aAcc": 97.49,
+        "mIoU": 75.89,
+        "mAcc": 88.81
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "ghaf25/images",
+        "seg_map_path": "ghaf25/labels/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "ghaf26/images",
+        "seg_map_path": "ghaf26/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "ghaf26/images",
+        "seg_map_path": "ghaf26/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512_fastvit1\\20250221_174118\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\mask2former_swin-t_8xb2-160k_ade20k-512x512_fastvit1",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512_fastvit_23_25\\20250221_204919\\20250221_204919.log",
+      "loop": "val",
+      "images": 767,
+      "metrics": {
+        "aAcc": 97.24,
+        "mIoU": 74.99,
+        "mAcc": 89.98
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "ghaf_23_25/images",
+        "seg_map_path": "ghaf_23_25/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "ghaf26/images",
+        "seg_map_path": "ghaf26/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "ghaf26/images",
+        "seg_map_path": "ghaf26/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512_fastvit_23_25\\20250221_204919\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\mask2former_swin-t_8xb2-160k_ade20k-512x512_fastvit_23_25",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250227_114534\\20250227_114534.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.9,
+        "mIoU": 80.95,
+        "mAcc": 88.88
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512_fastvit_23_25\\best_mIoU_iter_4000.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks_refined"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks_refined"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250227_114534\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512_fastvit_23_25\\best_mIoU_iter_4000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250227_120057\\20250227_120057.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.68,
+        "mIoU": 80.63,
+        "mAcc": 91.98
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512_fastvit_23_25\\best_mIoU_iter_4000.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks_refined"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks_refined"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250227_120057\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512_fastvit_23_25\\best_mIoU_iter_4000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250227_142643\\20250227_142643.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.87,
+        "mIoU": 81.14,
+        "mAcc": 90.09
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\iter_7000.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks_refined"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks_refined"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250227_142643\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\iter_7000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250303_113705\\20250303_113705.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.45,
+        "mIoU": 79.74,
+        "mAcc": 93.04
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_3500.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks_refined"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks_refined"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250303_113705\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_3500.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250303_115546\\20250303_115546.log",
+      "loop": "val",
+      "images": 793,
+      "metrics": {
+        "aAcc": 98.11,
+        "mIoU": 82.96,
+        "mAcc": 88.85
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_3500.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images_ref",
+        "seg_map_path": "validation/masks_ref"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images_ref",
+        "seg_map_path": "validation/masks_ref"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250303_115546\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_3500.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250304_101405\\20250304_101405.log",
+      "loop": "val",
+      "images": 707,
+      "metrics": {
+        "aAcc": 98.09,
+        "mIoU": 81.58,
+        "mAcc": 90.0
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_3500.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/imgs",
+        "seg_map_path": "testing/ghaf26/mask_ref"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/imgs",
+        "seg_map_path": "testing/ghaf26/mask_ref"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250304_101405\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_3500.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250304_102113\\20250304_102113.log",
+      "loop": "val",
+      "images": 707,
+      "metrics": {
+        "aAcc": 98.26,
+        "mIoU": 81.39,
+        "mAcc": 85.89
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_9.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/imgs",
+        "seg_map_path": "testing/ghaf26/mask_ref"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "testing/ghaf26/imgs",
+        "seg_map_path": "testing/ghaf26/mask_ref"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250304_102113\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_9.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250304_102542\\20250304_102542.log",
+      "loop": "val",
+      "images": 793,
+      "metrics": {
+        "aAcc": 97.71,
+        "mIoU": 81.86,
+        "mAcc": 93.13
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_9.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images_ref",
+        "seg_map_path": "validation/masks_ref"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images_ref",
+        "seg_map_path": "validation/masks_ref"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\20250304_102542\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_9.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_nofeature1\\20250305_145231\\20250305_145231.log",
+      "loop": "val",
+      "images": 793,
+      "metrics": {
+        "aAcc": 97.79,
+        "mIoU": 79.11,
+        "mAcc": 83.07
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_9.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "augment/training/images",
+        "seg_map_path": "augment/training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images_ref",
+        "seg_map_path": "validation/masks_ref"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images_ref",
+        "seg_map_path": "validation/masks_ref"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_nofeature1\\20250305_145231\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_9.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fasttest\\20250310_092139\\20250310_092139.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.85,
+        "mIoU": 79.67,
+        "mAcc": 91.39,
+        "mFscore": 87.54,
+        "mPrecision": 84.41,
+        "mRecall": 91.39
+      },
+      "backbone": "fastvit_small",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_9.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fasttest\\20250310_092139\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_9.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512next_timm\\20250310_112239\\20250310_112239.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.31,
+        "mIoU": 76.37,
+        "mAcc": 90.1,
+        "mFscore": 84.99,
+        "mPrecision": 81.15,
+        "mRecall": 90.1
+      },
+      "backbone": "nextvit_small_timm",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512next_timm\\20250310_112239\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\mask2former_swin-t_8xb2-160k_ade20k-512x512next_timm",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512next_timm\\20250311_093141\\20250311_093141.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 96.57,
+        "mIoU": 74.3,
+        "mAcc": 94.22,
+        "mFscore": 83.37,
+        "mPrecision": 77.2,
+        "mRecall": 94.22
+      },
+      "backbone": "nextvit_small_timm",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512next_timm\\iter_7000.pth",
+      "train": {
+        "data_root": "C:\\ghaf",
+        "img_path": "training/images",
+        "seg_map_path": "training/masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512next_timm\\20250311_093141\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512next_timm\\iter_7000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2formerVmamba\\20250516_112151\\20250516_112151.log",
+      "loop": "test",
+      "images": 1276,
+      "metrics": {
+        "aAcc": 99.21,
+        "mIoU": 89.22,
+        "mAcc": 94.28,
+        "mFscore": 94.01,
+        "mPrecision": 93.74,
+        "mRecall": 94.28
+      },
+      "backbone": "MM_VSSM",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "work_dirs/mask2formerVmambanew_Vit/best_mIoU_iter_65000.pth",
+      "train": {
+        "data_root": "/data",
+        "img_path": "last_data/train",
+        "seg_map_path": "last_data/labels/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2formerVmamba\\20250516_112151\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2formerVmambanew_Vit\\best_mIoU_iter_65000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2formerVmamba\\20250516_112921\\20250516_112921.log",
+      "loop": "test",
+      "images": 2162,
+      "metrics": {
+        "aAcc": 98.94,
+        "mIoU": 86.81,
+        "mAcc": 91.97,
+        "mFscore": 92.49,
+        "mPrecision": 93.02,
+        "mRecall": 91.97
+      },
+      "backbone": "MM_VSSM",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "work_dirs/mask2formerVmambanew_Vit/best_mIoU_iter_65000.pth",
+      "train": {
+        "data_root": "/data",
+        "img_path": "last_data/train",
+        "seg_map_path": "last_data/labels/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/Generalizability",
+        "seg_map_path": "ann_dir/Generalizability"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/Generalizability",
+        "seg_map_path": "ann_dir/Generalizability"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2formerVmamba\\20250516_112921\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2formerVmambanew_Vit\\best_mIoU_iter_65000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2formerVmambanew_Vit\\20250512_161121\\20250512_161121.log",
+      "loop": "val",
+      "images": 2407,
+      "metrics": {
+        "aAcc": 98.12,
+        "mIoU": 80.86,
+        "mAcc": 90.19,
+        "mFscore": 88.41,
+        "mPrecision": 86.8,
+        "mRecall": 90.19
+      },
+      "backbone": "MM_VSSM",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "/data",
+        "img_path": "last_data/train",
+        "seg_map_path": "last_data/labels/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2formerVmambanew_Vit\\20250512_161121\\vis_data\\config.py",
+      "work_dir": "./work_dirs/mask2formerVmambanew_Vit",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2formerVmambanew_Vit\\20250513_063708\\20250513_063708.log",
+      "loop": "val",
+      "images": 2407,
+      "metrics": {
+        "aAcc": 98.27,
+        "mIoU": 81.83,
+        "mAcc": 89.87,
+        "mFscore": 89.11,
+        "mPrecision": 88.38,
+        "mRecall": 89.87
+      },
+      "backbone": "MM_VSSM",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "/data",
+        "img_path": "last_data/train",
+        "seg_map_path": "last_data/labels/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2formerVmambanew_Vit\\20250513_063708\\vis_data\\config.py",
+      "work_dir": "./work_dirs/mask2formerVmambanew_Vit",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\NextVit_small\\20250516_121210\\20250516_121210.log",
+      "loop": "val",
+      "images": 2162,
+      "metrics": {
+        "aAcc": 99.19,
+        "mIoU": 89.68,
+        "mAcc": 94.45,
+        "mFscore": 94.3,
+        "mPrecision": 94.14,
+        "mRecall": 94.45
+      },
+      "backbone": "nextvit_small_timm",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "/data",
+        "img_path": "last_data/train",
+        "seg_map_path": "last_data/labels/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/Generalizability",
+        "seg_map_path": "ann_dir/Generalizability"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/Generalizability",
+        "seg_map_path": "ann_dir/Generalizability"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\NextVit_small\\20250516_121210\\vis_data\\config.py",
+      "work_dir": "./work_dirs/NextVit_small",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\segnext_mscan-s_1xb16-adamw-160k_ade20k-512x512\\20250420_170755\\20250420_170755.log",
+      "loop": "val",
+      "images": 869,
+      "metrics": {
+        "aAcc": 97.7,
+        "mIoU": 78.18,
+        "mAcc": 89.37,
+        "mFscore": 86.4,
+        "mPrecision": 83.89,
+        "mRecall": 89.37
+      },
+      "backbone": "MSCAN",
+      "backbone_arch": null,
+      "decode_head": "LightHamHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "C:\\ghaf\\training",
+        "img_path": "images",
+        "seg_map_path": "masks"
+      },
+      "val": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "test": {
+        "data_root": "C:\\ghaf",
+        "img_path": "validation/images",
+        "seg_map_path": "validation/masks"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\segnext_mscan-s_1xb16-adamw-160k_ade20k-512x512\\20250420_170755\\vis_data\\config.py",
+      "work_dir": "./work_dirs\\\\segnext_mscan-s_1xb16-adamw-160k_ade20k-512x512segmenter",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\three_models\\mambaOut\\20250514_120845\\20250514_120845.log",
+      "loop": "val",
+      "images": 2407,
+      "metrics": {
+        "aAcc": 98.69,
+        "mIoU": 84.43,
+        "mAcc": 87.99,
+        "mFscore": 90.91,
+        "mPrecision": 94.36,
+        "mRecall": 87.99
+      },
+      "backbone": "mamba_small_timm",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "/data",
+        "img_path": "last_data/train",
+        "seg_map_path": "last_data/labels/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\three_models\\mambaOut\\20250514_120845\\vis_data\\config.py",
+      "work_dir": "./work_dirs/mask2former_Mamba_out",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\three_models\\Vmamba\\20250512_161121\\20250512_161121.log",
+      "loop": "val",
+      "images": 2407,
+      "metrics": {
+        "aAcc": 98.12,
+        "mIoU": 80.86,
+        "mAcc": 90.19,
+        "mFscore": 88.41,
+        "mPrecision": 86.8,
+        "mRecall": 90.19
+      },
+      "backbone": "MM_VSSM",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "/data",
+        "img_path": "last_data/train",
+        "seg_map_path": "last_data/labels/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\three_models\\Vmamba\\20250512_161121\\vis_data\\config.py",
+      "work_dir": "./work_dirs/mask2formerVmambanew_Vit",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\three_models\\Vmamba\\20250513_063708\\20250513_063708.log",
+      "loop": "val",
+      "images": 2407,
+      "metrics": {
+        "aAcc": 98.27,
+        "mIoU": 81.83,
+        "mAcc": 89.87,
+        "mFscore": 89.11,
+        "mPrecision": 88.38,
+        "mRecall": 89.87
+      },
+      "backbone": "MM_VSSM",
+      "backbone_arch": null,
+      "decode_head": "Mask2FormerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "/data",
+        "img_path": "last_data/train",
+        "seg_map_path": "last_data/labels/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\three_models\\Vmamba\\20250513_063708\\vis_data\\config.py",
+      "work_dir": "./work_dirs/mask2formerVmambanew_Vit",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50\\20250505_071233\\20250505_071233.log",
+      "loop": "test",
+      "images": 1276,
+      "metrics": {
+        "aAcc": 99.45,
+        "mIoU": 92.17,
+        "mAcc": 95.73,
+        "mFscore": 95.77,
+        "mPrecision": 95.82,
+        "mRecall": 95.73
+      },
+      "backbone": "coatnet_small_timm",
+      "backbone_arch": null,
+      "decode_head": "UPerHead",
+      "load_from": "work_dirs/upernet_r50nextvit/best_mIoU_iter_35000.pth",
+      "train": {
+        "data_root": "/data",
+        "img_path": "img_dir/train",
+        "seg_map_path": "ann_dir/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50\\20250505_071233\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50nextvit\\best_mIoU_iter_35000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50\\20250505_072552\\20250505_072552.log",
+      "loop": "test",
+      "images": 1276,
+      "metrics": {
+        "aAcc": 99.42,
+        "mIoU": 91.59,
+        "mAcc": 93.84,
+        "mFscore": 95.43,
+        "mPrecision": 97.15,
+        "mRecall": 93.84
+      },
+      "backbone": "mamba_small_vision_timm",
+      "backbone_arch": null,
+      "decode_head": "UPerHead",
+      "load_from": "work_dirs/upernet_r50mamba_5000/best_mIoU_iter_45000.pth",
+      "train": {
+        "data_root": "/data",
+        "img_path": "img_dir/train",
+        "seg_map_path": "ann_dir/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50\\20250505_072552\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50mamba_5000\\best_mIoU_iter_45000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50\\20250505_074044\\20250505_074044.log",
+      "loop": "test",
+      "images": 2162,
+      "metrics": {
+        "aAcc": 99.19,
+        "mIoU": 89.45,
+        "mAcc": 92.8,
+        "mFscore": 94.15,
+        "mPrecision": 95.61,
+        "mRecall": 92.8
+      },
+      "backbone": "mamba_small_vision_timm",
+      "backbone_arch": null,
+      "decode_head": "UPerHead",
+      "load_from": "work_dirs/upernet_r50mamba_5000/best_mIoU_iter_45000.pth",
+      "train": {
+        "data_root": "/data",
+        "img_path": "img_dir/train",
+        "seg_map_path": "ann_dir/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/Generalizability",
+        "seg_map_path": "ann_dir/Generalizability"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/Generalizability",
+        "seg_map_path": "ann_dir/Generalizability"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50\\20250505_074044\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50mamba_5000\\best_mIoU_iter_45000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50\\20250505_080019\\20250505_080019.log",
+      "loop": "test",
+      "images": 2162,
+      "metrics": {
+        "aAcc": 99.12,
+        "mIoU": 88.98,
+        "mAcc": 94.37,
+        "mFscore": 93.87,
+        "mPrecision": 93.38,
+        "mRecall": 94.37
+      },
+      "backbone": "coatnet_small_timm",
+      "backbone_arch": null,
+      "decode_head": "UPerHead",
+      "load_from": "work_dirs/upernet_r50nextvit/best_mIoU_iter_35000.pth",
+      "train": {
+        "data_root": "/data",
+        "img_path": "img_dir/train",
+        "seg_map_path": "ann_dir/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/Generalizability",
+        "seg_map_path": "ann_dir/Generalizability"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/Generalizability",
+        "seg_map_path": "ann_dir/Generalizability"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50\\20250505_080019\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50nextvit\\best_mIoU_iter_35000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50\\20250506_092927\\20250506_092927.log",
+      "loop": "test",
+      "images": 1276,
+      "metrics": {
+        "aAcc": 99.28,
+        "mIoU": 89.83,
+        "mAcc": 93.79,
+        "mFscore": 94.38,
+        "mPrecision": 94.99,
+        "mRecall": 93.79
+      },
+      "backbone": "mamba_small_vision_timm",
+      "backbone_arch": null,
+      "decode_head": "UPerHead",
+      "load_from": "work_dirs/upernet_r50nextvit/best_mIoU_iter_35000.pth",
+      "train": {
+        "data_root": "/data",
+        "img_path": "New Training/images",
+        "seg_map_path": "New Training/labels"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50\\20250506_092927\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50nextvit\\best_mIoU_iter_35000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50\\20250506_093802\\20250506_093802.log",
+      "loop": "test",
+      "images": 2162,
+      "metrics": {
+        "aAcc": 98.98,
+        "mIoU": 87.36,
+        "mAcc": 92.94,
+        "mFscore": 92.85,
+        "mPrecision": 92.76,
+        "mRecall": 92.94
+      },
+      "backbone": "mamba_small_vision_timm",
+      "backbone_arch": null,
+      "decode_head": "UPerHead",
+      "load_from": "work_dirs/upernet_r50nextvit/best_mIoU_iter_35000.pth",
+      "train": {
+        "data_root": "/data",
+        "img_path": "New Training/images",
+        "seg_map_path": "New Training/labels"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/Generalizability",
+        "seg_map_path": "ann_dir/Generalizability"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/Generalizability",
+        "seg_map_path": "ann_dir/Generalizability"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50\\20250506_093802\\vis_data\\config.py",
+      "load_from_resolved": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50nextvit\\best_mIoU_iter_35000.pth",
+      "load_from_exists": true
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50mamba_5000\\20250430_132514\\20250430_132514.log",
+      "loop": "val",
+      "images": 2407,
+      "metrics": {
+        "aAcc": 98.68,
+        "mIoU": 84.17,
+        "mAcc": 87.33,
+        "mFscore": 90.73,
+        "mPrecision": 94.89,
+        "mRecall": 87.33
+      },
+      "backbone": "mamba_small_vision_timm",
+      "backbone_arch": null,
+      "decode_head": "UPerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "/data",
+        "img_path": "img_dir/train",
+        "seg_map_path": "ann_dir/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50mamba_5000\\20250430_132514\\vis_data\\config.py",
+      "work_dir": "./work_dirs/upernet_r50mamba_5000",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50nextvit\\20250503_163121\\20250503_163121.log",
+      "loop": "val",
+      "images": 2407,
+      "metrics": {
+        "aAcc": 98.74,
+        "mIoU": 84.82,
+        "mAcc": 87.78,
+        "mFscore": 91.18,
+        "mPrecision": 95.32,
+        "mRecall": 87.78
+      },
+      "backbone": "coatnet_small_timm",
+      "backbone_arch": null,
+      "decode_head": "UPerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "/data",
+        "img_path": "img_dir/train",
+        "seg_map_path": "ann_dir/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50nextvit\\20250503_163121\\vis_data\\config.py",
+      "work_dir": "./work_dirs/upernet_r50nextvit",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50nextvit\\20250505_131330\\20250505_131330.log",
+      "loop": "val",
+      "images": 1276,
+      "metrics": {
+        "aAcc": 99.28,
+        "mIoU": 89.45,
+        "mAcc": 91.83,
+        "mFscore": 94.15,
+        "mPrecision": 96.76,
+        "mRecall": 91.83
+      },
+      "backbone": "mamba_small_vision_timm",
+      "backbone_arch": null,
+      "decode_head": "UPerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "/data",
+        "img_path": "img_dir/train",
+        "seg_map_path": "ann_dir/train"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/test",
+        "seg_map_path": "ann_dir/test"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50nextvit\\20250505_131330\\vis_data\\config.py",
+      "work_dir": "./work_dirs/upernet_r50nextvit",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    },
+    {
+      "log": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50nextvit\\20250505_154322\\20250505_154322.log",
+      "loop": "val",
+      "images": 2407,
+      "metrics": {
+        "aAcc": 98.44,
+        "mIoU": 81.77,
+        "mAcc": 85.67,
+        "mFscore": 89.04,
+        "mPrecision": 93.2,
+        "mRecall": 85.67
+      },
+      "backbone": "mamba_small_vision_timm",
+      "backbone_arch": null,
+      "decode_head": "UPerHead",
+      "load_from": "None",
+      "train": {
+        "data_root": "/data",
+        "img_path": "New Training/images",
+        "seg_map_path": "New Training/labels"
+      },
+      "val": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "test": {
+        "data_root": "/data",
+        "img_path": "img_dir/val",
+        "seg_map_path": "ann_dir/val"
+      },
+      "config": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50nextvit\\20250505_154322\\vis_data\\config.py",
+      "work_dir": "./work_dirs/upernet_r50nextvit",
+      "load_from_resolved": null,
+      "load_from_exists": false
+    }
+  ],
+  "checkpoints": [
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\convnext-small_upernet_8xb2-amp-160k_ade20k-512x512convnext\\iter_14000.pth",
+      "exists": true,
+      "size_bytes": 983511196,
+      "used_by": [
+        "20250318_104309"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\dual_path\\best_mIoU_iter_14000.pth",
+      "exists": true,
+      "size_bytes": 263385401,
+      "used_by": [
+        "20250318_105935"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\efficientefficient\\iter_6800.pth",
+      "exists": true,
+      "size_bytes": 108104299,
+      "used_by": [
+        "20250318_112006"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\fpn_poolformer_s36_8x4_512x512_40k_ade20kpool\\iter_10200.pth",
+      "exists": true,
+      "size_bytes": 416437419,
+      "used_by": [
+        "20250318_110639"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2formerVmambanew_Vit\\best_mIoU_iter_65000.pth",
+      "exists": true,
+      "size_bytes": 321411134,
+      "used_by": [
+        "20250516_112151",
+        "20250516_112921"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\best_mIoU_iter_5000.pth",
+      "exists": true,
+      "size_bytes": 276930914,
+      "used_by": [
+        "20250516_100918"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_Mamba_out\\iter_10000.pth",
+      "exists": true,
+      "size_bytes": 798262081,
+      "used_by": [
+        "20250516_101522",
+        "20250516_103045"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_r50_8xb2-160k_ade20k-512x512\\best_mIoU_iter_38500.pth",
+      "exists": true,
+      "size_bytes": 196545149,
+      "used_by": [
+        "20250318_104913"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512_fastvit_23_25\\best_mIoU_iter_4000.pth",
+      "exists": true,
+      "size_bytes": 253055747,
+      "used_by": [
+        "20250227_114534",
+        "20250227_120057"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_3500.pth",
+      "exists": true,
+      "size_bytes": 252650755,
+      "used_by": [
+        "20250303_113705",
+        "20250303_115546",
+        "20250304_101405",
+        "20250318_102736",
+        "20250318_103534"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\best_mIoU_iter_9.pth",
+      "exists": true,
+      "size_bytes": 250892483,
+      "used_by": [
+        "20250304_102113",
+        "20250304_102542",
+        "20250305_145231",
+        "20250310_092139"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512fast_all_data\\iter_7000.pth",
+      "exists": true,
+      "size_bytes": 540050510,
+      "used_by": [
+        "20250227_142643"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\mask2former_swin-t_8xb2-160k_ade20k-512x512next_timm\\iter_7000.pth",
+      "exists": true,
+      "size_bytes": 770285749,
+      "used_by": [
+        "20250311_093141"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50mamba_5000\\best_mIoU_iter_45000.pth",
+      "exists": true,
+      "size_bytes": 537744966,
+      "used_by": [
+        "20250505_072552",
+        "20250505_074044"
+      ]
+    },
+    {
+      "path": "G:\\experiments\\mmsegmentation\\work_dirs\\upernet_r50nextvit\\best_mIoU_iter_35000.pth",
+      "exists": true,
+      "size_bytes": 535712710,
+      "used_by": [
+        "20250505_071233",
+        "20250505_080019",
+        "20250506_092927",
+        "20250506_093802"
+      ]
+    }
+  ],
+  "data": [
+    {
+      "data_root": "/data",
+      "seg_map_path": "New Training/labels",
+      "splits": [
+        "train"
+      ],
+      "resolved": "/data\\New Training/labels",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "/data",
+      "seg_map_path": "ann_dir/Generalizability",
+      "splits": [
+        "test",
+        "val"
+      ],
+      "resolved": "/data\\ann_dir/Generalizability",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "/data",
+      "seg_map_path": "ann_dir/test",
+      "splits": [
+        "test",
+        "val"
+      ],
+      "resolved": "/data\\ann_dir/test",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "/data",
+      "seg_map_path": "ann_dir/train",
+      "splits": [
+        "train"
+      ],
+      "resolved": "/data\\ann_dir/train",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "/data",
+      "seg_map_path": "ann_dir/val",
+      "splits": [
+        "test",
+        "val"
+      ],
+      "resolved": "/data\\ann_dir/val",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "/data",
+      "seg_map_path": "last_data/labels/train",
+      "splits": [
+        "train"
+      ],
+      "resolved": "/data\\last_data/labels/train",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\acacia\\UAV_Data",
+      "seg_map_path": "ann_dir/train",
+      "splits": [
+        "train"
+      ],
+      "resolved": "C:\\acacia\\UAV_Data\\ann_dir/train",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\acacia\\UAV_Data",
+      "seg_map_path": "ann_dir/val",
+      "splits": [
+        "test",
+        "val"
+      ],
+      "resolved": "C:\\acacia\\UAV_Data\\ann_dir/val",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\ghaf",
+      "seg_map_path": "augment/training/masks",
+      "splits": [
+        "train"
+      ],
+      "resolved": "C:\\ghaf\\augment/training/masks",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\ghaf",
+      "seg_map_path": "ghaf25/labels/masks",
+      "splits": [
+        "train"
+      ],
+      "resolved": "C:\\ghaf\\ghaf25/labels/masks",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\ghaf",
+      "seg_map_path": "ghaf26/masks",
+      "splits": [
+        "test",
+        "val"
+      ],
+      "resolved": "C:\\ghaf\\ghaf26/masks",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\ghaf",
+      "seg_map_path": "ghaf26\\labels\\masks1",
+      "splits": [
+        "test",
+        "val"
+      ],
+      "resolved": "C:\\ghaf\\ghaf26\\labels\\masks1",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\ghaf",
+      "seg_map_path": "ghaf_23_25/masks",
+      "splits": [
+        "train"
+      ],
+      "resolved": "C:\\ghaf\\ghaf_23_25/masks",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\ghaf",
+      "seg_map_path": "testing/ghaf26/mask_ref",
+      "splits": [
+        "test",
+        "val"
+      ],
+      "resolved": "C:\\ghaf\\testing/ghaf26/mask_ref",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\ghaf",
+      "seg_map_path": "testing/ghaf26/masks",
+      "splits": [
+        "test",
+        "val"
+      ],
+      "resolved": "C:\\ghaf\\testing/ghaf26/masks",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\ghaf",
+      "seg_map_path": "training/masks",
+      "splits": [
+        "train"
+      ],
+      "resolved": "C:\\ghaf\\training/masks",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\ghaf",
+      "seg_map_path": "validation/masks",
+      "splits": [
+        "test",
+        "val"
+      ],
+      "resolved": "C:\\ghaf\\validation/masks",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\ghaf",
+      "seg_map_path": "validation/masks_ref",
+      "splits": [
+        "test",
+        "val"
+      ],
+      "resolved": "C:\\ghaf\\validation/masks_ref",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\ghaf",
+      "seg_map_path": "validation/masks_refined",
+      "splits": [
+        "test",
+        "val"
+      ],
+      "resolved": "C:\\ghaf\\validation/masks_refined",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "C:\\ghaf\\training",
+      "seg_map_path": "masks",
+      "splits": [
+        "train"
+      ],
+      "resolved": "C:\\ghaf\\training\\masks",
+      "size_bytes": null,
+      "file_count": null
+    },
+    {
+      "data_root": "H:\\ghaf\\train",
+      "seg_map_path": "mask_images",
+      "splits": [
+        "train"
+      ],
+      "resolved": "H:\\ghaf\\train\\mask_images",
+      "size_bytes": null,
+      "file_count": null
+    }
+  ],
+  "extra": []
+}
