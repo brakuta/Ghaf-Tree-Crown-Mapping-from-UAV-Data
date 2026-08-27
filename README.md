@@ -109,7 +109,10 @@ the suite.
 NumPy is held below 2.0 because PyTorch 1.12.1 is built against the NumPy 1.x
 binary interface; with NumPy 2 installed, moving a tensor to an array fails.
 If the environment already has NumPy 2, `python -m pip install "numpy<2"`
-brings it back into line.
+brings it back into line. pip may then report that the `opencv-python` version
+mmcv installed declares `numpy>=2`; the wheel is built against the NumPy 2
+headers, which stay binary-compatible with NumPy 1.x, so it keeps working and
+the message can be ignored.
 
 **Verify**:
 
