@@ -2,8 +2,10 @@
 """Write per-tile predictions for a dataset split.
 
 Runs a trained model over every image in a split and saves the predicted mask
-as a GeoTIFF beside it, carrying the source tile's CRS and geotransform so the
-predictions drop straight into GIS.
+as a GeoTIFF beside it, carrying whatever georeferencing the source tile has,
+so a tree cut as GeoTIFF gives predictions that drop straight into GIS. The
+published tiles are PNG and carry none; their masks line up with the tiles they
+came from, which is what the evaluation needs.
 
     python tools/predict_split.py \\
         configs/ghaf/fastvit-ma36_mask2former.py \\
@@ -44,7 +46,8 @@ SPLIT_IMAGES = {
     'testing': 'testing/ghaf26/images',
 }
 
-SUFFIXES = ('.tif', '.tiff', '.TIF', '.TIFF')
+#: Tile extensions, matched without regard to case.
+SUFFIXES = ('.png', '.tif', '.tiff')
 
 
 def list_tiles(root: Path, split: str) -> List[Path]:
@@ -53,7 +56,7 @@ def list_tiles(root: Path, split: str) -> List[Path]:
     if not directory.is_dir():
         raise FileNotFoundError(f'no such split directory: {directory}')
     tiles = sorted(p for p in directory.iterdir()
-                   if p.is_file() and p.suffix in SUFFIXES)
+                   if p.is_file() and p.suffix.lower() in SUFFIXES)
     if not tiles:
         raise FileNotFoundError(f'no {"/".join(SUFFIXES)} tiles in {directory}')
     return tiles
@@ -78,16 +81,28 @@ def _read_tile(path: Path, bands: Sequence[int]):
 
 def _write(path: Path, array: np.ndarray, profile: dict, dtype: str,
            nodata) -> None:
+    """Write one single-band GeoTIFF, carrying the tile's georeferencing.
+
+    The output profile is built from scratch rather than inherited: the source
+    may be a PNG, whose profile carries driver-specific keys that mean nothing
+    to GTiff. Only what transfers is taken -- size, and the CRS and transform
+    where the tile has them.
+    """
     rasterio = _import('rasterio', 'rasterio')
     path.parent.mkdir(parents=True, exist_ok=True)
-    profile = {**profile, 'driver': 'GTiff', 'count': 1, 'dtype': dtype,
-               'compress': 'deflate',
-               'predictor': 3 if dtype == 'float32' else 2}
-    if nodata is None:
-        profile.pop('nodata', None)
-    else:
-        profile['nodata'] = nodata
-    with rasterio.open(path, 'w', **profile) as dst:
+    out = {
+        'driver': 'GTiff',
+        'width': profile['width'], 'height': profile['height'],
+        'count': 1, 'dtype': dtype,
+        'crs': profile.get('crs'), 'transform': profile.get('transform'),
+        'compress': 'deflate',
+        # Predictor 3 is GDAL's floating-point predictor; 2 applies to
+        # integer data only.
+        'predictor': 3 if dtype == 'float32' else 2,
+    }
+    if nodata is not None:
+        out['nodata'] = nodata
+    with rasterio.open(path, 'w', **out) as dst:
         dst.write(array.astype(dtype), 1)
 
 
