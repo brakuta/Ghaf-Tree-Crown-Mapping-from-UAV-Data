@@ -106,10 +106,15 @@ python -m pip install -e ".[test]"
 The `[test]` extra adds pytest. Use `-e .` alone if you do not intend to run
 the suite.
 
+NumPy is held below 2.0 because PyTorch 1.12.1 is built against the NumPy 1.x
+binary interface; with NumPy 2 installed, moving a tensor to an array fails.
+If the environment already has NumPy 2, `python -m pip install "numpy<2"`
+brings it back into line.
+
 **Verify**:
 
 ```bash
-python -m pytest tests/ -q   # 169 tests
+python -m pytest tests/ -q   # 174 tests
 python tools/smoke_test.py   # builds all six models, checks parameter counts
 ```
 
@@ -254,7 +259,7 @@ tools/
 ├── predict_split.py       per-tile predictions for a dataset split
 ├── smoke_test.py          build every model, check parameter counts
 └── export_release.py      assemble the shareable bundle
-tests/                     169 tests; mmengine and NumPy, plus torch, timm,
+tests/                     174 tests; mmengine and NumPy, plus torch, timm,
                            rasterio and geopandas for the end-to-end ones
 docs/                      model zoo, area-wide inference, release bundle
 ```
@@ -262,7 +267,7 @@ docs/                      model zoo, area-wide inference, release bundle
 ## Testing
 
 ```bash
-python -m pytest tests/ -q            # 169 tests: no GPU, mmcv or dataset required
+python -m pytest tests/ -q            # 174 tests: no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
 ```
 

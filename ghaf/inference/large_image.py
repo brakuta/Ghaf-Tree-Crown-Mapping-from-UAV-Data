@@ -23,12 +23,16 @@ bytes of scratch per source pixel while a run is in progress.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import gc
 import logging
 import shutil
 import tempfile
+import time
+import weakref
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -91,6 +95,80 @@ def check_scratch_space(directory: Path, height: int, width: int,
             f'--scratch-dir at a larger filesystem.')
 
 
+class _ScratchSpace:
+    """A temporary directory holding the memory-mapped accumulators.
+
+    Exists because a mapped file cannot be deleted on Windows while any
+    mapping of it is open, so the maps have to be released before the
+    directory is removed. Releasing them is normally just a matter of
+    dropping the last reference; when a run fails, the traceback keeps the
+    frame -- and therefore the arrays -- alive, so the mapping is closed
+    explicitly as a second step.
+
+    Cleanup never raises. A run that failed should surface its own error, not
+    an error from tidying up after it.
+    """
+
+    def __init__(self, parent: Optional[Path] = None):
+        self.path = Path(tempfile.mkdtemp(prefix='ghaf-infer-', dir=parent))
+        self._maps: List[np.memmap] = []
+        self._weak: List[weakref.ref] = []
+
+    def array(self, name: str, dtype, shape: Tuple[int, int]) -> np.memmap:
+        """Create a zeroed memory-mapped array inside the scratch directory."""
+        arr = np.memmap(self.path / name, dtype=dtype, mode='w+', shape=shape)
+        self._maps.append(arr)
+        self._weak.append(weakref.ref(arr))
+        return arr
+
+    def close(self) -> None:
+        """Flush the maps, release them, and remove the directory."""
+        maps = self._maps
+        self._maps = []
+        while maps:                       # flush and drop one at a time, so
+            arr = maps.pop()              # no reference outlives the loop
+            with contextlib.suppress(AttributeError, ValueError):
+                arr.flush()               # already closed: nothing to write
+            del arr
+        gc.collect()
+        if self._remove():
+            self._weak = []
+            return
+
+        # Something outside this object still holds a map. The run is over and
+        # nothing reads the accumulators again, so close the mapping by hand.
+        for ref in self._weak:
+            arr = ref()
+            handle = getattr(arr, '_mmap', None) if arr is not None else None
+            if handle is not None and not handle.closed:
+                with contextlib.suppress(BufferError, ValueError):
+                    handle.close()
+        self._weak = []
+        if not self._remove():
+            LOGGER.warning('could not remove the scratch directory %s; '
+                           'delete it manually to reclaim the space', self.path)
+
+    def _remove(self, attempts: int = 3) -> bool:
+        """Remove the directory, retrying briefly. True if it is gone."""
+        for attempt in range(attempts):
+            try:
+                shutil.rmtree(self.path)
+                return True
+            except FileNotFoundError:
+                return True
+            except OSError:
+                if attempt + 1 < attempts:
+                    time.sleep(0.05 * 2 ** attempt)
+        return False
+
+    def __enter__(self) -> _ScratchSpace:
+        return self
+
+    def __exit__(self, *exc_info) -> bool:
+        self.close()
+        return False
+
+
 def _import(module: str, package: str):
     """Import an optional dependency, or explain how to install it."""
     try:
@@ -129,6 +207,18 @@ def _read_window(src, window: Window, bands: Sequence[int],
     return rgb[:, :, ::-1].copy(), valid
 
 
+def _to_numpy(torch, tensor) -> np.ndarray:
+    """Bring a tensor across to NumPy, naming the usual cause of failure."""
+    try:
+        return tensor.detach().cpu().numpy()
+    except RuntimeError as exc:
+        raise RuntimeError(
+            f'could not convert a prediction to a NumPy array ({exc}). '
+            f'PyTorch {torch.__version__} was built against NumPy 1.x and '
+            f'cannot interoperate with NumPy 2; install a matching NumPy '
+            f'with `python -m pip install "numpy<2"`.') from exc
+
+
 def _foreground_probability(result, tile: int) -> np.ndarray:
     """Extract P(foreground) from an mmseg ``SegDataSample``."""
     torch = _import('torch', 'torch')
@@ -142,7 +232,7 @@ def _foreground_probability(result, tile: int) -> np.ndarray:
             f'at least {GHAF_CLASS_INDEX + 1} (background, ghaf)')
 
     prob = torch.softmax(logits.float(), dim=0)[GHAF_CLASS_INDEX]
-    prob = prob.detach().cpu().numpy().astype(np.float32)
+    prob = _to_numpy(torch, prob).astype(np.float32)
     if prob.shape != (tile, tile):
         raise RuntimeError(
             f'model returned {prob.shape} for a {tile}x{tile} tile; the config '
@@ -247,41 +337,50 @@ def predict_large_image(
         check_scratch_space(scratch_dir or Path(tempfile.gettempdir()),
                             height, width)
 
-        with tempfile.TemporaryDirectory(prefix='ghaf-infer-',
-                                         dir=scratch_dir) as tmp:
-            scratch = Path(tmp)
+        acc = valid_plane = None
+        with _ScratchSpace(scratch_dir) as scratch:
             shape = (height, width)
-            acc = Accumulator(
-                height, width,
-                numerator=np.memmap(scratch / 'num.dat', np.float32, 'w+', shape=shape),
-                denominator=np.memmap(scratch / 'den.dat', np.float32, 'w+', shape=shape))
-            valid_plane = np.memmap(scratch / 'valid.dat', np.uint8, 'w+', shape=shape)
+            try:
+                acc = Accumulator(
+                    height, width,
+                    numerator=scratch.array('num.dat', np.float32, shape),
+                    denominator=scratch.array('den.dat', np.float32, shape))
+                valid_plane = scratch.array('valid.dat', np.uint8, shape)
 
-            batches = list(iter_batches(windows, batch_size))
-            for batch in _progress(batches, progress, src_path.stem, batch_size):
-                patches, valids = zip(
-                    *(_read_window(src, w, bands, tile) for w in batch))
+                batches = list(iter_batches(windows, batch_size))
+                for batch in _progress(batches, progress, src_path.stem,
+                                       batch_size):
+                    patches, valids = zip(
+                        *(_read_window(src, w, bands, tile) for w in batch))
 
-                # A list in, a list out: mmseg batches when given a sequence.
-                results = inference_model(model, list(patches))
-                if not isinstance(results, (list, tuple)):
-                    results = [results]
-                if len(results) != len(batch):
-                    raise RuntimeError(
-                        f'model returned {len(results)} result(s) for a batch '
-                        f'of {len(batch)}')
+                    # A list in, a list out: mmseg batches when given a sequence.
+                    results = inference_model(model, list(patches))
+                    if not isinstance(results, (list, tuple)):
+                        results = [results]
+                    if len(results) != len(batch):
+                        raise RuntimeError(
+                            f'model returned {len(results)} result(s) for a '
+                            f'batch of {len(batch)}')
 
-                for window, result, window_valid in zip(batch, results, valids):
-                    acc.add(window, _foreground_probability(result, tile), weights)
-                    rows = slice(window.row_off, window.row_off + window.height)
-                    cols = slice(window.col_off, window.col_off + window.width)
-                    np.maximum(valid_plane[rows, cols],
-                               window_valid.astype(np.uint8),
-                               out=valid_plane[rows, cols])
+                    for window, result, window_valid in zip(batch, results,
+                                                            valids):
+                        acc.add(window, _foreground_probability(result, tile),
+                                weights)
+                        rows = slice(window.row_off,
+                                     window.row_off + window.height)
+                        cols = slice(window.col_off,
+                                     window.col_off + window.width)
+                        np.maximum(valid_plane[rows, cols],
+                                   window_valid.astype(np.uint8),
+                                   out=valid_plane[rows, cols])
 
-            summary = _write_outputs(
-                acc, valid_plane, threshold, profile, crs, transform,
-                out_prob, out_mask, len(windows))
+                summary = _write_outputs(
+                    acc, valid_plane, threshold, profile, crs, transform,
+                    out_prob, out_mask, len(windows))
+            finally:
+                # Drop the accumulators before the scratch directory goes:
+                # a mapped file cannot be deleted while it is still mapped.
+                acc = valid_plane = None
 
     if out_polygons:
         _write_polygons(out_polygons, out_mask, out_prob, transform, crs, threshold)

@@ -76,6 +76,12 @@ immediately with the figure it needs rather than part-way through with
 Windows is usually where the temporary directory lives and is often the
 smallest volume on the machine.
 
+The scratch directory is removed when the run ends, successfully or not. The
+maps are flushed and released first, because Windows keeps a file locked while
+any mapping of it is open; if a lock outlives the run the directory is named in
+a warning rather than raised as an error, so a failing run still reports its own
+cause.
+
 ## Throughput
 
 One tile per forward pass leaves the GPU idle between tiles, and mmseg rebuilds

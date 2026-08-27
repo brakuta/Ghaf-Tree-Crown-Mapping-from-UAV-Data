@@ -369,3 +369,92 @@ def test_the_space_guard_computes_nine_bytes_per_pixel(tmp_path, monkeypatch):
     monkeypatch.setattr(L.shutil, 'disk_usage', lambda _p: Small)
     with pytest.raises(OSError, match='need 18.0 GB|need 0.0 GB|scratch space'):
         L.check_scratch_space(tmp_path, 10_000, 20_000, margin=1.0)
+
+
+# --------------------------------------------------------------------------
+# releasing the memory maps
+# --------------------------------------------------------------------------
+#
+# Windows refuses to delete a file while any mapping of it is open, so the
+# accumulators have to be released before the scratch directory is removed.
+# These tests reproduce that rule on any platform by making the first removal
+# fail while a map is open, and asserting on what happens next.
+
+def test_the_scratch_space_writes_its_maps_where_it_says(tmp_path):
+    space = L._ScratchSpace(tmp_path)
+    try:
+        arr = space.array('num.dat', np.float32, (8, 8))
+        arr[:] = 3.0
+        assert arr.shape == (8, 8) and arr.dtype == np.float32
+        assert (space.path / 'num.dat').is_file()
+        assert space.path.parent == tmp_path
+    finally:
+        space.close()
+    assert not space.path.exists()
+
+
+def test_closing_the_scratch_space_flushes_before_removing(tmp_path):
+    """Whatever was written must reach the file before the map is dropped."""
+    flushed = []
+    space = L._ScratchSpace(tmp_path)
+    arr = space.array('num.dat', np.float32, (4, 4))
+    arr.flush = lambda: flushed.append(True)      # type: ignore[method-assign]
+    del arr
+
+    space.close()
+    assert flushed == [True], 'the map was dropped without being flushed'
+    assert not space.path.exists()
+
+
+def test_a_map_held_elsewhere_is_closed_so_the_directory_can_go(tmp_path,
+                                                               monkeypatch):
+    """The failure path: a traceback keeps the accumulators alive.
+
+    Dropping references is then not enough, and the mapping has to be closed
+    by hand or the directory would survive the run on Windows.
+    """
+    space = L._ScratchSpace(tmp_path)
+    held = space.array('num.dat', np.float32, (4, 4))      # a stand-in frame
+    handle = held._mmap
+
+    real_rmtree, attempts = L.shutil.rmtree, []
+
+    def rmtree_that_needs_the_map_closed(path, *args, **kwargs):
+        attempts.append(path)
+        if not handle.closed:
+            raise PermissionError(32, 'file is in use by another process')
+        real_rmtree(path, *args, **kwargs)
+
+    monkeypatch.setattr(L.shutil, 'rmtree', rmtree_that_needs_the_map_closed)
+    space.close()
+
+    assert handle.closed, 'the mapping was never released'
+    assert not space.path.exists(), 'scratch directory left behind'
+    assert len(attempts) >= 2, 'removal should be retried once the map is gone'
+    del held                    # closed: never read it again
+
+
+def test_an_unremovable_scratch_directory_warns_rather_than_raising(tmp_path,
+                                                                    monkeypatch,
+                                                                    caplog):
+    """Cleanup must not bury the error that a failing run is trying to report."""
+    space = L._ScratchSpace(tmp_path)
+    space.array('num.dat', np.float32, (4, 4))
+
+    def always_locked(path, *args, **kwargs):
+        raise PermissionError(32, 'file is in use by another process')
+
+    monkeypatch.setattr(L.shutil, 'rmtree', always_locked)
+    monkeypatch.setattr(L.time, 'sleep', lambda _s: None)
+
+    with caplog.at_level('WARNING'):
+        space.close()                       # must not raise
+
+    assert 'scratch' in caplog.text and str(space.path) in caplog.text
+
+
+def test_a_scratch_directory_already_gone_is_not_an_error(tmp_path):
+    space = L._ScratchSpace(tmp_path)
+    L.shutil.rmtree(space.path)
+    space.close()
+    assert not space.path.exists()
