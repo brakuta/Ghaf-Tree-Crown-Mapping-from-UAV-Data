@@ -180,3 +180,66 @@ def test_summary_is_json_serialisable(tmp_path, patched):
     summary = P.predict_split(None, P.list_tiles(tmp_path, 'testing'),
                               tmp_path / 'out', progress=False)
     assert json.loads(json.dumps(summary))['tiles'] == 2
+
+
+# --------------------------------------------------------------------------
+# PNG tiles, which is what the published dataset is cut as
+# --------------------------------------------------------------------------
+
+def write_png_tile(path: Path, size: int = 64) -> Path:
+    """Write an 8-bit RGB PNG, with no CRS and no geotransform.
+
+    GDAL's PNG driver has no ``Create``, only ``CreateCopy``, so the tile is
+    written as a GeoTIFF and converted.
+    """
+    import rasterio.shutil
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    staging = path.with_suffix('.staging.tif')
+    values = np.random.default_rng(0).integers(0, 256, (3, size, size),
+                                               dtype=np.uint8)
+    with rasterio.open(staging, 'w', driver='GTiff', width=size, height=size,
+                       count=3, dtype='uint8') as dst:
+        dst.write(values)
+    rasterio.shutil.copy(staging, path, driver='PNG')
+    staging.unlink()
+    return path
+
+
+def test_png_tiles_are_listed(tmp_path):
+    directory = tmp_path / P.SPLIT_IMAGES['testing']
+    for i in range(3):
+        write_png_tile(directory / f'tile_{i}.png')
+
+    assert [p.name for p in P.list_tiles(tmp_path, 'testing')] == [
+        'tile_0.png', 'tile_1.png', 'tile_2.png']
+
+
+def test_a_png_tile_yields_a_readable_mask(tmp_path, patched):
+    """The published tiles carry no georeferencing; the run must still work."""
+    patched(0.9)
+    directory = tmp_path / P.SPLIT_IMAGES['testing']
+    write_png_tile(directory / 'tile_0.png')
+
+    P.predict_split(None, P.list_tiles(tmp_path, 'testing'), tmp_path / 'out',
+                    progress=False)
+
+    written = tmp_path / 'out' / 'masks' / 'tile_0.tif'
+    assert written.is_file()
+    with rasterio.open(written) as src:
+        assert src.driver == 'GTiff'
+        assert src.count == 1 and src.dtypes == ('uint8',)
+        assert src.crs is None, 'a PNG tile has no CRS to carry over'
+        assert (src.read(1) == 1).all()
+
+
+def test_a_georeferenced_tile_still_carries_its_crs(tmp_path, patched):
+    patched(0.9)
+    build_split(tmp_path, 'testing', 1)
+
+    P.predict_split(None, P.list_tiles(tmp_path, 'testing'), tmp_path / 'out',
+                    progress=False)
+
+    with rasterio.open(tmp_path / 'out' / 'masks' / 'tile_000.tif') as src:
+        assert src.crs is not None
+        assert str(src.crs) == CRS

@@ -13,14 +13,20 @@ class GhafDataset(BaseSegDataset):
         0  background
         1  ghaf
 
-    Images and masks are GeoTIFFs sharing a stem, organised as::
+    Images and masks share a stem, organised as::
 
         <data_root>/
-          training/{images,masks}/*.tif
-          validation/{images,masks}/*.tif
-          testing/ghaf26/{images,masks}/*.tif
+          training/{images,masks}/*.png
+          validation/{images,masks}/*.png
+          testing/ghaf26/{images,masks}/*.png
 
     Masks are single-band, with pixel values equal to the class index.
+
+    The tiles are PNG: they are cut from the orthomosaic at the model's input
+    size, so each one's position is carried by its name rather than by a
+    geotransform, and the georeferencing is reattached when predictions are
+    written. ``img_suffix`` and ``seg_map_suffix`` take a tile tree in another
+    format -- ``.tif`` for one cut with georeferencing intact.
 
     Note:
         ``reduce_zero_label`` must stay ``False``. Background is a supervised
@@ -35,8 +41,8 @@ class GhafDataset(BaseSegDataset):
     )
 
     def __init__(self,
-                 img_suffix: str = '.tif',
-                 seg_map_suffix: str = '.tif',
+                 img_suffix: str = '.png',
+                 seg_map_suffix: str = '.png',
                  reduce_zero_label: bool = False,
                  **kwargs) -> None:
         if reduce_zero_label:

@@ -44,8 +44,9 @@ PUBLISHED_COUNTS = {'training': 7005, 'validation': 869, 'testing': 767}
 #: The only pixel values a mask may contain.
 CLASS_VALUES = {0, 1}
 
-#: Tile extensions, matched without regard to case.
-SUFFIXES = ('.tif', '.tiff')
+#: Tile extensions, matched without regard to case. The published tiles are
+#: PNG; GeoTIFF is accepted for a tree cut with its georeferencing intact.
+SUFFIXES = ('.png', '.tif', '.tiff')
 
 
 @dataclass

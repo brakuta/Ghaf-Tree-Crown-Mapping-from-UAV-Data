@@ -121,7 +121,7 @@ the message can be ignored.
 **Verify**:
 
 ```bash
-python -m pytest tests/ -q   # 200 tests
+python -m pytest tests/ -q   # 203 tests
 python tools/smoke_test.py   # builds all six models, checks parameter counts
 ```
 
@@ -163,9 +163,9 @@ data/ghaf/
 └── testing/ghaf26/{images,masks}/     767 tiles
 ```
 
-Paired 1024 × 1024 GeoTIFFs sharing a filename stem. Masks are single-band with
-pixel values equal to the class index: `0` background, `1` ghaf. Place the tree
-at `data/ghaf`, symlink it, or name it on the command line:
+Paired 1024 × 1024 PNG tiles sharing a filename stem. Masks are single-band
+with pixel values equal to the class index: `0` background, `1` ghaf. Place the
+tree at `data/ghaf`, symlink it, or name it on the command line:
 
 ```bash
 python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py \
@@ -286,7 +286,7 @@ tools/
 ├── predict_split.py       per-tile predictions for a dataset split
 ├── smoke_test.py          build every model, check parameter counts
 └── export_release.py      assemble the shareable bundle
-tests/                     200 tests; mmengine and NumPy, plus torch, timm,
+tests/                     203 tests; mmengine and NumPy, plus torch, timm,
                            rasterio and geopandas for the end-to-end ones
 docs/                      model zoo, area-wide inference, release bundle
 ```
@@ -294,7 +294,7 @@ docs/                      model zoo, area-wide inference, release bundle
 ## Testing
 
 ```bash
-python -m pytest tests/ -q            # 200 tests: no GPU, mmcv or dataset required
+python -m pytest tests/ -q            # 203 tests: no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
 python tools/smoke_test.py --checkpoints DIR   # also loads and runs the weights
 ```
@@ -309,6 +309,10 @@ stays consistently specified, all six share one evaluation protocol, and
 released-model registry (digests well-formed and unique, integrity checks
 reject wrong sizes and wrong contents, a checkpoint is found wherever it sits
 and two candidates are refused rather than guessed at).
+
+Four further tests state the dataset contract -- PNG tiles, two classes,
+background supervised rather than ignored -- and run wherever mmsegmentation
+is installed.
 
 The dataset validator is held to the standard that matters for a check: it
 fails a tree it cannot use. Directories that exist but hold no tiles are

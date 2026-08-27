@@ -67,15 +67,15 @@ def test_directories_that_exist_but_hold_no_tiles_fail(tmp_path, capsys):
 
 
 def test_an_empty_split_names_what_it_found_instead(tmp_path, capsys):
-    """A different extension is the usual cause, so say so."""
+    """An unexpected extension is the usual cause, so say so."""
     build_tree(tmp_path)
     image_rel, _ = C.SPLITS['validation']
     for tile in (tmp_path / image_rel).iterdir():
-        tile.rename(tile.with_suffix('.png'))
+        tile.rename(tile.with_suffix('.jpg'))
 
     assert C.main([str(tmp_path)]) == 1
     out = capsys.readouterr().out
-    assert '.png' in out, 'the extension actually present should be reported'
+    assert '.jpg' in out, 'the extension actually present should be reported'
 
 
 def test_one_empty_split_fails_the_whole_tree(tmp_path, capsys):
