@@ -121,7 +121,7 @@ the message can be ignored.
 **Verify**:
 
 ```bash
-python -m pytest tests/ -q   # 183 tests
+python -m pytest tests/ -q   # 189 tests
 python tools/smoke_test.py   # builds all six models, checks parameter counts
 ```
 
@@ -165,12 +165,17 @@ data/ghaf/
 
 Paired 1024 × 1024 GeoTIFFs sharing a filename stem. Masks are single-band with
 pixel values equal to the class index: `0` background, `1` ghaf. Place the tree
-at `data/ghaf`, symlink it, or override `data_root`:
+at `data/ghaf`, symlink it, or name it on the command line:
 
 ```bash
 python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py \
-    --cfg-options data_root=/path/to/ghaf
+    --data-root /path/to/ghaf
 ```
+
+`--data-root` moves every split together. It is a flag of its own rather than
+a `--cfg-options` entry because the config's `data_root` is a module-level
+variable, copied into each dataloader as the file is parsed — setting it
+afterwards would change a key nothing reads.
 
 ## Usage
 
@@ -260,6 +265,7 @@ back to disk a stripe at a time. See
 
 ```
 ghaf/
+├── config.py              point a config at a dataset root
 ├── datasets.py            GhafDataset — the two-class tile dataset
 ├── release.py             the published models: digests, params, scores
 ├── models/
@@ -280,7 +286,7 @@ tools/
 ├── predict_split.py       per-tile predictions for a dataset split
 ├── smoke_test.py          build every model, check parameter counts
 └── export_release.py      assemble the shareable bundle
-tests/                     183 tests; mmengine and NumPy, plus torch, timm,
+tests/                     189 tests; mmengine and NumPy, plus torch, timm,
                            rasterio and geopandas for the end-to-end ones
 docs/                      model zoo, area-wide inference, release bundle
 ```
@@ -288,7 +294,7 @@ docs/                      model zoo, area-wide inference, release bundle
 ## Testing
 
 ```bash
-python -m pytest tests/ -q            # 183 tests: no GPU, mmcv or dataset required
+python -m pytest tests/ -q            # 189 tests: no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
 python tools/smoke_test.py --checkpoints DIR   # also loads and runs the weights
 ```
