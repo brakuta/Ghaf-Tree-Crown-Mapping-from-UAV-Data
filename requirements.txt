@@ -1,0 +1,11 @@
+# Runtime dependencies beyond the OpenMMLab stack.
+#
+# Install PyTorch, mmengine, mmcv, mmsegmentation, mmdet and mmpretrain first;
+# see docs/REPRODUCE.md for the pinned versions and the mmcv range.
+
+timm==1.0.19          # FastViT building blocks and the DPN-98 backbone
+rasterio>=1.3         # windowed reads and georeferenced GeoTIFF output
+geopandas>=0.13       # crown polygon export
+shapely>=2.0
+numpy>=1.24
+tqdm>=4.65            # optional progress bar
