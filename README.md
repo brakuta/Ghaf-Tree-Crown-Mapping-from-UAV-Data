@@ -90,10 +90,14 @@ at import time:
 python -m pip install -U openmim
 python -m mim install mmengine==0.10.7 "mmcv>=2.0.0rc4,<2.2.0"
 python -m pip install mmsegmentation==1.2.2 mmdet==3.3.0 mmpretrain==1.2.0
+python -m pip install ftfy regex
 ```
 
 `mmdet` supplies the Mask2Former head; `mmpretrain` supplies the ConvNeXt,
-PoolFormer and EfficientNet backbones.
+PoolFormer and EfficientNet backbones. `ftfy` and `regex` back the CLIP
+tokenizer that `mmseg.utils` imports when the package is loaded, so they are
+needed for any use of mmsegmentation 1.2.2; `requirements.txt` installs them
+too, whichever route you take.
 
 **This project** — `timm` supplies DPN-98 and the FastViT building blocks, and
 `rasterio` brings its own GDAL, so no system GDAL install is required:

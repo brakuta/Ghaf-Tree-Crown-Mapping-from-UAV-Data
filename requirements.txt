@@ -1,11 +1,17 @@
 # Runtime dependencies beyond the OpenMMLab stack.
 #
 # Install PyTorch, mmengine, mmcv, mmsegmentation, mmdet and mmpretrain first;
-# see docs/REPRODUCE.md for the pinned versions and the mmcv range.
+# see "Installation" in README.md for the pinned versions and the mmcv range.
 
 timm==1.0.19          # FastViT building blocks and the DPN-98 backbone
 rasterio>=1.3         # windowed reads and georeferenced GeoTIFF output
 geopandas>=0.13       # crown polygon export
 shapely>=2.0
-numpy>=1.24,<2       # PyTorch 1.12.1 is built against the NumPy 1.x ABI
+numpy>=1.24,<2        # PyTorch 1.12.1 is built against the NumPy 1.x ABI
 tqdm>=4.65            # optional progress bar
+
+# mmsegmentation 1.2.2 imports its CLIP tokenizer from `mmseg.utils.__init__`,
+# so these are needed to import mmseg at all -- not only for its multi-modal
+# models, which is where the package's own metadata lists them.
+ftfy>=6.1
+regex>=2022.3
