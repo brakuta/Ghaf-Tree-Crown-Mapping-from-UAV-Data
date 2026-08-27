@@ -121,7 +121,7 @@ the message can be ignored.
 **Verify**:
 
 ```bash
-python -m pytest tests/ -q   # 189 tests
+python -m pytest tests/ -q   # 200 tests
 python tools/smoke_test.py   # builds all six models, checks parameter counts
 ```
 
@@ -286,7 +286,7 @@ tools/
 ├── predict_split.py       per-tile predictions for a dataset split
 ├── smoke_test.py          build every model, check parameter counts
 └── export_release.py      assemble the shareable bundle
-tests/                     189 tests; mmengine and NumPy, plus torch, timm,
+tests/                     200 tests; mmengine and NumPy, plus torch, timm,
                            rasterio and geopandas for the end-to-end ones
 docs/                      model zoo, area-wide inference, release bundle
 ```
@@ -294,7 +294,7 @@ docs/                      model zoo, area-wide inference, release bundle
 ## Testing
 
 ```bash
-python -m pytest tests/ -q            # 189 tests: no GPU, mmcv or dataset required
+python -m pytest tests/ -q            # 200 tests: no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
 python tools/smoke_test.py --checkpoints DIR   # also loads and runs the weights
 ```
@@ -304,9 +304,16 @@ six raster shapes and four overlap settings), the blending mathematics (a
 constant field reconstructs exactly; overlap-add equals a direct weighted
 mean), the streaming path (stripes are contiguous and reconstruct the whole
 result), the configurations (each declares its intended recipe, the binary task
-stays consistently specified, all six share one evaluation protocol), and the
+stays consistently specified, all six share one evaluation protocol, and
+`--data-root` moves every split where `--cfg-options` would not), and the
 released-model registry (digests well-formed and unique, integrity checks
-reject wrong sizes and wrong contents).
+reject wrong sizes and wrong contents, a checkpoint is found wherever it sits
+and two candidates are refused rather than guessed at).
+
+The dataset validator is held to the standard that matters for a check: it
+fails a tree it cannot use. Directories that exist but hold no tiles are
+reported as empty, along with the extensions they hold instead, rather than
+passing every pairing test by having nothing to pair.
 
 The two custom backbones are built and executed: FastViT-MA36 is checked to
 have stage depths `[6, 6, 18, 6]` and widths `[76, 152, 304, 608]`, DPN-98 to
