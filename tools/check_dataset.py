@@ -10,6 +10,10 @@ one-class problem, so it is worth a few minutes up front.
     python tools/check_dataset.py data/ghaf --full      # every tile, not a sample
     python tools/check_dataset.py data/ghaf --json report.json
 
+A split with no paired tiles fails: an empty directory passes every pairing
+and label check there is, so emptiness is reported as its own verdict, along
+with what the directory holds instead.
+
 Exits 0 when the tree is usable, 1 when it is not. Needs rasterio; falls back
 to Pillow if rasterio is unavailable.
 """
@@ -40,7 +44,8 @@ PUBLISHED_COUNTS = {'training': 7005, 'validation': 869, 'testing': 767}
 #: The only pixel values a mask may contain.
 CLASS_VALUES = {0, 1}
 
-SUFFIXES = ('.tif', '.tiff', '.TIF', '.TIFF')
+#: Tile extensions, matched without regard to case.
+SUFFIXES = ('.tif', '.tiff')
 
 
 @dataclass
@@ -58,6 +63,8 @@ class SplitReport:
     unreadable: List[str] = field(default_factory=list)
     inspected: int = 0
     missing_directories: List[str] = field(default_factory=list)
+    contents: Dict[str, Dict[str, int]] = field(default_factory=dict)
+    """What each directory holds, by extension. Filled in when nothing paired."""
 
     @property
     def problems(self) -> int:
@@ -65,11 +72,34 @@ class SplitReport:
                 + len(self.size_mismatches) + len(self.bad_label_values)
                 + len(self.unreadable) + len(self.missing_directories))
 
+    @property
+    def usable(self) -> bool:
+        """Whether this split can be trained or evaluated on.
+
+        A split with no paired tiles is not usable, however few other faults
+        it has: an empty tree passes every pairing and label check there is,
+        so emptiness has to be its own verdict rather than an absence of
+        complaints.
+        """
+        return self.problems == 0 and self.paired > 0
+
+    def describe_contents(self) -> str:
+        """One line naming what was found instead of tiles."""
+        parts = []
+        for directory, counts in self.contents.items():
+            if not counts:
+                parts.append(f'{directory} is empty')
+                continue
+            found = ', '.join(f'{n} {kind}' for kind, n in sorted(counts.items()))
+            parts.append(f'{directory} holds {found}')
+        return '; '.join(parts)
+
     def as_dict(self) -> dict:
         return {
             'split': self.name, 'images': self.images, 'masks': self.masks,
             'paired': self.paired, 'inspected': self.inspected,
-            'problems': self.problems,
+            'problems': self.problems, 'usable': self.usable,
+            'contents': self.contents,
             'missing_directories': self.missing_directories,
             'images_without_masks': self.images_without_masks[:50],
             'masks_without_images': self.masks_without_images[:50],
@@ -103,7 +133,22 @@ def _read_raster(path: Path):
 def stems(directory: Path) -> Dict[str, Path]:
     """Map file stem -> path for every raster in a directory."""
     return {p.stem: p for p in sorted(directory.iterdir())
-            if p.is_file() and p.suffix in SUFFIXES}
+            if p.is_file() and p.suffix.lower() in SUFFIXES}
+
+
+def census(directory: Path) -> Dict[str, int]:
+    """What a directory actually holds, by file extension.
+
+    Reported when a split comes up empty. "No tiles found" is a dead end;
+    "1,400 .png files" is an answer, and the difference matters when the tree
+    being checked is one somebody else assembled.
+    """
+    counts: Dict[str, int] = {}
+    for entry in sorted(directory.iterdir()):
+        key = ('<subdirectory>' if entry.is_dir()
+               else (entry.suffix.lower() or '<no extension>'))
+        counts[key] = counts.get(key, 0) + 1
+    return counts
 
 
 def check_split(root: Path, name: str, image_rel: str, mask_rel: str,
@@ -120,6 +165,12 @@ def check_split(root: Path, name: str, image_rel: str, mask_rel: str,
 
     images, masks = stems(image_dir), stems(mask_dir)
     report.images, report.masks = len(images), len(masks)
+
+    if not images or not masks:
+        # Say what is there instead. A tree assembled elsewhere may use a
+        # different extension or nest the tiles one level further down.
+        report.contents = {rel: census(root / rel)
+                           for rel in (image_rel, mask_rel)}
 
     shared = sorted(set(images) & set(masks))
     report.paired = len(shared)
@@ -163,19 +214,21 @@ def render(reports: List[SplitReport]) -> bool:
         note = ''
         if report.missing_directories:
             status, note = 'MISSING', ', '.join(report.missing_directories)
+        elif report.paired == 0:
+            status, note = 'NO TILES', report.describe_contents()
         elif report.problems:
             status = f'{report.problems} PROBLEM(S)'
         elif expected is not None and report.paired != expected:
             status = 'ok (count differs)'
         else:
             status = 'ok'
-        healthy &= report.problems == 0
+        healthy &= report.usable
         print(f'{report.name:12s} {report.images:8d} {report.masks:8d} '
               f'{report.paired:8d} {report.inspected:8d} '
               f'{expected if expected else "-":>10}  {status} {note}')
 
     for report in reports:
-        if not report.problems:
+        if report.problems == 0:
             continue
         print(f'\n{report.name}:')
         for label, items in (
@@ -219,7 +272,8 @@ def main(argv=None) -> int:
 
     total = sum(r.paired for r in reports)
     print(f'\n{total:,} paired tile(s) across {len(reports)} split(s)')
-    print('dataset looks usable' if healthy else 'dataset has problems (see above)')
+    print('dataset looks usable' if healthy
+          else 'dataset is not usable as it stands (see above)')
 
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)
