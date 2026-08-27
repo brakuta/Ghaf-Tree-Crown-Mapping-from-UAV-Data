@@ -63,6 +63,9 @@ conda env create -f environment.yml
 conda activate ghaf
 ```
 
+Every command below uses `python -m pip` rather than a bare `pip`, for the
+reason given under **Verify**.
+
 Conda supplies only the interpreter; the stack is installed with pip and
 openmim, which fetches the mmcv wheel matched to your PyTorch and CUDA
 versions rather than building it from source.
@@ -70,23 +73,23 @@ versions rather than building it from source.
 **PyTorch** — the published models were trained with 1.12.1 on CUDA 11.3:
 
 ```bash
-pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 \
+python -m pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 \
     --extra-index-url https://download.pytorch.org/whl/cu113
 ```
 
 Substitute the build for your driver, or for a machine without a GPU:
 
 ```bash
-pip install torch==1.12.1 torchvision==0.13.1
+python -m pip install torch==1.12.1 torchvision==0.13.1
 ```
 
 **OpenMMLab** — mmcv must stay below 2.2.0, which mmsegmentation 1.2.2 asserts
 at import time:
 
 ```bash
-pip install -U openmim
-mim install mmengine==0.10.7 "mmcv>=2.0.0rc4,<2.2.0"
-pip install mmsegmentation==1.2.2 mmdet==3.3.0 mmpretrain==1.2.0
+python -m pip install -U openmim
+python -m mim install mmengine==0.10.7 "mmcv>=2.0.0rc4,<2.2.0"
+python -m pip install mmsegmentation==1.2.2 mmdet==3.3.0 mmpretrain==1.2.0
 ```
 
 `mmdet` supplies the Mask2Former head; `mmpretrain` supplies the ConvNeXt,
@@ -96,9 +99,12 @@ PoolFormer and EfficientNet backbones.
 `rasterio` brings its own GDAL, so no system GDAL install is required:
 
 ```bash
-pip install -r requirements.txt
-pip install -e .
+python -m pip install -r requirements.txt
+python -m pip install -e ".[test]"
 ```
+
+The `[test]` extra adds pytest. Use `-e .` alone if you do not intend to run
+the suite.
 
 **Verify**:
 
