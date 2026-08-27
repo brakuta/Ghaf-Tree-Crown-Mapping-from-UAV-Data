@@ -7,5 +7,5 @@ timm==1.0.19          # FastViT building blocks and the DPN-98 backbone
 rasterio>=1.3         # windowed reads and georeferenced GeoTIFF output
 geopandas>=0.13       # crown polygon export
 shapely>=2.0
-numpy>=1.24
+numpy>=1.24,<2       # PyTorch 1.12.1 is built against the NumPy 1.x ABI
 tqdm>=4.65            # optional progress bar
