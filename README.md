@@ -61,28 +61,55 @@ Per-model details, checkpoint hashes and training settings are in
 ```bash
 conda env create -f environment.yml
 conda activate ghaf
-pip install -e .
-python tools/smoke_test.py
 ```
 
-Or step by step:
+Conda supplies only the interpreter; the stack is installed with pip and
+openmim, which fetches the mmcv wheel matched to your PyTorch and CUDA
+versions rather than building it from source.
+
+**PyTorch** — the published models were trained with 1.12.1 on CUDA 11.3:
 
 ```bash
-conda create -n ghaf python=3.9 -y && conda activate ghaf
-pip install torch==1.12.1 torchvision==0.13.1 --index-url https://download.pytorch.org/whl/cu113
+pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 \
+    --extra-index-url https://download.pytorch.org/whl/cu113
+```
+
+Substitute the build for your driver, or for a machine without a GPU:
+
+```bash
+pip install torch==1.12.1 torchvision==0.13.1
+```
+
+**OpenMMLab** — mmcv must stay below 2.2.0, which mmsegmentation 1.2.2 asserts
+at import time:
+
+```bash
 pip install -U openmim
 mim install mmengine==0.10.7 "mmcv>=2.0.0rc4,<2.2.0"
 pip install mmsegmentation==1.2.2 mmdet==3.3.0 mmpretrain==1.2.0
+```
+
+`mmdet` supplies the Mask2Former head; `mmpretrain` supplies the ConvNeXt,
+PoolFormer and EfficientNet backbones.
+
+**This project** — `timm` supplies DPN-98 and the FastViT building blocks, and
+`rasterio` brings its own GDAL, so no system GDAL install is required:
+
+```bash
 pip install -r requirements.txt
 pip install -e .
 ```
 
-`mmdet` supplies the Mask2Former head; `mmpretrain` supplies the ConvNeXt,
-PoolFormer and EfficientNet backbones; `timm` supplies DPN-98 and the FastViT
-building blocks.
+**Verify**:
 
-`tools/smoke_test.py` builds all six models, runs a forward pass and checks
-each parameter count against the published model. Run it before training.
+```bash
+pytest tests/ -q             # 169 tests
+python tools/smoke_test.py   # builds all six models, checks parameter counts
+```
+
+Run `smoke_test.py` before training or evaluating: it constructs every model
+from its config and compares the parameter count against the published one, so
+a mismatch between the code and the weights surfaces immediately.
 
 ## Data
 
