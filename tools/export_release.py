@@ -42,32 +42,13 @@ import shutil
 import sys
 from datetime import date
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from ghaf.release import ReleasedModel, iter_models, sha256_of  # noqa: E402
 
 LOGGER = logging.getLogger('export_release')
-
-
-def find_checkpoint(root: Path, model: ReleasedModel) -> Optional[Path]:
-    """Locate a model's checkpoint under ``root``.
-
-    Tries the tidy layout first (``<root>/<key>/<checkpoint>``), then the
-    checkpoint name anywhere beneath ``root``, so a folder that has not been
-    reorganised still works.
-    """
-    direct = root / model.key / model.checkpoint
-    if direct.is_file():
-        return direct
-    matches = sorted(root.rglob(model.checkpoint))
-    if len(matches) == 1:
-        return matches[0]
-    if len(matches) > 1:
-        LOGGER.warning('%s: %d files named %s under %s; using none',
-                       model.key, len(matches), model.checkpoint, root)
-    return None
 
 
 def resolve_config(model: ReleasedModel) -> str:
@@ -242,7 +223,7 @@ def main(argv=None) -> int:
 
     entries, missing, failed = [], [], []
     for model in models:
-        source = find_checkpoint(args.checkpoints, model)
+        source = model.find_checkpoint(args.checkpoints)
         if source is None:
             LOGGER.error('%s: %s not found under %s',
                          model.key, model.checkpoint, args.checkpoints)

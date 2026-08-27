@@ -113,3 +113,45 @@ def test_verify_rejects_a_correct_size_with_wrong_contents(tmp_path):
 def test_verify_reports_a_missing_file(tmp_path):
     with pytest.raises(FileNotFoundError):
         MODELS[0].verify(tmp_path / 'absent.pth')
+
+
+# --------------------------------------------------------------------------
+# locating a checkpoint on disk
+# --------------------------------------------------------------------------
+
+def _touch(path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b'')
+    return path
+
+
+def test_a_checkpoint_is_found_in_the_tidy_layout(tmp_path):
+    model = MODELS[0]
+    expected = _touch(tmp_path / model.key / model.checkpoint)
+    assert model.find_checkpoint(tmp_path) == expected
+
+
+def test_a_checkpoint_is_found_wherever_it_sits(tmp_path):
+    """Handover folders rarely arrive already organised."""
+    model = MODELS[0]
+    expected = _touch(tmp_path / 'runs' / 'jan' / 'work' / model.checkpoint)
+    assert model.find_checkpoint(tmp_path) == expected
+
+
+def test_the_tidy_layout_wins_over_a_stray_copy(tmp_path):
+    model = MODELS[0]
+    _touch(tmp_path / 'old' / model.checkpoint)
+    expected = _touch(tmp_path / model.key / model.checkpoint)
+    assert model.find_checkpoint(tmp_path) == expected
+
+
+def test_two_candidates_are_refused_rather_than_guessed(tmp_path):
+    """Picking one at random could ship the wrong weights."""
+    model = MODELS[0]
+    _touch(tmp_path / 'run-a' / model.checkpoint)
+    _touch(tmp_path / 'run-b' / model.checkpoint)
+    assert model.find_checkpoint(tmp_path) is None
+
+
+def test_a_missing_checkpoint_is_reported_as_absent(tmp_path):
+    assert MODELS[0].find_checkpoint(tmp_path) is None

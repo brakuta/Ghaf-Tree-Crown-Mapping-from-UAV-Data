@@ -121,7 +121,7 @@ the message can be ignored.
 **Verify**:
 
 ```bash
-python -m pytest tests/ -q   # 174 tests
+python -m pytest tests/ -q   # 183 tests
 python tools/smoke_test.py   # builds all six models, checks parameter counts
 ```
 
@@ -141,6 +141,18 @@ from its config and compares its tensor total -- summed over `state_dict`, as
 the published counts are -- against the published one, so a mismatch between
 the code and the weights surfaces immediately. It also reports each model's
 trainable parameter count.
+
+Point it at a folder of checkpoints and it goes further, which is the check to
+run before passing the weights on:
+
+```bash
+python tools/smoke_test.py --checkpoints /path/to/checkpoints
+```
+
+For each model it confirms the file is the released one (size and SHA-256),
+loads the weights into the model built from the config and reports any tensor
+the two do not share, then runs one real prediction through mmseg's inference
+path. A model that reaches the last column has been exercised end to end.
 
 ## Data
 
@@ -268,7 +280,7 @@ tools/
 ├── predict_split.py       per-tile predictions for a dataset split
 ├── smoke_test.py          build every model, check parameter counts
 └── export_release.py      assemble the shareable bundle
-tests/                     174 tests; mmengine and NumPy, plus torch, timm,
+tests/                     183 tests; mmengine and NumPy, plus torch, timm,
                            rasterio and geopandas for the end-to-end ones
 docs/                      model zoo, area-wide inference, release bundle
 ```
@@ -276,8 +288,9 @@ docs/                      model zoo, area-wide inference, release bundle
 ## Testing
 
 ```bash
-python -m pytest tests/ -q            # 174 tests: no GPU, mmcv or dataset required
+python -m pytest tests/ -q            # 183 tests: no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
+python tools/smoke_test.py --checkpoints DIR   # also loads and runs the weights
 ```
 
 The suite covers the tiling geometry (every pixel of a raster is covered, at
