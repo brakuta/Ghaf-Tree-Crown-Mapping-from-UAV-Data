@@ -5,6 +5,18 @@ than inside it. `tools/export_release.py` assembles the weights half into
 self-contained per-model folders, laid out the way mmsegmentation lays out a
 working directory.
 
+## Check the weights first
+
+```bash
+python tools/smoke_test.py --checkpoints /path/to/checkpoints
+```
+
+For every model this confirms the file is the released one by size and
+SHA-256, loads it into the model built from its config and names any tensor
+the two do not share, then runs one prediction through mmseg's inference path.
+It answers the question worth answering before anything is handed on: do these
+weights and this code still describe the same network, and does it run?
+
 ## Build it
 
 ```bash

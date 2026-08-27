@@ -19,11 +19,14 @@ shipped another.
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, Iterator, Optional
+
+LOGGER = logging.getLogger(__name__)
 
 #: Bytes read per digest update. Large enough to keep I/O sequential, small
 #: enough that a 1 GB checkpoint never lands in memory at once.
@@ -141,6 +144,27 @@ class ReleasedModel:
                 f'{checkpoint_path.name}: SHA-256 mismatch.\n'
                 f'  expected {self.sha256}\n'
                 f'  found    {digest}')
+
+    def find_checkpoint(self, root: Path) -> Optional[Path]:
+        """Locate this model's checkpoint under ``root``.
+
+        Tries the tidy layout first (``<root>/<key>/<checkpoint>``), then the
+        checkpoint name anywhere beneath ``root``, so a folder that has not
+        been reorganised still works.
+
+        Returns:
+            The path, or ``None`` if it is absent or ambiguous.
+        """
+        direct = Path(root) / self.key / self.checkpoint
+        if direct.is_file():
+            return direct
+        matches = sorted(Path(root).rglob(self.checkpoint))
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1:
+            LOGGER.warning('%s: %d files named %s under %s; using none',
+                           self.key, len(matches), self.checkpoint, root)
+        return None
 
 
 def sha256_of(path: Path, chunk: int = _DIGEST_CHUNK) -> str:
