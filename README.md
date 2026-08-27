@@ -103,8 +103,19 @@ pip install -e .
 **Verify**:
 
 ```bash
-pytest tests/ -q             # 169 tests
+python -m pytest tests/ -q   # 169 tests
 python tools/smoke_test.py   # builds all six models, checks parameter counts
+```
+
+Both are invoked through `python -m` deliberately. A bare `pytest` runs
+whichever launcher is first on PATH, which on a machine with a base Anaconda
+install is often that one rather than the active environment's — the tests then
+fail with `ModuleNotFoundError: No module named 'mmengine'` while the
+environment is perfectly healthy. `python -m` always uses the interpreter you
+have activated. If in doubt:
+
+```bash
+python -c "import sys; print(sys.executable)"
 ```
 
 Run `smoke_test.py` before training or evaluating: it constructs every model
@@ -245,7 +256,7 @@ docs/                      model zoo, area-wide inference, release bundle
 ## Testing
 
 ```bash
-pytest tests/ -q            # 169 tests: no GPU, mmcv or dataset required
+python -m pytest tests/ -q            # 169 tests: no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
 ```
 
