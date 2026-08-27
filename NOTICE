@@ -1,0 +1,37 @@
+Ghaf Tree-Crown Mapping from Area-Wide UAV Imagery
+Copyright 2025 The Ghaf Tree-Crown Mapping Authors
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+This product includes software developed by third parties:
+
+MMSegmentation
+  Copyright 2020 The MMSegmentation Authors
+  Apache License 2.0
+  https://github.com/open-mmlab/mmsegmentation
+  The dataset, decode heads, necks, metrics and runner used here come from
+  mmsegmentation, which is a dependency rather than a fork: no file inside the
+  installed `mmseg` package is modified by this project.
+
+Apple FastViT
+  Copyright 2023 Apple Inc. All Rights Reserved.
+  Apple licence, see https://github.com/apple/ml-fastvit/blob/main/LICENSE
+  ghaf/models/fastvit.py and ghaf/models/modules/ derive from Apple's
+  reference implementation, with the FastViT-MA36 configuration exposed as an
+  mmsegmentation backbone. The original copyright headers are retained in
+  those files.
+
+PyTorch Image Models (timm)
+  Copyright Ross Wightman
+  Apache License 2.0
+  https://github.com/huggingface/pytorch-image-models
+  Supplies the DPN-98 backbone and several building blocks used by FastViT.
+
+MMPreTrain
+  Copyright 2023 The MMPreTrain Authors
+  Apache License 2.0
+  https://github.com/open-mmlab/mmpretrain
+  Supplies the ConvNeXt, PoolFormer and EfficientNet backbones.
+
+Pretrained weights fetched at runtime are distributed by their respective
+publishers under their own terms.

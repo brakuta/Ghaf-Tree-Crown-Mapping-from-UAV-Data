@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: If you use this software or the released models, please cite the paper.
+title: Ghaf Tree-Crown Mapping from Area-Wide UAV Imagery
+abstract: >-
+  Semantic segmentation models and an area-wide inference pipeline for
+  delineating Ghaf (Prosopis cineraria) tree crowns in UAV orthomosaics.
+type: software
+license: Apache-2.0
+authors:
+  - family-names: Gibril
+    given-names: Mohamed Barakat A.
+keywords:
+  - remote sensing
+  - semantic segmentation
+  - UAV
+  - tree crown delineation
+  - Prosopis cineraria
+  - arid ecosystems
+preferred-citation:
+  type: article
+  title: >-
+    Hybrid Vision-CNN Architecture for Mapping Prosopis cineraria from
+    Area-wide UAV-based Images
+  authors:
+    - family-names: Gibril
+      given-names: Mohamed Barakat A.
+  year: 2025
