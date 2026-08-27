@@ -137,8 +137,10 @@ python -c "import sys; print(sys.executable)"
 ```
 
 Run `smoke_test.py` before training or evaluating: it constructs every model
-from its config and compares the parameter count against the published one, so
-a mismatch between the code and the weights surfaces immediately.
+from its config and compares its tensor total -- summed over `state_dict`, as
+the published counts are -- against the published one, so a mismatch between
+the code and the weights surfaces immediately. It also reports each model's
+trainable parameter count.
 
 ## Data
 

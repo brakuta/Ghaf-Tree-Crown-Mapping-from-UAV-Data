@@ -18,7 +18,9 @@ Held-out test split, `testing/ghaf26`.
 | `resnet-50_mask2former` | ResNet-50 | — | Mask2Former | 44 056 504 | 77.69 | 85.98 |
 | `efficientnet-b3_fpn` | EfficientNet-B3 | FPN | FPNHead | 13 734 524 | 70.77 | 80.29 |
 
-Parameter counts are summed over every tensor in each model's checkpoint.
+Parameter counts are summed over every tensor in each model's checkpoint,
+so they include the normalisation running statistics that `parameters()`
+leaves out. `tools/smoke_test.py` prints both totals for a built model.
 
 ## Training settings
 
