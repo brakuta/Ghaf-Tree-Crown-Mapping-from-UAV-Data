@@ -17,7 +17,9 @@ Two settings are worth stating explicitly:
 # --------------------------------------------------------------------------
 dataset_type = 'GhafDataset'
 #: Point this at the tile tree, or symlink the tree to ``data/ghaf``.
-#: Override per run with ``--cfg-options data_root=/path/to/ghaf``.
+#: Override per run with ``--data-root /path/to/ghaf``, which moves every
+#: split: this variable is read while the file is parsed, so a later
+#: ``--cfg-options data_root=...`` would set a key the dataloaders never see.
 data_root = 'data/ghaf'
 
 crop_size = (1024, 1024)

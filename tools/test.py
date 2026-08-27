@@ -15,12 +15,15 @@ from mmengine.config import Config, DictAction
 from mmengine.runner import Runner
 
 import ghaf
+from ghaf.config import set_data_root
 
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument('config', help='config file path')
     p.add_argument('checkpoint', help='checkpoint file')
+    p.add_argument('--data-root',
+                   help='dataset root to be evaluated, overriding the config')
     p.add_argument('--work-dir', help='directory for logs')
     p.add_argument('--show-dir', help='directory for prediction visualisations')
     p.add_argument('--cfg-options', nargs='+', action=DictAction)
@@ -36,6 +39,8 @@ def main(argv=None) -> int:
 
     cfg = Config.fromfile(args.config)
     cfg.launcher = args.launcher
+    if args.data_root:
+        set_data_root(cfg, args.data_root)
     if args.cfg_options:
         cfg.merge_from_dict(args.cfg_options)
     cfg.load_from = args.checkpoint

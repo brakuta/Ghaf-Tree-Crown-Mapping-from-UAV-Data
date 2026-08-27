@@ -15,11 +15,14 @@ from mmengine.config import Config, DictAction
 from mmengine.runner import Runner
 
 import ghaf
+from ghaf.config import set_data_root
 
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument('config', help='config file path')
+    p.add_argument('--data-root',
+                   help='dataset root to be trained on, overriding the config')
     p.add_argument('--work-dir', help='directory for logs and checkpoints')
     p.add_argument('--resume', action='store_true',
                    help='resume from the latest checkpoint in --work-dir')
@@ -27,7 +30,7 @@ def parse_args(argv=None):
                    help='enable mixed precision; a no-op for configs that '
                         'already set AmpOptimWrapper')
     p.add_argument('--cfg-options', nargs='+', action=DictAction,
-                   help='override config entries, e.g. data_root=/data/ghaf')
+                   help='override config entries, e.g. randomness.seed=0')
     p.add_argument('--launcher', default='none',
                    choices=['none', 'pytorch', 'slurm', 'mpi'])
     p.add_argument('--local_rank', '--local-rank', type=int, default=0)
@@ -40,6 +43,8 @@ def main(argv=None) -> int:
 
     cfg = Config.fromfile(args.config)
     cfg.launcher = args.launcher
+    if args.data_root:
+        set_data_root(cfg, args.data_root)
     if args.cfg_options:
         cfg.merge_from_dict(args.cfg_options)
     cfg.work_dir = args.work_dir or str(

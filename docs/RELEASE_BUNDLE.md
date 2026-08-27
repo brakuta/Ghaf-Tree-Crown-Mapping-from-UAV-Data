@@ -124,9 +124,8 @@ ghaf-project/
     └── testing/ghaf26/{images,masks}/   767 tiles
 ```
 
-Point a config at the tiles with `--cfg-options data_root=/path/to/data/ghaf`,
-or place them at `data/ghaf` relative to the working directory, which is the
-default.
+Point a config at the tiles with `--data-root /path/to/data/ghaf`, or place
+them at `data/ghaf` relative to the working directory, which is the default.
 
 Validate the copy before handing it on:
 
