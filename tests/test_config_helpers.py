@@ -1,15 +1,17 @@
-"""Tests for pointing a config at a dataset.
+"""Tests for the config edits a command line has to make correctly.
 
-The trap these cover is quiet: mmengine accepts `--cfg-options data_root=...`
-and reports nothing, while the dataloaders keep the path the config file was
-parsed with. Only mmengine is needed here.
+Two traps, both quiet. mmengine accepts `--cfg-options data_root=...` and
+reports nothing, while the dataloaders keep the path the config file was
+parsed with. And switching off a backbone's ImageNet weights means a different
+argument depending on where those weights would come from. Only mmengine is
+needed here.
 """
 
 from pathlib import Path
 
 from mmengine.config import Config
 
-from ghaf.config import DATALOADERS, set_data_root
+from ghaf.config import DATALOADERS, set_data_root, skip_imagenet_weights
 
 CONFIG = (Path(__file__).parent.parent / 'configs' / 'ghaf' /
           'resnet-50_mask2former.py')
@@ -68,3 +70,59 @@ def test_only_the_named_dataloaders_move():
     assert set_data_root(cfg, '/only/test', ['test_dataloader']) == ['test_dataloader']
     assert cfg.test_dataloader.dataset.data_root == '/only/test'
     assert cfg.train_dataloader.dataset.data_root == 'data/ghaf'
+
+
+# --------------------------------------------------------------------------
+# switching off ImageNet initialisation
+# --------------------------------------------------------------------------
+
+class OpenMMLabStyle:
+    """How mmseg's own backbones are declared: ``pretrained`` is a path."""
+
+    def __init__(self, depth=50, pretrained=None, init_cfg=None):
+        pass
+
+
+class TimmStyle:
+    """How DPN-98 is declared: ``pretrained`` is a flag."""
+
+    def __init__(self, pretrained: bool = True, out_indices=(0, 1, 2, 3)):
+        pass
+
+
+class NeitherKnob:
+    def __init__(self, arch='small'):
+        pass
+
+
+class CatchAll:
+    def __init__(self, arch='small', **kwargs):
+        pass
+
+
+def test_a_path_style_backbone_is_told_none_not_false():
+    """mmseg asserts ``pretrained`` is a str or None; ``False`` is rejected."""
+    backbone = {'type': 'ResNetV1c', 'depth': 50}
+    skip_imagenet_weights(backbone, OpenMMLabStyle)
+    assert backbone['pretrained'] is None
+    assert backbone['init_cfg'] is None
+
+
+def test_a_flag_style_backbone_is_told_false():
+    backbone = {'type': 'DPN98Backbone'}
+    skip_imagenet_weights(backbone, TimmStyle)
+    assert backbone['pretrained'] is False
+    assert 'init_cfg' not in backbone, 'set an argument the class cannot take'
+
+
+def test_a_backbone_with_neither_knob_is_left_alone():
+    backbone = {'type': 'Whatever', 'arch': 'small'}
+    skip_imagenet_weights(backbone, NeitherKnob)
+    assert backbone == {'type': 'Whatever', 'arch': 'small'}
+
+
+def test_a_backbone_taking_kwargs_is_given_both():
+    backbone = {'type': 'Whatever'}
+    skip_imagenet_weights(backbone, CatchAll)
+    assert backbone['init_cfg'] is None
+    assert backbone['pretrained'] is None

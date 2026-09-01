@@ -265,7 +265,7 @@ back to disk a stripe at a time. See
 
 ```
 ghaf/
-├── config.py              point a config at a dataset root
+├── config.py              point a config at a dataset root; skip ImageNet init
 ├── datasets.py            GhafDataset — the two-class tile dataset
 ├── release.py             the published models: digests, params, scores
 ├── models/

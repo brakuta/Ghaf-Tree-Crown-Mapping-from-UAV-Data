@@ -28,44 +28,14 @@ whole set at the default input size.
 from __future__ import annotations
 
 import argparse
-import inspect
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from ghaf.config import skip_imagenet_weights  # noqa: E402
 from ghaf.inference.large_image import GHAF_CLASS_INDEX  # noqa: E402
 from ghaf.release import RELEASED_MODELS, get, iter_models  # noqa: E402
-
-
-def _skip_imagenet_weights(backbone: dict, cls) -> None:
-    """Build the backbone without fetching ImageNet weights.
-
-    Every tensor is the same shape either way, so the totals below are
-    unaffected -- and the check stays offline and quick.
-
-    Which knob to turn depends on where the weights would come from, and the
-    two conventions in play disagree about the type of ``pretrained``:
-
-    * mmseg's backbones take ``init_cfg``, and their ``pretrained`` is a
-      checkpoint path, so "no weights" is ``None`` -- ``False`` is rejected;
-    * DPN-98 loads through timm, whose ``pretrained`` is a flag, so "no
-      weights" is ``False``.
-
-    The default declared by the class settles which it is, and only arguments
-    the backbone actually accepts are set.
-    """
-    parameters = inspect.signature(cls.__init__).parameters
-    catch_all = any(p.kind is inspect.Parameter.VAR_KEYWORD
-                    for p in parameters.values())
-
-    if 'init_cfg' in parameters or catch_all:
-        backbone['init_cfg'] = None
-
-    declared = parameters.get('pretrained')
-    if declared is not None or catch_all:
-        default = getattr(declared, 'default', None)
-        backbone['pretrained'] = False if isinstance(default, bool) else None
 
 
 def build(key: str, device: str):
@@ -80,8 +50,8 @@ def build(key: str, device: str):
     init_default_scope('mmseg')
 
     cfg = Config.fromfile(str(get(key).config_path))
-    _skip_imagenet_weights(cfg.model.backbone,
-                           MODELS.get(cfg.model.backbone['type']))
+    skip_imagenet_weights(cfg.model.backbone,
+                          MODELS.get(cfg.model.backbone['type']))
     net = MODELS.build(cfg.model)
 
     # The configs specify SyncBN, which is what multi-GPU training used. It
