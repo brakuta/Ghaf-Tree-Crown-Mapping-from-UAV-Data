@@ -2,10 +2,16 @@
 """Evaluate a checkpoint on the held-out test set.
 
     python tools/test.py configs/ghaf/fastvit-ma36_mask2former.py \
-        checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth
+        checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
+        --data-root /path/to/ghaf
 
 Reports mIoU, mDice and mFscore over the held-out ``testing/ghaf26`` split --
 the protocol all published results use.
+
+The backbone's ImageNet initialisation is switched off: the checkpoint
+supplies every tensor and is loaded afterwards, so fetching those weights
+would download a few hundred megabytes only to overwrite them. Evaluation
+therefore needs no network access.
 """
 
 import argparse
@@ -15,7 +21,7 @@ from mmengine.config import Config, DictAction
 from mmengine.runner import Runner
 
 import ghaf
-from ghaf.config import set_data_root
+from ghaf.config import set_data_root, skip_imagenet_weights
 
 
 def parse_args(argv=None):
@@ -33,6 +39,21 @@ def parse_args(argv=None):
     return p.parse_args(argv)
 
 
+def _skip_backbone_download(cfg) -> None:
+    """Build the backbone without its ImageNet weights.
+
+    ``load_from`` replaces every tensor a moment later, so the download is
+    wasted bandwidth at best; on a machine that cannot reach the host, it is
+    the difference between an evaluation that runs and one that does not.
+    """
+    from mmengine.registry import init_default_scope
+    from mmseg.registry import MODELS
+
+    init_default_scope(cfg.get('default_scope', 'mmseg'))
+    backbone = cfg.model.backbone
+    skip_imagenet_weights(backbone, MODELS.get(backbone['type']))
+
+
 def main(argv=None) -> int:
     args = parse_args(argv)
     ghaf.register_all()
@@ -43,6 +64,7 @@ def main(argv=None) -> int:
         set_data_root(cfg, args.data_root)
     if args.cfg_options:
         cfg.merge_from_dict(args.cfg_options)
+    _skip_backbone_download(cfg)
     cfg.load_from = args.checkpoint
     cfg.work_dir = args.work_dir or str(
         Path('work_dirs') / Path(args.config).stem)
