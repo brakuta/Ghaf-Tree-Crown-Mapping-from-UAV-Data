@@ -31,6 +31,7 @@ from mmengine.config import Config, DictAction
 from mmengine.runner import Runner
 
 import ghaf
+from ghaf import init_weights
 from ghaf.config import set_data_root
 
 
@@ -46,6 +47,10 @@ def parse_args(argv=None):
     p.add_argument('--load-from', metavar='CHECKPOINT',
                    help='start from these weights on a fresh schedule, for '
                         'fine-tuning on new labels')
+    p.add_argument('--init-weights', metavar='DIR',
+                   help='folder of ImageNet initialisation weights collected '
+                        'by tools/fetch_init_weights.py, so training needs no '
+                        'internet access')
     p.add_argument('--amp', action='store_true',
                    help='enable mixed precision; a no-op for configs that '
                         'already set AmpOptimWrapper')
@@ -83,6 +88,13 @@ def apply_args(cfg: Config, args) -> Config:
 
 def main(argv=None) -> int:
     args = parse_args(argv)
+
+    # Before register_all, which imports timm: Hugging Face reads its cache
+    # variables when the library is imported, not when it downloads.
+    if args.init_weights:
+        for name, value in init_weights.use(args.init_weights).items():
+            print(f'{name}={value}')
+
     ghaf.register_all()
 
     cfg = apply_args(Config.fromfile(args.config), args)
