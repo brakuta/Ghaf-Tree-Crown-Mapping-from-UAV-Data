@@ -22,6 +22,7 @@ from mmengine.runner import Runner
 
 import ghaf
 from ghaf.config import set_data_root, skip_imagenet_weights
+from ghaf.environment import require_stack
 
 
 def parse_args(argv=None):
@@ -56,6 +57,13 @@ def _skip_backbone_download(cfg) -> None:
 
 def main(argv=None) -> int:
     args = parse_args(argv)
+
+    try:
+        require_stack()
+    except ModuleNotFoundError as exc:
+        print(exc)
+        return 1
+
     ghaf.register_all()
 
     cfg = Config.fromfile(args.config)

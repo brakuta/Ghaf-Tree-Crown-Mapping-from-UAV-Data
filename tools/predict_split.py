@@ -34,6 +34,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from ghaf.environment import require_stack  # noqa: E402
 from ghaf.inference.large_image import _foreground_probability, _import  # noqa: E402
 from ghaf.inference.tiling import iter_batches  # noqa: E402
 
@@ -192,6 +193,12 @@ def main(argv=None) -> int:
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
     args = parse_args(argv)
     out_dir = args.out_dir or Path('predictions') / args.split
+
+    try:
+        require_stack()
+    except ModuleNotFoundError as exc:
+        print(exc)
+        return 1
 
     import ghaf
     ghaf.register_all()

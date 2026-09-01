@@ -33,6 +33,7 @@ from mmengine.runner import Runner
 import ghaf
 from ghaf import init_weights
 from ghaf.config import set_data_root
+from ghaf.environment import require_stack
 
 
 def parse_args(argv=None):
@@ -88,6 +89,13 @@ def apply_args(cfg: Config, args) -> Config:
 
 def main(argv=None) -> int:
     args = parse_args(argv)
+
+    try:
+        require_stack()
+    except ModuleNotFoundError as exc:
+        print(exc)
+        return 1
+
 
     # Before register_all, which imports timm: Hugging Face reads its cache
     # variables when the library is imported, not when it downloads.

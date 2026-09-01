@@ -34,6 +34,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from ghaf.config import skip_imagenet_weights  # noqa: E402
+from ghaf.environment import require_stack  # noqa: E402
 from ghaf.inference.large_image import GHAF_CLASS_INDEX  # noqa: E402
 from ghaf.release import RELEASED_MODELS, get, iter_models  # noqa: E402
 
@@ -166,6 +167,12 @@ def main(argv=None) -> int:
                         help='folder of released checkpoints: verify each '
                              'digest, load the weights and predict once')
     args = parser.parse_args(argv)
+
+    try:
+        require_stack()
+    except ModuleNotFoundError as exc:
+        print(exc)
+        return 1
 
     import torch
 
