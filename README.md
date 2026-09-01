@@ -144,7 +144,7 @@ the message can be ignored.
 **Verify**:
 
 ```bash
-python -m pytest tests/ -q   # 213 tests
+python -m pytest tests/ -q   # 231 tests
 python tools/smoke_test.py   # builds all six models, checks parameter counts
 ```
 
@@ -289,6 +289,7 @@ back to disk a stripe at a time. See
 ```
 ghaf/
 ├── config.py              point a config at a dataset root; skip ImageNet init
+├── init_weights.py        keep the ImageNet weights with the project
 ├── datasets.py            GhafDataset — the two-class tile dataset
 ├── release.py             the published models: digests, params, scores
 ├── models/
@@ -308,8 +309,10 @@ tools/
 ├── train.py · test.py     thin wrappers over the mmengine runner
 ├── predict_split.py       per-tile predictions for a dataset split
 ├── smoke_test.py          build every model, check parameter counts
-└── export_release.py      assemble the shareable bundle
-tests/                     213 tests; mmengine and NumPy, plus torch, timm,
+├── export_release.py      assemble the shareable model bundle
+├── fetch_init_weights.py  collect the ImageNet weights, once, while online
+└── build_handover.py      assemble the whole handover folder
+tests/                     231 tests; mmengine and NumPy, plus torch, timm,
                            rasterio and geopandas for the end-to-end ones
 docs/                      getting started, model zoo, area-wide inference,
                            release bundle
@@ -318,7 +321,7 @@ docs/                      getting started, model zoo, area-wide inference,
 ## Testing
 
 ```bash
-python -m pytest tests/ -q            # 213 tests: no GPU, mmcv or dataset required
+python -m pytest tests/ -q            # 231 tests: no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
 python tools/smoke_test.py --checkpoints DIR   # also loads and runs the weights
 ```
