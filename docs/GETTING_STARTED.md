@@ -284,6 +284,7 @@ site and the checkpoint at your new `work_dirs\...\best_mIoU_iter_*.pth`.
 
 | What you see | What it means | What to do |
 |---|---|---|
+| `mmseg ... is not installed in conda environment "X"` | You are in the wrong environment, or on a machine where the stack was never installed | The message names the interpreter it asked. `conda activate ghaf`, then run the command again |
 | `No module named 'mmengine'`, or `No module named 'pytest'` | A different Python is running than the one you installed into — usually a base Anaconda install ahead of the environment on `PATH` | Check with `python -c "import sys; print(sys.executable)"`. The path should contain `envs\ghaf`. Run `conda activate ghaf`, and always start commands with `python -m` |
 | `No module named 'ftfy'` | mmsegmentation imports a tokenizer that needs it, though its own metadata does not say so | `python -m pip install ftfy regex` |
 | `RuntimeError: Numpy is not available` | NumPy 2 alongside a PyTorch built for NumPy 1 | `python -m pip install "numpy<2"` |

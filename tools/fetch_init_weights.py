@@ -36,6 +36,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from ghaf import init_weights  # noqa: E402
+from ghaf.environment import require_stack  # noqa: E402
 from ghaf.release import RELEASED_MODELS, get, iter_models, sha256_of  # noqa: E402
 
 
@@ -95,6 +96,12 @@ def main(argv=None) -> int:
                         choices=sorted(RELEASED_MODELS),
                         help='limit to these models')
     args = parser.parse_args(argv)
+
+    try:
+        require_stack()
+    except ModuleNotFoundError as exc:
+        print(exc)
+        return 1
 
     print(trust_certifi())
     environment = init_weights.use(args.output)
