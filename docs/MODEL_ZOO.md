@@ -22,6 +22,28 @@ Parameter counts are summed over every tensor in each model's checkpoint,
 so they include the normalisation running statistics that `parameters()`
 leaves out. `tools/smoke_test.py` prints both totals for a built model.
 
+mIoU and F1 are means over both classes, background included -- the
+convention of mmsegmentation's `IoUMetric`, which is what produced them. For
+the leading model the two classes read:
+
+| Class | IoU | Acc | Dice | F1 | Precision | Recall |
+|---|---:|---:|---:|---:|---:|---:|
+| background | 98.17 | 99.25 | 99.08 | 99.08 | 98.91 | 99.25 |
+| ghaf | 60.47 | 72.11 | 75.37 | 75.37 | 78.93 | 72.11 |
+
+Overall accuracy is 98.22.
+
+## Reproducing a score
+
+```bash
+python tools/test.py configs/ghaf/fastvit-ma36_mask2former.py \
+    <checkpoints>/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
+    --data-root <data>/ghaf
+```
+
+That command, on a clean clone with the released checkpoint, returns the
+79.32 / 87.22 in the table above.
+
 ## Training settings
 
 Shared by all six: 1024 x 1024 input, batch size 2, `PolyLR` with power 0.9,
