@@ -144,7 +144,7 @@ the message can be ignored.
 **Verify**:
 
 ```bash
-python -m pytest tests/ -q   # 243 tests
+python -m pytest tests/ -q   # 262 tests
 python tools/smoke_test.py   # builds all six models, checks parameter counts
 ```
 
@@ -257,6 +257,18 @@ weights, in mmsegmentation's working-directory layout — with every checkpoint
 hashed before and after the copy. See
 [`docs/RELEASE_BUNDLE.md`](docs/RELEASE_BUNDLE.md).
 
+**Cut a quick sample out of a large mosaic**
+
+```bash
+python tools/make_sample.py mosaic.tif --output sample.tif --size 8192
+```
+
+A survey mosaic can be billions of pixels; the clip keeps the source CRS and
+pixel grid, so it runs in a minute or two and proves the pipeline before the
+full mosaic is attempted. The window is centred unless `--origin COL ROW`
+names its top-left corner, and the share of valid imagery in it is reported so
+a window that landed on the transparent border is obvious.
+
 **Map a whole orthomosaic**
 
 ```bash
@@ -309,11 +321,12 @@ tools/
 ├── check_dataset.py       validate a tile tree before using it
 ├── train.py · test.py     thin wrappers over the mmengine runner
 ├── predict_split.py       per-tile predictions for a dataset split
+├── make_sample.py         cut a small georeferenced sample from a mosaic
 ├── smoke_test.py          build every model, check parameter counts
 ├── export_release.py      assemble the shareable model bundle
 ├── fetch_init_weights.py  collect the ImageNet weights, once, while online
 └── build_handover.py      assemble the whole handover folder
-tests/                     243 tests; mmengine and NumPy, plus torch, timm,
+tests/                     262 tests; mmengine and NumPy, plus torch, timm,
                            rasterio and geopandas for the end-to-end ones
 docs/                      getting started, model zoo, area-wide inference,
                            release bundle
@@ -322,7 +335,7 @@ docs/                      getting started, model zoo, area-wide inference,
 ## Testing
 
 ```bash
-python -m pytest tests/ -q            # 243 tests: no GPU, mmcv or dataset required
+python -m pytest tests/ -q            # 262 tests: no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
 python tools/smoke_test.py --checkpoints DIR   # also loads and runs the weights
 ```

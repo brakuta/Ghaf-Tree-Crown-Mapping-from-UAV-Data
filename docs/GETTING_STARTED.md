@@ -56,7 +56,8 @@ D:\ghaf-project\
 │   ├── validation\{images,masks}\           869 tiles
 │   └── testing\ghaf26\{images,masks}\       767 tiles
 └── samples\
-    └── sample_mosaic.tif                  a UAV orthomosaic to run inference on
+    ├── Kalba26_sample.tif                 a small clip: start here, minutes
+    └── Kalba26.tif                        the full UAV orthomosaic, hours
 ```
 
 Tiles are 1024 × 1024 PNG pairs: an image and a mask sharing a filename. In a
@@ -167,6 +168,12 @@ This is the main thing the models are for: give it a UAV orthomosaic, get back
 a canopy map. The mosaic can be far larger than memory — it is processed in
 overlapping windows and blended, so there are no visible seams.
 
+**Start with the small clip.** `Kalba26_sample.tif` is a piece cut out of the
+full mosaic; it runs in a minute or two and produces exactly the same kind of
+output, so it confirms the installation before you commit to a long run. Only
+once that works is the full `Kalba26.tif` worth starting — see *How long the
+full mosaic takes* below.
+
 ```
 python -m ghaf.inference.large_image D:\ghaf-project\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py D:\ghaf-project\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth D:\ghaf-project\samples\sample_mosaic.tif --out-mask D:\ghaf-project\output\crowns.tif --out-prob D:\ghaf-project\output\probability.tif --out-polygons D:\ghaf-project\output\crowns.gpkg
 ```
@@ -194,6 +201,28 @@ your other GIS layers without any manual placement.
 A run needs about **9 bytes of free disk per pixel** of the mosaic while it
 works, released when it finishes. It checks before starting and tells you if
 there is not enough, rather than failing part-way through.
+
+**How long the full mosaic takes**
+
+`Kalba26.tif` is 84 072 × 103 691 pixels — 8.7 billion of them. At 9 bytes per
+pixel that is about **79 GB of scratch space**, and roughly 33 500 windows to
+predict, which is a run of hours rather than minutes on one GPU. Point
+`--scratch-dir` at a drive with room to spare, leave it running, and check the
+small clip worked first.
+
+**Cutting your own sample**
+
+To try a different part of a mosaic — or to make a quick sample from a new
+survey — cut one out:
+
+```
+python tools\make_sample.py D:\ghaf-project\samples\Kalba26.tif --output D:\ghaf-project\samples\my_sample.tif --size 8192 --origin 30000 40000
+```
+
+`--size` is the clip in pixels (one number for a square). `--origin` is the
+top-left corner; leave it out and the clip is taken from the centre. The tool
+reports how much of the clip is actual imagery rather than the transparent
+border around the survey, so a badly placed window is obvious immediately.
 
 ---
 
