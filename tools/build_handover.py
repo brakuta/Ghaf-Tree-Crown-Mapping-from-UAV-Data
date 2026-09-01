@@ -177,7 +177,8 @@ python tools\\check_dataset.py ..\\data\\ghaf
 ```
 
 Those two confirm the models and the tiles arrived intact. Then, to map crowns
-in the sample orthomosaic:
+in a sample orthomosaic — start with the smallest file in `samples/`, which is
+a clip cut from the full mosaic and runs in minutes rather than hours:
 
 ```
 python -m ghaf.inference.large_image ..\\models\\fastvit-ma36_mask2former\\fastvit-ma36_mask2former.py ..\\models\\fastvit-ma36_mask2former\\best_mIoU_iter_3500.pth ..\\samples\\<mosaic>.tif --out-mask ..\\output\\crowns.tif --out-polygons ..\\output\\crowns.gpkg
@@ -191,7 +192,7 @@ python -m ghaf.inference.large_image ..\\models\\fastvit-ma36_mask2former\\fastv
 | `models/` | The six trained models. Each folder holds the weights, a self-contained config, and a metadata file with its digest and scores |
 | `init-weights/` | ImageNet weights the backbones start from. Needed only for training or fine-tuning, and only so that neither needs internet access: pass the folder as `--init-weights` |
 | `data/ghaf/` | The labelled tiles: 7 005 training, 869 validation, 767 test. Paired 1024 × 1024 PNGs, masks holding `0` for background and `1` for a crown |
-| `samples/` | Orthomosaics for trying inference end to end |
+| `samples/` | Orthomosaics for trying inference end to end. The small clip first, then the full survey mosaic |
 | `predictions/` | Per-tile model output, if it was included |
 
 `MANIFEST.json` lists every part with its size and the checks that were run.
