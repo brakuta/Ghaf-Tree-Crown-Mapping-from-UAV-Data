@@ -28,8 +28,9 @@ when the library is imported, whereas ``torch.hub`` reads them per call.
 from __future__ import annotations
 
 import os
+import ssl
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 #: Environment variables that redirect each backend's download cache.
 CACHE_VARIABLES = ('TORCH_HOME', 'HF_HOME', 'HUGGINGFACE_HUB_CACHE')
@@ -88,3 +89,31 @@ def stored_weights(directory) -> List[Path]:
         if path.is_file() and path.suffix.lower() in WEIGHT_SUFFIXES
     ]
     return sorted(found)
+
+
+def use_certifi() -> Optional[str]:
+    """Verify HTTPS against certifi's bundle rather than the system store.
+
+    Python on Windows builds its default context from the Windows certificate
+    store, and a store it cannot parse produces
+    ``ssl.SSLError: [ASN1: NOT_ENOUGH_DATA]`` on every download. Setting
+    ``SSL_CERT_FILE`` does not help: ``ssl.create_default_context`` reads the
+    system store as well, and fails there before the variable is consulted.
+
+    Passing a bundle explicitly skips the system store entirely, which is what
+    pip does -- hence pip working while ``torch.hub`` does not.
+
+    Returns:
+        The bundle now in use, or ``None`` if certifi is not installed.
+    """
+    try:
+        import certifi
+    except ImportError:      # pragma: no cover - environment guard
+        return None
+
+    bundle = certifi.where()
+    context = ssl.create_default_context(cafile=bundle)
+    ssl._create_default_https_context = lambda *args, **kwargs: context
+    os.environ.setdefault('SSL_CERT_FILE', bundle)
+    os.environ.setdefault('REQUESTS_CA_BUNDLE', bundle)
+    return bundle

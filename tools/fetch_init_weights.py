@@ -27,8 +27,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import ssl
 import sys
 from datetime import date
 from pathlib import Path
@@ -40,40 +38,25 @@ from ghaf.environment import require_stack  # noqa: E402
 from ghaf.release import RELEASED_MODELS, get, iter_models, sha256_of  # noqa: E402
 
 
-def trust_certifi() -> str:
-    """Use certifi's certificate bundle if Python's default is unusable.
-
-    Python on Windows reads the system certificate store, which can come back
-    malformed -- ``ssl.SSLError: [ASN1: NOT_ENOUGH_DATA]`` -- and then no
-    download works, though pip's do, because pip carries its own bundle. This
-    borrows that bundle for the same effect.
-
-    Returns:
-        A line describing what was done, for the log.
-    """
-    for name in ('SSL_CERT_FILE', 'REQUESTS_CA_BUNDLE'):
-        if os.environ.get(name):
-            return f'{name} already set to {os.environ[name]}'
-    try:
-        ssl.create_default_context()
-    except ssl.SSLError:
-        pass
-    else:
-        return 'the default certificates load; leaving them alone'
-
-    try:
-        import certifi
-    except ImportError:  # pragma: no cover - environment guard
-        return ('the default certificates do not load and certifi is absent; '
-                'install it with `pip install certifi` if downloads fail')
-    bundle = certifi.where()
-    os.environ['SSL_CERT_FILE'] = bundle
-    os.environ['REQUESTS_CA_BUNDLE'] = bundle
-    return f'the default certificates do not load; using certifi at {bundle}'
+def certificates(use_system: bool) -> str:
+    """Choose the certificate bundle, and say which one is in use."""
+    if use_system:
+        return 'verifying HTTPS against the system certificate store'
+    bundle = init_weights.use_certifi()
+    if bundle is None:
+        return ('certifi is not installed; falling back to the system '
+                'certificate store. `pip install certifi` if downloads fail')
+    return f'verifying HTTPS against certifi at {bundle}'
 
 
 def fetch(key: str) -> None:
-    """Build one model with its ImageNet initialisation, downloading it."""
+    """Build one model and initialise it, which downloads its weights.
+
+    Building is not enough. mmengine defers initialisation: a backbone's
+    ``init_cfg`` is acted on by ``init_weights()``, which the runner calls
+    after construction, so a model that is only built reports success without
+    fetching anything.
+    """
     from mmengine.config import Config
     from mmengine.registry import init_default_scope
     from mmseg.registry import MODELS
@@ -83,7 +66,8 @@ def fetch(key: str) -> None:
     init_default_scope('mmseg')
 
     cfg = Config.fromfile(str(get(key).config_path))
-    MODELS.build(cfg.model)
+    model = MODELS.build(cfg.model)
+    model.init_weights()
 
 
 def main(argv=None) -> int:
@@ -95,6 +79,9 @@ def main(argv=None) -> int:
     parser.add_argument('--only', nargs='*', metavar='KEY',
                         choices=sorted(RELEASED_MODELS),
                         help='limit to these models')
+    parser.add_argument('--system-certs', action='store_true',
+                        help="verify HTTPS against the system certificate "
+                             "store instead of certifi's bundle")
     args = parser.parse_args(argv)
 
     try:
@@ -103,7 +90,7 @@ def main(argv=None) -> int:
         print(exc)
         return 1
 
-    print(trust_certifi())
+    print(certificates(args.system_certs))
     environment = init_weights.use(args.output)
     for name, value in environment.items():
         print(f'{name}={value}')
