@@ -95,9 +95,20 @@ takes five inputs where the others take three or four.
 
 ## Checkpoints
 
-Weights are distributed with the project data rather than in git. Verify a
-download with `sha256sum <file>`, or `certutil -hashfile <file> SHA256` on
-Windows.
+The trained weights are not distributed in this repository. They are shared
+alongside the dataset, and are available from the corresponding author on
+reasonable request.
+
+Every released checkpoint's digest, size, parameter count and scores are
+recorded in `ghaf/release.py`, so a copy can be checked against what was
+published however it reached you:
+
+```bash
+python tools/smoke_test.py --checkpoints /path/to/checkpoints
+```
+
+For the file alone, `sha256sum <file>` on Linux or macOS, or
+`certutil -hashfile <file> SHA256` on Windows, against the digests above.
 
 | Model | File | SHA-256 | Bytes |
 |---|---|---|---:|

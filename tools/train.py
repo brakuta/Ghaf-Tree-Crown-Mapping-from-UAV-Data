@@ -1,7 +1,23 @@
 #!/usr/bin/env python
-"""Train a Ghaf segmentation model.
+"""Train or fine-tune a Ghaf segmentation model.
 
-    python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py
+Training from ImageNet weights, which is how the published models were made::
+
+    python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py \
+        --data-root /path/to/ghaf
+
+Fine-tuning from a released checkpoint on new labels -- usually far fewer
+iterations and a smaller learning rate::
+
+    python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py \
+        --data-root /path/to/new-site \
+        --load-from best_mIoU_iter_3500.pth \
+        --cfg-options train_cfg.max_iters=4000 optim_wrapper.optimizer.lr=1e-5
+
+``--load-from`` and ``--resume`` are different things: ``--load-from`` takes
+the weights and starts a fresh run, which is what fine-tuning means, while
+``--resume`` also restores the optimiser state and iteration count to continue
+an interrupted run.
 
 The configs declare ``custom_imports``, so mmengine registers this project's
 dataset and backbones itself; ``register_all`` below is belt-and-braces for
@@ -25,7 +41,11 @@ def parse_args(argv=None):
                    help='dataset root to be trained on, overriding the config')
     p.add_argument('--work-dir', help='directory for logs and checkpoints')
     p.add_argument('--resume', action='store_true',
-                   help='resume from the latest checkpoint in --work-dir')
+                   help='continue an interrupted run from the latest '
+                        'checkpoint in --work-dir, optimiser state included')
+    p.add_argument('--load-from', metavar='CHECKPOINT',
+                   help='start from these weights on a fresh schedule, for '
+                        'fine-tuning on new labels')
     p.add_argument('--amp', action='store_true',
                    help='enable mixed precision; a no-op for configs that '
                         'already set AmpOptimWrapper')
@@ -37,11 +57,12 @@ def parse_args(argv=None):
     return p.parse_args(argv)
 
 
-def main(argv=None) -> int:
-    args = parse_args(argv)
-    ghaf.register_all()
+def apply_args(cfg: Config, args) -> Config:
+    """Fold the command line into a parsed config.
 
-    cfg = Config.fromfile(args.config)
+    Separated from :func:`main` so the assembly can be checked without
+    building a runner or touching a GPU.
+    """
     cfg.launcher = args.launcher
     if args.data_root:
         set_data_root(cfg, args.data_root)
@@ -53,8 +74,18 @@ def main(argv=None) -> int:
     if args.amp and cfg.optim_wrapper.type == 'OptimWrapper':
         cfg.optim_wrapper.type = 'AmpOptimWrapper'
         cfg.optim_wrapper.setdefault('loss_scale', 'dynamic')
-    cfg.resume = args.resume
 
+    if args.load_from:
+        cfg.load_from = str(args.load_from)
+    cfg.resume = args.resume
+    return cfg
+
+
+def main(argv=None) -> int:
+    args = parse_args(argv)
+    ghaf.register_all()
+
+    cfg = apply_args(Config.fromfile(args.config), args)
     Runner.from_cfg(cfg).train()
     return 0
 

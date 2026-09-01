@@ -26,8 +26,31 @@ framework setup.
 **[Results](#results)** · **[Install](#installation)** · **[Data](#data)** ·
 **[Usage](#usage)** · **[Layout](#repository-layout)** ·
 **[Testing](#testing)** ·
-[Model zoo](docs/MODEL_ZOO.md) · [Area-wide inference](docs/AREA_WIDE_INFERENCE.md) ·
+[Getting started](docs/GETTING_STARTED.md) · [Model zoo](docs/MODEL_ZOO.md) ·
+[Area-wide inference](docs/AREA_WIDE_INFERENCE.md) ·
 [Release bundle](docs/RELEASE_BUNDLE.md)
+
+New to the project? [**docs/GETTING_STARTED.md**](docs/GETTING_STARTED.md)
+walks through installing, mapping crowns in an orthomosaic, scoring a model,
+training and fine-tuning, one command at a time.
+
+## Availability
+
+This repository holds the code, the configurations and the documentation. The
+trained weights, the UAV imagery and the labelled tiles are **not distributed
+here**; they are available from the corresponding author on reasonable request.
+
+What is here is enough to check them. `ghaf/release.py` records every released
+checkpoint's SHA-256, byte size, parameter count and test scores, so a copy
+received by any route can be verified against what was published:
+
+```bash
+python tools/smoke_test.py --checkpoints /path/to/checkpoints
+```
+
+That confirms each file is the released one, loads it into the model built
+from the config in this repository, reports any tensor the two do not share,
+and runs a prediction through it.
 
 ---
 
@@ -121,7 +144,7 @@ the message can be ignored.
 **Verify**:
 
 ```bash
-python -m pytest tests/ -q   # 203 tests
+python -m pytest tests/ -q   # 213 tests
 python tools/smoke_test.py   # builds all six models, checks parameter counts
 ```
 
@@ -286,15 +309,16 @@ tools/
 ├── predict_split.py       per-tile predictions for a dataset split
 ├── smoke_test.py          build every model, check parameter counts
 └── export_release.py      assemble the shareable bundle
-tests/                     203 tests; mmengine and NumPy, plus torch, timm,
+tests/                     213 tests; mmengine and NumPy, plus torch, timm,
                            rasterio and geopandas for the end-to-end ones
-docs/                      model zoo, area-wide inference, release bundle
+docs/                      getting started, model zoo, area-wide inference,
+                           release bundle
 ```
 
 ## Testing
 
 ```bash
-python -m pytest tests/ -q            # 203 tests: no GPU, mmcv or dataset required
+python -m pytest tests/ -q            # 213 tests: no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
 python tools/smoke_test.py --checkpoints DIR   # also loads and runs the weights
 ```
