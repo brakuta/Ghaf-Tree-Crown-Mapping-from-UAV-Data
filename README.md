@@ -23,9 +23,12 @@ framework setup.
 [![python](https://img.shields.io/badge/python-3.9%20%7C%203.11-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-**[Results](#results)** · **[Install](#installation)** · **[Data](#data)** ·
-**[Usage](#usage)** · **[Layout](#repository-layout)** ·
-**[Testing](#testing)** ·
+**[Quick start](#quick-start)** · **[Results](#results)** ·
+**[Install](#installation)** · **[Data](#data)** · **[Training](#training)** ·
+**[Evaluation](#evaluation)** · **[Inference](#inference)** ·
+**[Models](#models-and-availability)** · **[Layout](#repository-layout)** ·
+**[Testing](#testing)**
+
 [Getting started](docs/GETTING_STARTED.md) · [Model zoo](docs/MODEL_ZOO.md) ·
 [Area-wide inference](docs/AREA_WIDE_INFERENCE.md) ·
 [Release bundle](docs/RELEASE_BUNDLE.md)
@@ -34,23 +37,42 @@ New to the project? [**docs/GETTING_STARTED.md**](docs/GETTING_STARTED.md)
 walks through installing, mapping crowns in an orthomosaic, scoring a model,
 training and fine-tuning, one command at a time.
 
-## Availability
+---
 
-This repository holds the code, the configurations and the documentation. The
-trained weights, the UAV imagery and the labelled tiles are **not distributed
-here**; they are available from the corresponding author on reasonable request.
+## Quick start
 
-What is here is enough to check them. `ghaf/release.py` records every released
-checkpoint's SHA-256, byte size, parameter count and test scores, so a copy
-received by any route can be verified against what was published:
+The trained weights, the UAV imagery and the labelled tiles are **not
+distributed here** — see [Models and availability](#models-and-availability)
+for how to obtain and verify them. With a checkpoint in hand:
+
+**1. Install** — `conda env create -f environment.yml`, then the pip steps
+under [Installation](#installation). Ten minutes, once.
+
+**2. Check that the code and the weights still describe the same network:**
 
 ```bash
-python tools/smoke_test.py --checkpoints /path/to/checkpoints
+python tools/smoke_test.py
 ```
 
-That confirms each file is the released one, loads it into the model built
-from the config in this repository, reports any tensor the two do not share,
-and runs a prediction through it.
+**3. Map an orthomosaic:**
+
+```bash
+python -m ghaf.inference.large_image \
+    configs/ghaf/fastvit-ma36_mask2former.py \
+    checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
+    mosaic.tif --out-mask crowns.tif --out-polygons crowns.gpkg
+```
+
+**4. Or every image in a folder:**
+
+```bash
+python tools/predict_folder.py \
+    configs/ghaf/fastvit-ma36_mask2former.py \
+    checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
+    images/ --out-dir predictions/plots
+```
+
+To train or score a model instead, start at [Data](#data).
 
 ---
 
@@ -78,6 +100,8 @@ while using 24 % fewer parameters, so the gain is not simply capacity.
 
 Per-model details, checkpoint hashes and training settings are in
 [`docs/MODEL_ZOO.md`](docs/MODEL_ZOO.md).
+
+---
 
 ## Installation
 
@@ -163,19 +187,10 @@ Run `smoke_test.py` before training or evaluating: it constructs every model
 from its config and compares its tensor total -- summed over `state_dict`, as
 the published counts are -- against the published one, so a mismatch between
 the code and the weights surfaces immediately. It also reports each model's
-trainable parameter count.
+trainable parameter count. Pointed at a folder of checkpoints it goes further;
+see [Models and availability](#models-and-availability).
 
-Point it at a folder of checkpoints and it goes further, which is the check to
-run before passing the weights on:
-
-```bash
-python tools/smoke_test.py --checkpoints /path/to/checkpoints
-```
-
-For each model it confirms the file is the released one (size and SHA-256),
-loads the weights into the model built from the config and reports any tensor
-the two do not share, then runs one real prediction through mmseg's inference
-path. A model that reaches the last column has been exercised end to end.
+---
 
 ## Data
 
@@ -200,9 +215,7 @@ a `--cfg-options` entry because the config's `data_root` is a module-level
 variable, copied into each dataloader as the file is parsed — setting it
 afterwards would change a key nothing reads.
 
-## Usage
-
-**Check the data first**
+**Check a tile tree before using it:**
 
 ```bash
 python tools/check_dataset.py data/ghaf
@@ -211,9 +224,12 @@ python tools/check_dataset.py data/ghaf
 Verifies that every image has a mask, that pairs agree on size, and that masks
 contain only the two class indices. A fault here shows up during training as a
 confusing loss curve rather than an error, so it is worth the minute. Add
-`--full` to open every tile instead of a sample.
+`--full` to open every tile instead of a sample, or `--sample 0` to check the
+pairing alone — quick even over a network share.
 
-**Train**
+---
+
+## Training
 
 ```bash
 python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py
@@ -223,101 +239,29 @@ Checkpoints and logs are written to `work_dirs/<config-name>/`. Validation runs
 every 3 500 iterations and the best-scoring checkpoint is kept as
 `best_mIoU_iter_*.pth`.
 
-**Evaluate**
+The six configurations in `configs/ghaf/` differ only in backbone, neck and
+decode head; the dataset, augmentation pipeline, schedule and runtime all come
+from `configs/_base_/ghaf.py`, so a comparison between them is a comparison of
+architectures and nothing else. Fine-tuning an existing checkpoint on new
+labels is covered in [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
+
+---
+
+## Evaluation
 
 ```bash
 python tools/test.py configs/ghaf/fastvit-ma36_mask2former.py \
     checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth
 ```
 
-Reports mIoU, mDice and mFscore over the held-out test split.
+Reports mIoU, mDice and mFscore over the held-out test split — the numbers
+under [Results](#results), reproduced from the published weights.
 
-**Predict a whole split**
+---
 
-```bash
-python tools/predict_split.py \
-    configs/ghaf/fastvit-ma36_mask2former.py \
-    checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
-    --data-root data/ghaf --split testing --out-dir predictions/testing
-```
+## Inference
 
-Evaluation reduces a split to a few numbers; this keeps the maps those numbers
-came from. They are what per-tile error maps, figures and any statistic the
-metric does not report are made from — and the quickest way to see *where* a
-model is wrong rather than by how much. One predicted mask per tile, each
-carrying that tile's CRS and geotransform and encoded the same way as the
-ground truth (`0` background, `1` ghaf), so prediction and label can be
-differenced directly. `--save-probability` adds the float32 P(ghaf) map.
-
-**Map every image in a folder to crowns**
-
-```bash
-python tools/predict_folder.py \
-    configs/ghaf/fastvit-ma36_mask2former.py \
-    checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
-    images/ --out-dir predictions/plots
-```
-
-The two steps above assume a shape the data often does not have: a dataset
-split of same-sized tiles, or one orthomosaic. This takes a folder as it comes
--- a season's clips, a set of survey plots, the frames from one flight -- and
-maps every image in it in a single run. Each image goes through the same
-windowed inference as a full mosaic, so they need not share a size and none of
-them has to fit in memory.
-
-Crowns are the output; the rasters are opt-in. A crown layer is a few hundred
-kilobytes where the mask it came from is hundreds of megabytes, and counting,
-measuring or drawing crowns over the imagery is done from the polygons. The
-mask still exists for a moment -- polygons are traced from it -- but unless
-`--save-mask` asks for it, it is written to the scratch directory and deleted
-when the image is done. Outputs mirror the input's folder structure, so two
-images with the same name in different subfolders cannot overwrite each other:
-
-```
-predictions/plots/
-├── polygons/<subfolder>/<image>.gpkg      crowns, with area_m2 per polygon
-├── masks/<subfolder>/<image>.tif          with --save-mask
-├── probability/<subfolder>/<image>.tif    with --save-probability
-└── summary.json                           per image, and the totals
-```
-
-A failure on one image is reported and the run carries on to the next, since a
-batch is long and one unreadable file should not cost the rest;
-`summary.json` names each failure and the exit status is non-zero if there was
-one. `--skip-existing` resumes an interrupted run, `--recursive` descends into
-subfolders, and `--pattern "*_rgb.tif"` selects by name.
-
-**Package the models for sharing**
-
-```bash
-python tools/export_release.py --checkpoints /path/to/checkpoints \
-                               --output      /path/to/ghaf-release
-```
-
-The trained weights are not distributed in this repository
-([Availability](#availability)), and this is the tool that assembles the folder
-a recipient receives: one self-contained folder per model — a resolved config
-beside its weights, in mmsegmentation's working-directory layout. It is
-published so that step is not a private one. Each checkpoint is verified
-against the SHA-256 recorded in `ghaf/release.py` before the copy and again
-after, which means the command accepts only the six released checkpoints and a
-bundle cannot carry a silently corrupted file. Anyone who has been sent the
-weights can re-run it and obtain the same folder. See
-[`docs/RELEASE_BUNDLE.md`](docs/RELEASE_BUNDLE.md).
-
-**Cut a quick sample out of a large mosaic**
-
-```bash
-python tools/make_sample.py mosaic.tif --output sample.tif --size 8192
-```
-
-A survey mosaic can be billions of pixels; the clip keeps the source CRS and
-pixel grid, so it runs in a minute or two and proves the pipeline before the
-full mosaic is attempted. The window is centred unless `--origin COL ROW`
-names its top-left corner, and the share of valid imagery in it is reported so
-a window that landed on the transparent border is obvious.
-
-**Map a whole orthomosaic**
+### One orthomosaic
 
 ```bash
 python -m ghaf.inference.large_image \
@@ -350,6 +294,114 @@ outputs in the source CRS. Peak memory does not grow with the mosaic — windows
 are read one at a time, the accumulators are memory-mapped, and results stream
 back to disk a stripe at a time. See
 [`docs/AREA_WIDE_INFERENCE.md`](docs/AREA_WIDE_INFERENCE.md).
+
+### A folder of images
+
+```bash
+python tools/predict_folder.py \
+    configs/ghaf/fastvit-ma36_mask2former.py \
+    checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
+    images/ --out-dir predictions/plots
+```
+
+The step above assumes one mosaic, and the step below a dataset split. This
+takes a folder as it comes — a season's clips, a set of survey plots, the
+frames from one flight — and maps every image in it in a single run. Each image
+goes through the same windowed inference as a full mosaic, so they need not
+share a size and none of them has to fit in memory.
+
+Crowns are the output; the rasters are opt-in. A crown layer is a few hundred
+kilobytes where the mask it came from is hundreds of megabytes, and counting,
+measuring or drawing crowns over the imagery is done from the polygons. The
+mask still exists for a moment — polygons are traced from it — but unless
+`--save-mask` asks for it, it is written to the scratch directory and deleted
+when the image is done. Outputs mirror the input's folder structure, so two
+images with the same name in different subfolders cannot overwrite each other:
+
+```
+predictions/plots/
+├── polygons/<subfolder>/<image>.gpkg      crowns, with area_m2 per polygon
+├── masks/<subfolder>/<image>.tif          with --save-mask
+├── probability/<subfolder>/<image>.tif    with --save-probability
+└── summary.json                           per image, and the totals
+```
+
+A failure on one image is reported and the run carries on to the next, since a
+batch is long and one unreadable file should not cost the rest; `summary.json`
+names each failure and the exit status is non-zero if there was one.
+`--skip-existing` resumes an interrupted run, `--recursive` descends into
+subfolders, `--pattern "*_rgb.tif"` selects by name, and `--min-area` drops
+crowns below a size in square metres.
+
+### A dataset split
+
+```bash
+python tools/predict_split.py \
+    configs/ghaf/fastvit-ma36_mask2former.py \
+    checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
+    --data-root data/ghaf --split testing --out-dir predictions/testing
+```
+
+Evaluation reduces a split to a few numbers; this keeps the maps those numbers
+came from. They are what per-tile error maps, figures and any statistic the
+metric does not report are made from — and the quickest way to see *where* a
+model is wrong rather than by how much. One predicted mask per tile, each
+carrying that tile's CRS and geotransform and encoded the same way as the
+ground truth (`0` background, `1` ghaf), so prediction and label can be
+differenced directly. `--save-probability` adds the float32 P(ghaf) map.
+
+### Cutting a sample to try first
+
+```bash
+python tools/make_sample.py mosaic.tif --output sample.tif --size 8192
+```
+
+A survey mosaic can be billions of pixels; the clip keeps the source CRS and
+pixel grid, so it runs in a minute or two and proves the pipeline before the
+full mosaic is attempted. The window is centred unless `--origin COL ROW`
+names its top-left corner, and the share of valid imagery in it is reported so
+a window that landed on the transparent border is obvious.
+
+---
+
+## Models and availability
+
+This repository holds the code, the configurations and the documentation. The
+trained weights, the UAV imagery and the labelled tiles are **not distributed
+here**; they are available from the corresponding author on reasonable request.
+
+What is here is enough to check them. `ghaf/release.py` records every released
+checkpoint's SHA-256, byte size, parameter count and test scores, so a copy
+received by any route can be verified against what was published:
+
+```bash
+python tools/smoke_test.py --checkpoints /path/to/checkpoints
+```
+
+For each model this confirms the file is the released one (size and SHA-256),
+loads the weights into the model built from the config in this repository and
+reports any tensor the two do not share, then runs one real prediction through
+mmseg's inference path. A model that reaches the last column has been exercised
+end to end. It is the check to run on weights that have just arrived, and again
+before passing them on.
+
+**Packaging the weights for someone else:**
+
+```bash
+python tools/export_release.py --checkpoints /path/to/checkpoints \
+                               --output      /path/to/ghaf-release
+```
+
+This is the tool that assembles the folder a recipient receives: one
+self-contained folder per model — a resolved config beside its weights, in
+mmsegmentation's working-directory layout. It is published so that step is not
+a private one. Each checkpoint is verified against the SHA-256 recorded in
+`ghaf/release.py` before the copy and again after, which means the command
+accepts only the six released checkpoints and a bundle cannot carry a silently
+corrupted file. Anyone who has been sent the weights can re-run it and obtain
+the same folder. See [`docs/RELEASE_BUNDLE.md`](docs/RELEASE_BUNDLE.md).
+
+---
 
 ## Repository layout
 
@@ -388,6 +440,8 @@ tests/                     the suite; mmengine and NumPy, plus torch, timm,
 docs/                      getting started, model zoo, area-wide inference,
                            release bundle
 ```
+
+---
 
 ## Testing
 
@@ -430,11 +484,16 @@ nodata is never reported as canopy, crown polygons carry the source CRS, and
 each failure mode — 16-bit input, a missing band, a single-class model, a tile
 size the model disagrees with — is rejected with a message that says what to
 do. Scratch directories are asserted to be cleaned up even when a run fails.
+Batch prediction over a folder is held to the same standard: the crowns land
+where the input tree says they should, a failing image does not stop the run,
+and the mask a crown layer was traced from does not outlive the image.
 
 `ghaf/release.py` is the single source of truth for what was published — the
 digests, parameter counts and scores that `tools/smoke_test.py` checks built
 models against and `tools/export_release.py` verifies copies against. A model
 therefore cannot be documented one way and shipped another.
+
+---
 
 ## Citation
 
