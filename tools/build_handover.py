@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from dataclasses import dataclass, field
@@ -111,7 +112,17 @@ def copy_tree(source: Path, destination: Path, link: bool, dry_run: bool) -> Non
 
 
 def _hardlink(source, destination) -> None:
-    Path(destination).hardlink_to(source)
+    """Link rather than copy, replacing whatever is already there.
+
+    ``os.link`` rather than ``Path.hardlink_to``: the latter arrived in
+    Python 3.10 and this project supports 3.9. It also refuses an existing
+    destination, which would make a second run of a part-built bundle fail,
+    so the old name is removed first.
+    """
+    destination = Path(destination)
+    if destination.exists():
+        destination.unlink()
+    os.link(source, destination)
 
 
 def add_part(name: str, source: Optional[Path], destination: Path,

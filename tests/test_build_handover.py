@@ -228,3 +228,42 @@ def test_a_dry_run_measures_without_writing(tmp_path):
 
     assert part.files == 6
     assert not out.exists()
+
+
+# --------------------------------------------------------------------------
+# hard-linking
+# --------------------------------------------------------------------------
+
+def test_linking_shares_the_file_rather_than_copying_it(tmp_path):
+    source = tree(tmp_path / 'src', 'a.png')
+    out = tmp_path / 'bundle'
+
+    B.copy_tree(source, out, link=True, dry_run=False)
+
+    assert (out / 'a.png').stat().st_ino == (source / 'a.png').stat().st_ino
+
+
+def test_a_link_run_can_be_repeated(tmp_path):
+    """A part-built bundle is rebuilt, not refused: os.link needs a free name."""
+    source = tree(tmp_path / 'src', 'a.png')
+    out = tmp_path / 'bundle'
+
+    B.copy_tree(source, out, link=True, dry_run=False)
+    B.copy_tree(source, out, link=True, dry_run=False)
+
+    assert (out / 'a.png').stat().st_ino == (source / 'a.png').stat().st_ino
+
+
+def test_linking_falls_back_to_copying(tmp_path, monkeypatch):
+    """Across volumes there are no hard links, and copying must still work."""
+    source = tree(tmp_path / 'src', 'a.png')
+    out = tmp_path / 'bundle'
+
+    def refuse(*args, **kwargs):
+        raise OSError('Invalid cross-device link')
+
+    monkeypatch.setattr(B.os, 'link', refuse)
+    B.copy_tree(source, out, link=True, dry_run=False)
+
+    assert (out / 'a.png').read_bytes() == (source / 'a.png').read_bytes()
+    assert (out / 'a.png').stat().st_ino != (source / 'a.png').stat().st_ino
