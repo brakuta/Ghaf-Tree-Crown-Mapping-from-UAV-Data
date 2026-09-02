@@ -22,11 +22,14 @@ class GhafDataset(BaseSegDataset):
 
     Masks are single-band, with pixel values equal to the class index.
 
-    The tiles are PNG: they are cut from the orthomosaic at the model's input
-    size, so each one's position is carried by its name rather than by a
-    geotransform, and the georeferencing is reattached when predictions are
-    written. ``img_suffix`` and ``seg_map_suffix`` take a tile tree in another
-    format -- ``.tif`` for one cut with georeferencing intact.
+    The tiles are PNG, cut from the orthomosaic at the model's input size.
+    The test tiles have ``.pgw`` world files beside them, so they open with a
+    real CRS and transform; the training and validation tiles do not, and
+    carry their position in their name alone. Neither matters to training or
+    scoring, which need only that an image and its mask agree, but it decides
+    whether a prediction written beside a tile can be placed on a map.
+    ``img_suffix`` and ``seg_map_suffix`` take a tile tree in another format
+    -- ``.tif`` for one cut with georeferencing intact.
 
     Note:
         ``reduce_zero_label`` must stay ``False``. Background is a supervised

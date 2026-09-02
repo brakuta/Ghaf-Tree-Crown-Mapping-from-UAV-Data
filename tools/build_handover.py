@@ -251,7 +251,7 @@ python -m ghaf.inference.large_image ..\\models\\fastvit-ma36_mask2former\\fastv
 | `code/` | The repository, also public on GitHub. Start with its README |
 | `models/` | The six trained models. Each folder holds the weights, a self-contained config, and a metadata file with its digest and scores |
 | `init-weights/` | ImageNet weights the backbones start from. Needed only for training or fine-tuning, and only so that neither needs internet access: pass the folder as `--init-weights` |
-| `data/ghaf/` | The labelled tiles: 7 005 training, 869 validation, 767 test. Paired 1024 × 1024 PNGs, masks holding `0` for background and `1` for a crown. These splits alone -- other material from the working directory they were prepared in is not here |
+| `data/ghaf/` | The labelled tiles: 7 005 training, 869 validation, 767 test. Paired 1024 × 1024 PNGs, masks holding `0` for background and `1` for a crown. These splits alone -- other material from the working directory they were prepared in is not here. The test tiles carry world files, so their predictions open in GIS already placed |
 | `samples/` | Orthomosaics for trying inference end to end. The small clip first, then the full survey mosaic |
 | `predictions/` | Per-tile model output, if it was included |
 

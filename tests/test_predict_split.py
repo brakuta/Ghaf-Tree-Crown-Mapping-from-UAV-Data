@@ -15,7 +15,13 @@ rasterio = pytest.importorskip('rasterio')
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from tests.test_large_image import _stub_inference, write_raster  # noqa: E402
+from rasterio.transform import from_origin  # noqa: E402
+
+from tests.test_large_image import (  # noqa: E402
+    PIXEL_SIZE,
+    _stub_inference,
+    write_raster,
+)
 from tools import predict_split as P  # noqa: E402
 
 CRS = 'EPSG:32640'
@@ -186,11 +192,14 @@ def test_summary_is_json_serialisable(tmp_path, patched):
 # PNG tiles, which is what the published dataset is cut as
 # --------------------------------------------------------------------------
 
-def write_png_tile(path: Path, size: int = 64) -> Path:
-    """Write an 8-bit RGB PNG, with no CRS and no geotransform.
+def write_png_tile(path: Path, size: int = 64, georeferenced: bool = False) -> Path:
+    """Write an 8-bit RGB PNG tile, the way the published tiles were made.
 
     GDAL's PNG driver has no ``Create``, only ``CreateCopy``, so the tile is
-    written as a GeoTIFF and converted.
+    written as a GeoTIFF and converted. When the GeoTIFF carries a CRS and a
+    transform, PNG cannot hold them and GDAL writes them into a
+    ``<tile>.png.aux.xml`` beside it -- which is exactly how the test split's
+    tiles carry their position, alongside a ``.pgw`` world file.
     """
     import rasterio.shutil
 
@@ -198,8 +207,12 @@ def write_png_tile(path: Path, size: int = 64) -> Path:
     staging = path.with_suffix('.staging.tif')
     values = np.random.default_rng(0).integers(0, 256, (3, size, size),
                                                dtype=np.uint8)
+    placed = {}
+    if georeferenced:
+        placed = dict(crs=CRS, transform=from_origin(432652.06, 2770523.77,
+                                                     PIXEL_SIZE, PIXEL_SIZE))
     with rasterio.open(staging, 'w', driver='GTiff', width=size, height=size,
-                       count=3, dtype='uint8') as dst:
+                       count=3, dtype='uint8', **placed) as dst:
         dst.write(values)
     rasterio.shutil.copy(staging, path, driver='PNG')
     staging.unlink()
@@ -216,7 +229,7 @@ def test_png_tiles_are_listed(tmp_path):
 
 
 def test_a_png_tile_yields_a_readable_mask(tmp_path, patched):
-    """The published tiles carry no georeferencing; the run must still work."""
+    """Training and validation tiles have no sidecars; the run must still work."""
     patched(0.9)
     directory = tmp_path / P.SPLIT_IMAGES['testing']
     write_png_tile(directory / 'tile_0.png')
@@ -229,8 +242,27 @@ def test_a_png_tile_yields_a_readable_mask(tmp_path, patched):
     with rasterio.open(written) as src:
         assert src.driver == 'GTiff'
         assert src.count == 1 and src.dtypes == ('uint8',)
-        assert src.crs is None, 'a PNG tile has no CRS to carry over'
+        assert src.crs is None, 'a bare PNG has no CRS to carry over'
         assert (src.read(1) == 1).all()
+
+
+def test_a_georeferenced_tile_places_its_prediction(tmp_path, patched):
+    """The test split's tiles know where they are, so its masks must too.
+
+    Without this a prediction looks right and lands in the wrong place -- or
+    nowhere -- which no pixel comparison would reveal.
+    """
+    patched(0.9)
+    directory = tmp_path / P.SPLIT_IMAGES['testing']
+    write_png_tile(directory / 'tile_0.png', georeferenced=True)
+
+    P.predict_split(None, P.list_tiles(tmp_path, 'testing'), tmp_path / 'out',
+                    progress=False)
+
+    with rasterio.open(tmp_path / 'out' / 'masks' / 'tile_0.tif') as src:
+        assert src.crs.to_epsg() == 32640
+        assert src.transform.a == pytest.approx(PIXEL_SIZE)
+        assert src.transform.c == pytest.approx(432652.06)
 
 
 def test_a_georeferenced_tile_still_carries_its_crs(tmp_path, patched):
