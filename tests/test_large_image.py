@@ -458,3 +458,101 @@ def test_a_scratch_directory_already_gone_is_not_an_error(tmp_path):
     L.shutil.rmtree(space.path)
     space.close()
     assert not space.path.exists()
+
+
+# --------------------------------------------------------------------------
+# crown polygons: attributes and the minimum-area filter
+# --------------------------------------------------------------------------
+
+def _mask_with_a_speck(path, crs=CRS):
+    """A mask holding one 40 x 40 crown and one single-pixel speck.
+
+    At 5 cm pixels the crown is 4 m2 and the speck 0.0025 m2, so any
+    threshold between them separates the two cleanly.
+    """
+    data = np.zeros((1, 128, 128), 'uint8')
+    data[0, 10:50, 10:50] = 1
+    data[0, 100, 100] = 1
+    transform = from_origin(400000, 2700000, PIXEL_SIZE, PIXEL_SIZE)
+    with rasterio.open(path, 'w', driver='GTiff', width=128, height=128,
+                       count=1, dtype='uint8', crs=crs,
+                       transform=transform) as dst:
+        dst.write(data)
+    return path, transform
+
+
+def test_polygons_carry_their_area_in_square_metres(tmp_path):
+    gpd = pytest.importorskip('geopandas')
+    mask, transform = _mask_with_a_speck(tmp_path / 'k.tif')
+    gpkg = tmp_path / 'crowns.gpkg'
+
+    L._write_polygons(gpkg, mask, None, transform, rasterio.crs.CRS.from_string(CRS), 0.5)
+
+    frame = gpd.read_file(gpkg)
+    assert len(frame) == 2
+    assert sorted(round(a, 4) for a in frame['area_m2']) == [0.0025, 4.0]
+
+
+def test_min_area_drops_the_specks(tmp_path):
+    gpd = pytest.importorskip('geopandas')
+    mask, transform = _mask_with_a_speck(tmp_path / 'k.tif')
+    gpkg = tmp_path / 'crowns.gpkg'
+
+    L._write_polygons(gpkg, mask, None, transform,
+                      rasterio.crs.CRS.from_string(CRS), 0.5, min_area=1.0)
+
+    frame = gpd.read_file(gpkg)
+    assert len(frame) == 1
+    assert round(frame['area_m2'].iloc[0], 4) == 4.0
+
+
+def test_no_minimum_keeps_the_layer_faithful_to_the_mask(tmp_path):
+    gpd = pytest.importorskip('geopandas')
+    mask, transform = _mask_with_a_speck(tmp_path / 'k.tif')
+    gpkg = tmp_path / 'crowns.gpkg'
+
+    L._write_polygons(gpkg, mask, None, transform,
+                      rasterio.crs.CRS.from_string(CRS), 0.5, min_area=0.0)
+
+    assert len(gpd.read_file(gpkg)) == 2
+
+
+def test_a_geographic_crs_is_not_filtered_by_metres(tmp_path, caplog):
+    gpd = pytest.importorskip('geopandas')
+    mask, transform = _mask_with_a_speck(tmp_path / 'k.tif', crs='EPSG:4326')
+    gpkg = tmp_path / 'crowns.gpkg'
+
+    with caplog.at_level('WARNING', logger='ghaf.inference.large_image'):
+        L._write_polygons(gpkg, mask, None, transform,
+                          rasterio.crs.CRS.from_string('EPSG:4326'), 0.5,
+                          min_area=1.0)
+
+    assert 'projected CRS in metres' in caplog.text
+    frame = gpd.read_file(gpkg)
+    assert len(frame) == 2, 'degrees were compared against square metres'
+    assert 'area_crs_units' in frame.columns
+
+
+@pytest.mark.parametrize('crs, metric', [
+    ('EPSG:32640', True),      # UTM 40N, metres
+    ('EPSG:4326', False),      # geographic, degrees
+])
+def test_units_are_recognised(crs, metric):
+    assert L._in_square_metres(rasterio.crs.CRS.from_string(crs)) is metric
+
+
+def test_a_missing_crs_is_not_metric():
+    assert L._in_square_metres(None) is False
+
+
+def test_min_area_is_off_by_default_on_the_command_line():
+    args = L.parse_args(['c.py', 'w.pth', 'i.tif', '--out-mask', 'm.tif'])
+
+    assert args.min_area == 0.0
+
+
+def test_min_area_is_read_from_the_command_line():
+    args = L.parse_args(['c.py', 'w.pth', 'i.tif', '--out-mask', 'm.tif',
+                         '--min-area', '1.5'])
+
+    assert args.min_area == 1.5

@@ -184,7 +184,7 @@ That is one long command on one line. It writes three files:
 |---|---|---|
 | `crowns.tif` | Where the trees are: `1` for crown, `0` for background | Drag into QGIS or ArcGIS; it lands in the right place on the map |
 | `probability.tif` | How confident the model is, from 0 to 1 | Useful for choosing a different cut-off than the default 0.5 |
-| `crowns.gpkg` | The crowns as polygons you can count, measure and attribute | Open in QGIS; each polygon is one delineated crown |
+| `crowns.gpkg` | The crowns as polygons you can count, measure and attribute | Open in QGIS; each polygon is one delineated crown, with its area in m² in the `area_m2` column |
 
 All three carry the coordinate system of the input mosaic, so they line up with
 your other GIS layers without any manual placement.
@@ -195,6 +195,7 @@ your other GIS layers without any manual placement.
 |---|---|
 | `--threshold 0.6` | Stricter: fewer, more confident crowns. `0.4` is more inclusive |
 | `--batch-size 4` | Faster on a GPU with spare memory. Lower it if you run out |
+| `--min-area 1` | Drop crown polygons under 1 m². Removes the stray single-pixel specks a threshold always leaves, which otherwise inflate a crown count |
 | `--device cpu` | Run without a GPU |
 | `--scratch-dir E:\scratch` | Put the temporary working files on a bigger drive |
 

@@ -26,6 +26,8 @@ import argparse
 import json
 import logging
 import sys
+import warnings
+from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
 from typing import List, Sequence
@@ -63,10 +65,26 @@ def list_tiles(root: Path, split: str) -> List[Path]:
     return tiles
 
 
+@contextmanager
+def _quiet_ungeoreferenced():
+    """Suppress rasterio's warning that a tile carries no geotransform.
+
+    The published tiles are PNG and have none, by design -- it is the mosaic
+    they were cut from that is georeferenced. Left alone the warning fires
+    twice per tile, thousands of times in a split, and says nothing anyone
+    running this can act on.
+    """
+    _import('rasterio', 'rasterio')
+    from rasterio.errors import NotGeoreferencedWarning
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', NotGeoreferencedWarning)
+        yield
+
+
 def _read_tile(path: Path, bands: Sequence[int]):
     """Read one tile as BGR uint8, with the profile needed to write beside it."""
     rasterio = _import('rasterio', 'rasterio')
-    with rasterio.open(path) as src:
+    with _quiet_ungeoreferenced(), rasterio.open(path) as src:
         if max(bands) > src.count:
             raise ValueError(
                 f'{path.name}: raster has {src.count} band(s), '
@@ -103,7 +121,7 @@ def _write(path: Path, array: np.ndarray, profile: dict, dtype: str,
     }
     if nodata is not None:
         out['nodata'] = nodata
-    with rasterio.open(path, 'w', **out) as dst:
+    with _quiet_ungeoreferenced(), rasterio.open(path, 'w', **out) as dst:
         dst.write(array.astype(dtype), 1)
 
 

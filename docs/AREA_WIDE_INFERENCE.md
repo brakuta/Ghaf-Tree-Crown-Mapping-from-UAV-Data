@@ -106,12 +106,24 @@ All three carry the source CRS and geotransform:
 |---|---|
 | `--out-prob` | `float32` GeoTIFF of P(ghaf) ∈ [0, 1] |
 | `--out-mask` | `uint8` GeoTIFF, 1 where P ≥ `--threshold` |
-| `--out-polygons` | crown polygons, any OGR-writable format |
+| `--out-polygons` | crown polygons, any OGR-writable format, each carrying its area |
 
 Rasters are written tiled and Deflate-compressed, with `BIGTIFF=IF_SAFER` so
 large survey areas do not overflow the classic TIFF limit. Pixels that are
 nodata in the source are forced to zero, so unsurveyed ground is never reported
 as canopy.
+
+Each polygon carries an `area_m2` attribute — its area in square metres, taken
+from the geometry, so crowns can be counted and measured in GIS with no further
+work. When the source CRS is not projected in metres the column is named
+`area_crs_units` instead, because that is what the number then is.
+
+Vectorising a threshold leaves specks: isolated pixels that scrape past the
+cut-off and become polygons of a few square centimetres. They add nothing to
+the mapped area but do inflate a crown count. `--min-area` drops polygons below
+a given size in square metres; on 2.7 cm imagery `--min-area 1` removes the
+specks and keeps every real crown. It is off by default, so the polygon layer
+corresponds exactly to the mask raster unless you ask for otherwise.
 
 ## Usage
 
@@ -133,6 +145,7 @@ python -m ghaf.inference.large_image \
 | `--threshold` | 0.5 | probability at which a pixel is called ghaf |
 | `--bands` | 1 2 3 | 1-based source band indices read as R, G, B |
 | `--batch-size` | 1 | tiles per forward pass; raise until VRAM limits it |
+| `--min-area` | 0 | drop crown polygons below this many m²; 0 keeps every speck |
 | `--scratch-dir` | system temp | where the accumulators go |
 | `--device` | `cuda:0` | |
 
