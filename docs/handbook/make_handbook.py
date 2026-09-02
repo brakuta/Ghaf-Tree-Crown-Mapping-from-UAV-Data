@@ -67,6 +67,9 @@ S = {
     'part': ParagraphStyle('part', fontName='Helvetica-Bold', fontSize=11,
                            leading=14, textColor=GREEN, spaceBefore=2,
                            spaceAfter=2),
+    'h1x': ParagraphStyle('h1x', fontName='Helvetica-Bold', fontSize=17,
+                          leading=21, textColor=INK, spaceBefore=4,
+                          spaceAfter=10),
     'h1': ParagraphStyle('h1', fontName='Helvetica-Bold', fontSize=17,
                          leading=21, textColor=INK, spaceBefore=4,
                          spaceAfter=10),
@@ -95,10 +98,8 @@ S = {
     'caption': ParagraphStyle('caption', fontName='Helvetica-Oblique',
                               fontSize=8.4, leading=11.5, textColor=MUTED,
                               spaceAfter=8),
-    'toc1': ParagraphStyle('toc1', fontName='Helvetica-Bold', fontSize=10,
-                           leading=16, textColor=INK),
-    'toc2': ParagraphStyle('toc2', fontName='Helvetica', fontSize=9.4,
-                           leading=13.5, leftIndent=14, textColor=INK),
+    'toc1': ParagraphStyle('toc1', fontName='Helvetica', fontSize=10,
+                           leading=18, textColor=INK),
 }
 
 CONTENT_W = PAGE_W - 2 * MARGIN
@@ -178,7 +179,9 @@ def code(text, story, label=None):
     story.append(KeepTogether(block))
 
 
-def output(text, story, caption='What you should see'):
+def output(text, story, caption='What you should see', kind='output'):
+    if kind == 'tree':
+        return tree(text, story, caption)
     body = Preformatted(_wrap(text, 100), S['out'])
     t = Table([[body]], colWidths=[CONTENT_W])
     t.setStyle(TableStyle([
@@ -191,6 +194,25 @@ def output(text, story, caption='What you should see'):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
     block = [Paragraph(md(caption), S['caption']), t, Spacer(1, 9)]
+    story.append(KeepTogether(block))
+
+
+def tree(text, story, caption=None):
+    """A directory listing. Distinguished from program output by its rule."""
+    body = Preformatted(_wrap(text, 100), S['out'])
+    t = Table([[body]], colWidths=[CONTENT_W])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('BOX', (0, 0), (-1, -1), 0.5, RULE),
+        ('LINEBEFORE', (0, 0), (0, -1), 2.2, MUTED),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    block = [t, Spacer(1, 9)]
+    if caption:
+        block.insert(0, Paragraph(md(caption), S['caption']))
     story.append(KeepTogether(block))
 
 
@@ -303,8 +325,6 @@ class Handbook(BaseDocTemplate):
             self.chapter = text
             self._pending[self.page] = text
             self.notify('TOCEntry', (0, text, self.page))
-        elif style == 'h2':
-            self.notify('TOCEntry', (1, flowable.getPlainText(), self.page))
 
 
 def build(story):
@@ -340,10 +360,9 @@ story += [
           style=TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER')])),
     Spacer(1, 16 * mm),
     Paragraph(
-        'Written for a reader who is comfortable following instructions and '
-        'does not write code.<br/>Every step is a command to copy, paste and '
-        'run, with what it does, how long it takes,<br/>and what a correct '
-        'result looks like.', S['cover']),
+        'Operating instructions for the delivered software bundle.<br/>'
+        'Each procedure states the command to run, its expected duration, '
+        'and the output that indicates success.', S['cover']),
     Spacer(1, 22 * mm),
     Paragraph(
         'Repository: github.com/brakuta/Ghaf-Tree-Crown-Mapping-from-UAV-Data'
@@ -357,315 +376,332 @@ story += [
 
 # ---- contents ------------------------------------------------------------
 toc = TableOfContents()
-toc.levelStyles = [S['toc1'], S['toc2']]
-story += [Paragraph('Contents', S['h1']), toc, PageBreak()]
+toc.levelStyles = [S['toc1']]
+toc.dotsMinLevel = 99            # page numbers alone, without leader dots
+story += [Paragraph('Contents', S['h1x']), toc, PageBreak()]
 
 # =========================================================================
-H1('1. How to use this handbook', story)
+H1('1. Folder structure', story)
 story.append(P("""
-This handbook takes you from a computer with nothing installed to crown
-polygons you can open in QGIS. It assumes no programming. It does assume you
-will read the screen: almost everything that goes wrong announces itself in
-the last two or three lines of output, and chapter 12 is a method for turning
-those lines into a fix.
+The delivered folder contains six directories and two files. Paths in this handbook are written as
+`D:\\ghaf-project`. Substitute the location of your own copy; no other change
+is required. Commands are written for the Windows Command Prompt. On macOS and
+Linux they are identical except that paths use `/` in place of `\\`.
 """))
 
-story.append(Paragraph('Conventions', S['h2']))
-story.append(P("""
-A shaded box is something you type (or paste) and run. Press Enter after it,
-and wait for the prompt to come back before typing the next one:
-"""))
-code(r'python tools\smoke_test.py', story)
-story.append(P("""
-A box with a green edge is what a correct run prints. Yours will not match
-character for character - times and file paths differ - but the shape and the
-key numbers should:
-"""))
-output("""all 6 model(s) built and ran a forward pass""", story, caption='Example')
-
-box("""
-**Paste one command at a time.** Some terminals join a multi-line paste into a
-single line and run something you did not intend. If a command in this
-handbook wraps onto a second line, it is still **one** command: the wrap is
-the page being narrow, not a second line to type. Join the pieces with a
-single space.
-""", story, kind='warn')
-
-story.append(P("""
-Paths in this handbook are written as `D:\\ghaf-project\\...`. Substitute
-wherever your copy actually lives. Nothing else changes. Commands are written
-for the Windows Command Prompt; on macOS or Linux they are identical except
-that paths use `/` instead of `\\`.
-"""))
-
-story.append(Paragraph('If you are in a hurry', S['h2']))
-story.append(P("""
-Chapters 5 and 6 install and prove the installation; chapter 7 maps an image.
-Those three are the shortest path to a result. Everything else can wait until
-you need it.
-"""))
-
-story.append(PageBreak())
-# =========================================================================
-H1('2. What this system does', story)
-story.append(P("""
-You give it an aerial image. It gives you back the Ghaf tree crowns in that
-image, as shapes on a map.
-"""))
-story.append(P("""
-Underneath, a neural network looks at the image in 1024 x 1024 pixel windows
-and decides, for every single pixel, whether that pixel is part of a Ghaf
-crown or not. The windows overlap by half their width and the answers are
-blended where they overlap, so there are no visible seams between windows. The
-result is then traced into polygons - one polygon per crown - each carrying
-its area in square metres.
-"""))
-story.append(P("""
-The model in use is **FastViT-MA36 + Mask2Former**, which scored **79.32 mIoU**
-and **87.22 F1** on the held-out test tiles. Five other models are provided for
-comparison; unless you have a reason, use the FastViT one.
-"""))
-
-story.append(Paragraph('What it is good at, and what it is not', S['h2']))
-table(['It can', 'It cannot'],
-      [['Map crowns in an orthomosaic of any size, from a small plot to a '
-        'billion-pixel survey',
-        'Tell one tree species from another beyond Ghaf and "not Ghaf" - it '
-        'was trained on two classes only'],
-       ['Return crowns as GIS polygons with areas, ready to count and measure',
-        'Work on imagery that is not red-green-blue 8-bit; other band '
-        'arrangements need `--bands`'],
-       ['Reproduce the published scores exactly, from the weights you were given',
-        'Separate two crowns that physically touch and overlap into two '
-        'polygons - they may merge into one'],
-       ['Be re-trained or fine-tuned on labelled tiles from a new site',
-        'Run usefully fast without an NVIDIA GPU, though it will run on a CPU']],
-      story, widths=[CONTENT_W * 0.5, CONTENT_W * 0.5])
-
-story.append(Paragraph('The three outputs, in plain terms', S['h2']))
-table(['Output', 'What it is', 'What it is for'],
-      [['crowns.gpkg', 'A GeoPackage: the crowns as polygons, with an '
-        '`area_m2` column',
-        'Counting trees, measuring crowns, joining to other GIS data. This is '
-        'the one most people want'],
-       ['crowns.tif', 'A picture the same size as the input where each pixel '
-        'is 1 (crown) or 0 (not)',
-        'Overlaying on the imagery, computing canopy cover, differencing '
-        'against a labelled mask'],
-       ['probability.tif', 'The same shape, but each pixel is the model\'s '
-        'confidence from 0.00 to 1.00',
-        'Choosing a stricter or looser cut-off after the fact, and seeing '
-        'where the model was unsure']],
-      story, widths=[CONTENT_W * 0.20, CONTENT_W * 0.40, CONTENT_W * 0.40],
-      mono_first=True)
-
-story.append(PageBreak())
-# =========================================================================
-H1('3. What you were given', story)
-story.append(P("""
-Three parts, kept separate on purpose. The code is public; the weights and the
-imagery are not.
-"""))
-table(['Part', 'What it is', 'Where it comes from'],
-      [['The code', 'Configurations, tools, documentation',
-        'Public on GitHub'],
-       ['The models', 'Six trained checkpoints, one folder each',
-        'Shared with you directly. Not on GitHub'],
-       ['The data', 'Labelled tiles, and sample imagery to run on',
-        'Shared with you directly. Not on GitHub']],
-      story, widths=[CONTENT_W * 0.18, CONTENT_W * 0.47, CONTENT_W * 0.35])
-
-story.append(Paragraph('The folder you received', S['h2']))
+story.append(Paragraph('1.1 The delivered folder', S['h2']))
 output(r"""
 D:\ghaf-project\
-+-- README.md                          what this is; start here
-+-- MANIFEST.json                      every part, its size, and what was checked
-+-- code\                              the repository: tools, configs, docs
-+-- models\                            2.2 GB
-|   +-- fastvit-ma36_mask2former\
-|   |   +-- fastvit-ma36_mask2former.py    the complete recipe, self-contained
-|   |   +-- best_mIoU_iter_3500.pth        the trained weights
-|   |   +-- metadata.json                  fingerprint, size, scores
-|   +-- ...                                five more models
-+-- init-weights\                      0.9 GB  ImageNet weights, for training offline
-+-- data\ghaf\                         15.6 GB
-|   +-- training\{images,masks}\           7005 tile pairs
-|   +-- validation\{images,masks}\          869 tile pairs
-|   +-- testing\ghaf26\{images,masks}\      767 tile pairs
-+-- samples\
-|   +-- Kalba26_sample.tif                 a small clip: start here, minutes
-+-- predictions\testing\               predictions already made for the test split
-""", story, caption='The layout assumed throughout this handbook')
++-- README.md                 summary of the bundle
++-- MANIFEST.json             inventory of every part, with sizes and checks
++-- code\                     the software (section 1.5)
++-- models\                   six trained models (section 1.2)
++-- init-weights\             ImageNet weights, used only when training
++-- data\ghaf\                labelled tiles (section 1.3)
++-- samples\                  sample orthomosaic for testing the installation
++-- predictions\testing\      predictions already produced for the test split
+""", story, kind='tree', caption='Top level')
+
+table(['Part', 'Size', 'Contents and purpose'],
+      [['code\\', '1 MB', 'The Python package, the six model configurations, '
+        'the command-line tools, the test suite and the documentation. This '
+        'is the public repository, at the exact version recorded in '
+        'MANIFEST.json'],
+       ['models\\', '2.2 GB', 'Six trained models. Each folder is '
+        'self-contained and holds a complete configuration beside its weights'],
+       ['init-weights\\', '0.9 GB', 'ImageNet initialisation weights for the '
+        'six backbones. Required only when training a model from scratch on a '
+        'machine without internet access. Not used for inference'],
+       ['data\\ghaf\\', '15.6 GB', '8641 labelled tile pairs, divided into '
+        'training, validation and test splits'],
+       ['samples\\', '0.2 GB', 'A georeferenced clip of the Kalba survey '
+        'mosaic, 8192 x 8192 pixels, for confirming that the installation '
+        'produces correct results'],
+       ['predictions\\testing\\', '0.4 GB', 'Predicted masks for the 767 test '
+        'tiles, produced with the FastViT model. Provided so that results can '
+        'be compared without re-running inference'],
+       ['MANIFEST.json', '12 KB', 'The inventory. Records each part, its size, '
+        'its file count, the checks performed at assembly, and the version of '
+        'the code used. This file identifies which software version produced '
+        'any given result'],
+       ['README.md', '4 KB', 'A one-page summary of the bundle and its origin']],
+      story, widths=[CONTENT_W * 0.20, CONTENT_W * 0.09, CONTENT_W * 0.71],
+      mono_first=True)
+
+story.append(Paragraph('1.2 The models folder', S['h2']))
+story.append(P("""
+Each model occupies one folder holding three files. The configuration is
+complete in itself and does not depend on any other file, so a single model
+folder can be copied elsewhere and used on its own.
+"""))
+output(r"""
+models\
++-- fastvit-ma36_mask2former\
+|   +-- fastvit-ma36_mask2former.py     the full configuration, self-contained
+|   +-- best_mIoU_iter_3500.pth         the trained weights
+|   +-- metadata.json                   SHA-256, file size, parameters, scores
++-- poolformer-s36_fpn\
++-- dpn98_fpn\
++-- convnext-small_upernet\
++-- resnet-50_mask2former\
++-- efficientnet-b3_fpn\
++-- MODELS.json                         index of all six, with scores
++-- README.md                           notes for the recipient
+""", story, kind='tree', caption='Layout of models\\')
+
+table(['Folder', 'Checkpoint file', 'mIoU', 'F1'],
+      [['fastvit-ma36_mask2former', 'best_mIoU_iter_3500.pth', '**79.32**',
+        '**87.22**'],
+       ['poolformer-s36_fpn', 'iter_10200.pth', '78.65', '86.72'],
+       ['dpn98_fpn', 'best_mIoU_iter_14000.pth', '78.19', '86.35'],
+       ['convnext-small_upernet', 'iter_14000.pth', '78.02', '86.20'],
+       ['resnet-50_mask2former', 'best_mIoU_iter_38500.pth', '77.69', '85.98'],
+       ['efficientnet-b3_fpn', 'iter_6800.pth', '70.77', '80.29']],
+      story, widths=[CONTENT_W * 0.36, CONTENT_W * 0.34, CONTENT_W * 0.15,
+                     CONTENT_W * 0.15], mono_first=True)
+story.append(P("""
+Scores are on the held-out test split. Use `fastvit-ma36_mask2former` unless
+there is a specific reason to prefer another. The remaining five are provided
+for comparison, and every procedure in this handbook works with any of them by
+substituting the two paths.
+"""))
+
+story.append(Paragraph('1.3 The data folder', S['h2']))
+output(r"""
+data\ghaf\
++-- training\
+|   +-- images\        7005 PNG tiles, 1024 x 1024, 8-bit RGB
+|   +-- masks\         7005 PNG masks, one per image, same filename
++-- validation\
+|   +-- images\         869 tiles
+|   +-- masks\          869 masks
++-- testing\ghaf26\
+    +-- images\         767 tiles, with .pgw and .png.aux.xml position files
+    +-- masks\          767 masks
+""", story, kind='tree', caption='Layout of data\\ghaf\\')
+
+table(['Split', 'Pairs', 'Purpose'],
+      [['training', '7 005', 'Fitting the model'],
+       ['validation', '869', 'Monitoring during training and selecting the '
+        'best checkpoint'],
+       ['testing/ghaf26', '767', 'Final scoring. Held out from training '
+        'entirely, and the source of the published numbers']],
+      story, widths=[CONTENT_W * 0.22, CONTENT_W * 0.12, CONTENT_W * 0.66],
+      mono_first=True)
 
 story.append(P("""
-Tiles are 1024 x 1024 PNG pairs: an image and a mask sharing a filename. In a
-mask, `0` is background and `1` is a Ghaf crown.
+An image and its mask share a filename. In a mask, the pixel value is the class
+index rather than a colour: `0` for background and `1` for a Ghaf crown. A mask
+opened in an image viewer therefore appears almost black, which is correct.
 """))
 story.append(P("""
-The test tiles have small companion files beside them (`.pgw`, `.png.aux.xml`,
-`.ovr`). These hold the patch of ground each tile covers, and display
-pyramids, so predictions made from them open in QGIS already in the right
-place. The training and validation tiles have none, which changes nothing
-about training or scoring. Do not delete or move these companion files.
+The test tiles carry small companion files, `.pgw`, `.png.aux.xml` and `.ovr`.
+These record the patch of ground each tile covers and hold display pyramids, so
+that predictions made from them open in QGIS at the correct location. The
+training and validation tiles have no companion files, which affects neither
+training nor scoring. Companion files must be kept beside the tiles they belong
+to.
 """))
 
+story.append(Paragraph('1.4 The code folder', S['h2']))
+story.append(P("""
+The software is organised in four directories. `ghaf\\` is the library,
+`configs\\` holds the model recipes, `tools\\` holds the programs that are run
+from the command line, and `tests\\` verifies the other three.
+"""))
+output(r"""
+code\
++-- ghaf\                       the library
+|   +-- config.py               points a configuration at a dataset folder
+|   +-- datasets.py             the two-class tile dataset
+|   +-- splits.py               where each split lives, declared once
+|   +-- environment.py          confirms the framework is installed correctly
+|   +-- init_weights.py         locates the ImageNet initialisation weights
+|   +-- release.py              the published models: digests, sizes, scores
+|   +-- models\
+|   |   +-- fastvit.py          FastViT-MA36 backbone
+|   |   +-- dpn.py              DPN-98 backbone
+|   |   +-- modules\            building blocks used by FastViT
+|   +-- inference\
+|       +-- tiling.py           window planning and blending arithmetic
+|       +-- large_image.py      orthomosaic inference and georeferenced output
++-- configs\
+|   +-- _base_\ghaf.py          dataset, augmentation, schedule and runtime
+|   +-- ghaf\                   the six model configurations
++-- tools\                      the command-line programs (table below)
++-- tests\                      325 automated tests
++-- docs\                       this handbook and four reference documents
++-- README.md                   the repository overview
++-- requirements.txt            the Python packages this project adds
++-- environment.yml             the conda environment definition
+""", story, kind='tree', caption='Layout of code\\')
+
+table(['Program in tools\\', 'What it does'],
+      [['smoke_test.py', 'Builds all six models, verifies each checkpoint '
+        'against its published fingerprint, and runs one prediction through '
+        'each. Section 4'],
+       ['check_dataset.py', 'Verifies that every image has a matching mask, '
+        'that pairs agree on size, and that masks contain only the two class '
+        'values. Section 4'],
+       ['predict_folder.py', 'Maps every image in a folder and writes one '
+        'GeoPackage of crowns per image. Section 6'],
+       ['test.py', 'Scores a model against a labelled split and reports mIoU, '
+        'mDice and mFscore. Section 8'],
+       ['predict_split.py', 'Writes one predicted mask per tile for a labelled '
+        'split. Section 8'],
+       ['train.py', 'Trains a model, or fine-tunes one from an existing '
+        'checkpoint. Section 9'],
+       ['make_sample.py', 'Cuts a small georeferenced clip out of a large '
+        'mosaic. Section 5'],
+       ['export_release.py', 'Assembles the models folder for sharing, '
+        'verifying every checkpoint before and after copying'],
+       ['fetch_init_weights.py', 'Downloads the ImageNet initialisation '
+        'weights. Needed once, and only when training'],
+       ['build_handover.py', 'Assembles a complete bundle of the kind '
+        'described in section 1.1']],
+      story, widths=[CONTENT_W * 0.26, CONTENT_W * 0.74], mono_first=True)
+
+story.append(P("""
+Area-wide inference is invoked as `python -m ghaf.inference.large_image` rather
+than through a file in `tools\\`, because it forms part of the library. Section
+5 gives the command.
+"""))
+
+story.append(Paragraph('1.5 Where results are written', S['h2']))
+story.append(P("""
+No program writes into `data\\`, `models\\` or `code\\`. Each takes an output
+path on the command line. The examples in this handbook write to
+`D:\\ghaf-project\\output`, which is created on first use.
+"""))
+
+story.append(PageBreak())
+# =========================================================================
+H1('2. System requirements', story)
+table(['Item', 'Requirement', 'Notes'],
+      [['Operating system', 'Windows 10 or 11, macOS, or Linux',
+        'Commands in this handbook are for the Windows Command Prompt'],
+       ['GPU', 'NVIDIA, 8 GB memory or more',
+        'The published models were trained on an RTX A5000. Without a GPU '
+        'every procedure still runs by adding `--device cpu`, at roughly '
+        'twenty to fifty times the duration'],
+       ['Disk for the bundle', '20 GB',
+        'Code, models, initialisation weights, tiles and samples'],
+       ['Disk for one inference run', '9 bytes per pixel of the image',
+        'An 8192 x 8192 clip requires 0.6 GB. The full 84 072 x 103 691 mosaic '
+        'requires 79 GB. The space is released when the run ends, and is '
+        'checked before the run starts'],
+       ['Python', '3.9',
+        'Installed by conda in section 3. No system-wide Python is involved'],
+       ['Prerequisite software', 'Miniconda or Anaconda',
+        'Available from docs.conda.io. Everything else is installed by the '
+        'commands in section 3'],
+       ['Optional', 'QGIS 3.x',
+        'For viewing the results. Section 7']],
+      story, widths=[CONTENT_W * 0.21, CONTENT_W * 0.26, CONTENT_W * 0.53])
+
+story.append(Paragraph('Conventions used in this handbook', S['h2']))
+story.append(P("""
+A shaded box contains a command. Type or paste it, press Enter, and wait for
+the prompt to return before entering the next one. A box with a green rule
+shows the output of a correct run; times and paths will differ, the structure
+and the reported figures should not.
+"""))
 box("""
-**MANIFEST.json is the receipt.** It records every part of the bundle, its
-size, the number of files, and the exact version of the code it was built
-from. If you ever need to prove that a copy is complete, or work out which
-version of the code produced a result, it is in there.
-""", story)
-
-story.append(Paragraph('What the computer needs', S['h2']))
-table(['Item', 'Needed', 'Notes'],
-      [['Operating system', 'Windows 10/11, macOS or Linux',
-        'This handbook shows Windows commands'],
-       ['GPU', 'An NVIDIA GPU, 8 GB or more',
-        'The published work used an RTX A5000. Without a GPU everything still '
-        'runs with `--device cpu`, perhaps 20-50 times slower'],
-       ['Disk for the bundle', 'About 20 GB',
-        'Code, models, initialisation weights, tiles, samples'],
-       ['Disk for a run', '9 bytes per pixel of the image being mapped',
-        'An 8192 x 8192 clip needs 0.6 GB; the full 84 072 x 103 691 mosaic '
-        'needs about 79 GB. Freed when the run ends'],
-       ['Software', 'Miniconda or Anaconda',
-        'Free, from docs.conda.io. Everything else is installed by the '
-        'commands in chapter 5']],
-      story, widths=[CONTENT_W * 0.20, CONTENT_W * 0.28, CONTENT_W * 0.52])
+**Enter one command at a time.** Some terminals join a multi-line paste into a
+single line and execute something unintended. Where a command in this handbook
+wraps onto a second line, it remains one command. Join the parts with a single
+space.
+""", story, kind='warn')
 
 story.append(PageBreak())
 # =========================================================================
-H1('4. Words you will meet', story)
+H1('3. Installation', story)
 story.append(P("""
-Skim this once. You do not need to memorise it; come back when a word in a
-later chapter is unfamiliar.
-"""))
-table(['Word', 'What it means here'],
-      [['Orthomosaic', 'One large image made by stitching together the '
-        'hundreds of photographs taken on a drone flight, geometrically '
-        'corrected so that it can be measured like a map'],
-       ['Georeferenced', 'The file knows where on Earth it sits. Two layers '
-        'that are both georeferenced line up automatically in QGIS'],
-       ['CRS', 'Coordinate Reference System - the map projection the '
-        'coordinates are in. This project\'s imagery is EPSG:32640 (UTM zone '
-        '40 North), which covers the UAE'],
-       ['GSD', 'Ground sampling distance: how much ground one pixel covers. '
-        'The sample mosaic is about 2.7 cm per pixel'],
-       ['Tile', 'A small square cut out of a large image. Training uses '
-        '1024 x 1024 tiles'],
-       ['Mask', 'An image where the pixel value is a label rather than a '
-        'colour. Here, 0 = background, 1 = Ghaf'],
-       ['Checkpoint (.pth)', 'A file holding a trained model\'s weights - what '
-        'it learned. Roughly 300-800 MB each'],
-       ['Config (.py)', 'The complete recipe for a model: its architecture, '
-        'the data pipeline, the training schedule'],
-       ['Inference', 'Using a trained model to make predictions. The opposite '
-        'of training'],
-       ['mIoU / F1', 'Accuracy scores between 0 and 100. Higher is better. '
-        'They measure how well predicted crowns overlap the hand-drawn ones'],
-       ['Threshold', 'The confidence above which a pixel is called a crown. '
-        'The default is 0.50'],
-       ['Environment (conda)', 'A private, self-contained installation of '
-        'Python and its packages, so this project cannot break anything else '
-        'on the computer. Ours is named `ghaf`'],
-       ['Terminal / Command Prompt', 'The window where you type commands. On '
-        'Windows, use the Anaconda Prompt'],
-       ['GeoPackage (.gpkg)', 'A standard GIS file holding shapes and their '
-        'attributes. Opens in QGIS and ArcGIS'],
-       ['Scratch space', 'Temporary disk the program uses while working, '
-        'released when it finishes']],
-      story, widths=[CONTENT_W * 0.22, CONTENT_W * 0.78])
-
-story.append(PageBreak())
-# =========================================================================
-H1('5. Installing, once', story)
-story.append(P("""
-This takes about twenty minutes on a good connection and is done once per
-computer. Every command goes in the same window.
+Installation takes about twenty minutes and is performed once on each machine.
+All commands are entered in the same window.
 """))
 
-story.append(Paragraph('Step 0 - open the right window', S['h2']))
-bullets([
-    'Press the Windows key, type **Anaconda Prompt**, and open it.',
-    'A black or blue window appears with a line ending in `>`. That line is '
-    'the **prompt**; you type after it.',
-    'If the prompt starts with `(base)`, conda is installed and working. If '
-    'nothing called Anaconda Prompt exists, install Miniconda first from '
-    'docs.conda.io, then open a new one.',
-], story, numbered=True)
+story.append(Paragraph('Step 1. Open the Anaconda Prompt', S['h2']))
+story.append(P("""
+Press the Windows key, type Anaconda Prompt, and open it. A window appears with
+a line ending in `>`, which is the prompt. Commands are typed after it. A
+prompt beginning with `(base)` confirms that conda is installed. If no
+Anaconda Prompt exists on the machine, install Miniconda from docs.conda.io and
+open a new one.
+"""))
 
-story.append(Paragraph('Step 1 - create the environment and enter it', S['h2']))
+story.append(Paragraph('Step 2. Create the environment', S['h2']))
 code('conda create -n ghaf python=3.9 -y', story)
 code('conda activate ghaf', story)
 box("""
-**The prompt now begins with `(ghaf)`.** That is how you know you are in the
-right place. Every command in this handbook assumes it. If you close the
-window and open a new one, run `conda activate ghaf` again - this is the
-single most common cause of confusing errors later.
+**The prompt now begins with `(ghaf)`.** Every command in this handbook assumes
+it. A new terminal window always opens outside the environment, so
+`conda activate ghaf` must be run again in each new window. Omitting it is the
+most frequent cause of the errors listed in section 10.
 """, story)
 
-story.append(Paragraph('Step 2 - install PyTorch', S['h2']))
+story.append(Paragraph('Step 3. Install PyTorch', S['h2']))
 story.append(P("""
-This is the exact version the published models were trained with. It is a
-large download, around 2 GB.
+This is the version used to train the published models. The download is about
+2 GB.
 """))
 code('python -m pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 '
      '--extra-index-url https://download.pytorch.org/whl/cu113', story)
-story.append(P("""
-No NVIDIA GPU? Use this instead. Everything still runs, just slowly:
-"""))
+story.append(P('On a machine without an NVIDIA GPU, install the CPU build instead.'))
 code('python -m pip install torch==1.12.1 torchvision==0.13.1', story)
 
-story.append(Paragraph('Step 3 - install the OpenMMLab framework', S['h2']))
+story.append(Paragraph('Step 4. Install the OpenMMLab framework', S['h2']))
 story.append(P("""
-Three commands, in this order. The version numbers matter: they are the ones
-the models were built and tested against.
+Run these three commands in order. The version numbers are the ones the models
+were built and tested against, and must not be changed.
 """))
 code('python -m pip install -U openmim', story)
 code('python -m mim install mmengine==0.10.7 "mmcv>=2.0.0rc4,<2.2.0"', story)
 code('python -m pip install mmsegmentation==1.2.2 mmdet==3.3.0 mmpretrain==1.2.0',
      story)
 story.append(P("""
-`mmcv` is the slowest of these - it is fetching a large pre-built package
-matched to your PyTorch and CUDA versions. Several minutes is normal.
+The second command is the slowest. It retrieves a large pre-built package
+matched to the installed PyTorch and CUDA versions, and several minutes is
+normal.
 """))
 
-story.append(Paragraph('Step 4 - install this project', S['h2']))
+story.append(Paragraph('Step 5. Install the project', S['h2']))
 story.append(P("""
-Move into the code folder first. The `/d` is needed when changing to another
-drive letter:
+Change into the code folder. The `/d` switch is required when moving to a
+different drive letter.
 """))
 code(r'cd /d D:\ghaf-project\code', story)
 code('python -m pip install -r requirements.txt', story)
 code('python -m pip install -e ".[test]"', story)
 
 box("""
-**Two messages during installation that are not errors.** pip may say that
-`opencv-python` requires `numpy>=2`; ignore it, OpenCV works with either.
-It may also print warnings about dependency conflicts among packages you are
-not using. Only a line beginning `ERROR:` that stops the install matters.
+**Two messages during installation are not errors.** pip may report that
+`opencv-python` requires `numpy>=2`, which can be ignored, since OpenCV
+functions with either version. pip may also list dependency conflicts among
+packages this project does not use. Only a line beginning `ERROR:` that halts
+the installation requires action.
 """, story, kind='warn')
 
-story.append(Paragraph('A note about paths with spaces or "&"', S['h2']))
+story.append(Paragraph('Paths containing spaces or an ampersand', S['h2']))
 story.append(P("""
-If your project folder contains spaces, put the whole path in double quotes.
-If it contains an ampersand (`&`), quotes are **required**: without them the
-Command Prompt treats `&` as "end of command, start another one", and you get
-a confusing "The system cannot find the path specified" twice over.
+Enclose any path containing a space in double quotes. Quotes are mandatory for
+a path containing an ampersand, because the Command Prompt otherwise reads `&`
+as the end of one command and the start of another, and reports that the path
+cannot be found.
 """))
 code(r'cd /d "Z:\Survey Data\Cineraria_Data & Model\ghaf-project\code"', story)
 
 story.append(PageBreak())
 # =========================================================================
-H1('6. Proving that it works', story)
+H1('4. Verifying the installation', story)
 story.append(P("""
-Three checks, about five minutes in total. Run them before anything else, and
-again on any day when something behaves strangely. They confirm that the code,
-the weights and the tiles all arrived intact and agree with each other.
+Three checks, five minutes in total. Run them after installation, and again
+whenever a result is unexpected. Together they establish that the software, the
+weights and the tiles are intact and consistent with each other.
 """))
 
-story.append(Paragraph('Check 1 - the code', S['h2']))
-story.append(P('No GPU and no data needed, about a minute.'))
+story.append(Paragraph('Check 1. The software', S['h2']))
+story.append(P('No GPU and no data are required. About one minute.'))
 code(r'python -m pytest tests\ -q', story)
 output("""
 .........................................................................
@@ -673,17 +709,17 @@ output("""
 325 passed, 1 skipped in 74.19s
 """, story)
 story.append(P("""
-Any number of passing tests with no `F` characters and no `failed` in the last
-line is a pass. If you see `No module named 'mmengine'`, you are running a
-different Python than the one you installed into - see chapter 12, it is the
-first entry.
+A final line reporting passed tests, with no `F` characters in the progress
+output, indicates success. The message `No module named 'mmengine'` means that
+a different Python is running than the one the packages were installed into.
+Section 10 gives the remedy.
 """))
 
-story.append(Paragraph('Check 2 - the models', S['h2']))
+story.append(Paragraph('Check 2. The models', S['h2']))
 story.append(P("""
-This builds all six models from their configurations, loads the weights you
-were given, checks every file against its published fingerprint, and runs a
-prediction through each. About 90 seconds on a GPU.
+This builds all six models from their configurations, loads the supplied
+weights, compares each file against its published fingerprint, and runs one
+prediction through each model. About 90 seconds on a GPU.
 """))
 code(r'python tools\smoke_test.py --checkpoints D:\ghaf-project\models', story)
 output("""
@@ -698,28 +734,27 @@ efficientnet-b3_fpn                  ok            all 610 matched    0.00% ghaf
 
 all 6 model(s) built and ran a forward pass
 """, story)
-table(['Column', 'What it proves'],
-      [['`digest` = ok', 'The checkpoint file is byte-for-byte the one that '
-        'was released. Nothing was corrupted in the copy'],
-       ['`all N matched`', 'Every weight in the file found its place in the '
-        'model built from the configuration - nothing missing, nothing left '
+table(['Column', 'What it establishes'],
+      [['`digest` reads ok', 'The checkpoint file is identical to the one that '
+        'was released. No corruption occurred during copying'],
+       ['`all N matched`', 'Every weight in the file was placed in the model '
+        'built from the configuration. Nothing is missing and nothing is left '
         'over'],
-       ['`+0` in the delta column', 'The number of parameters matches the '
-        'published figure exactly'],
-       ['`0.00% ghaf`', '**Correct.** This step predicts on a blank synthetic '
-        'tile, not on imagery, so finding no trees is what should happen. '
-        'Real imagery gives a few percent']],
+       ['`+0` in the delta column', 'The parameter count matches the published '
+        'figure exactly'],
+       ['`0.00% ghaf`', 'The expected result. This check predicts on a blank '
+        'synthetic tile rather than on imagery, so an absence of trees is '
+        'correct. Real imagery yields a few percent']],
       story, widths=[CONTENT_W * 0.28, CONTENT_W * 0.72])
 
 box("""
-**Every command that loads a model prints screens of `UserWarning` lines** -
-about `__floordiv__`, `torch.meshgrid`, binary segmentation and `build_loss`.
-They come from inside PyTorch and mmsegmentation, they appear on a perfectly
-correct run, and there is nothing to do about them. Read past them to the
-table at the end.
+**Every command that loads a model prints numerous `UserWarning` lines**
+concerning `__floordiv__`, `torch.meshgrid`, binary segmentation and
+`build_loss`. These originate inside PyTorch and mmsegmentation, appear on a
+correct run, and require no action. The result is the table printed after them.
 """, story)
 
-story.append(Paragraph('Check 3 - the data', S['h2']))
+story.append(Paragraph('Check 3. The tiles', S['h2']))
 code(r'python tools\check_dataset.py D:\ghaf-project\data\ghaf', story)
 output("""
 split          images    masks   paired  checked  status
@@ -731,122 +766,140 @@ testing           767      767      767      200  ok
 8,641 paired tile(s) across 3 split(s)
 dataset looks usable
 """, story)
-table(['Variation', 'When to use it'],
-      [[r'check_dataset.py PATH --full', 'Opens every one of the 8641 tiles '
-        'instead of a sample of 200. Slow, thorough; worth doing once'],
-       [r'check_dataset.py PATH --sample 0', 'Checks only that every image has '
-        'a matching mask, without opening any. Seconds, even over a network '
-        'drive'],
-       [r'check_dataset.py PATH --sample 25', 'Opens 25 tiles per split. A '
-        'good compromise after copying the data somewhere new']],
-      story, widths=[CONTENT_W * 0.42, CONTENT_W * 0.58], mono_first=True)
+table(['Variant', 'Effect'],
+      [['--full', 'Opens all 8641 tiles rather than a sample of 200. Slower, '
+        'and worth running once'],
+       ['--sample 0', 'Confirms only that every image has a matching mask, '
+        'without opening any file. Completes in seconds, including over a '
+        'network drive'],
+       ['--sample 25', 'Opens 25 tiles per split. A reasonable check after '
+        'copying the data to a new location']],
+      story, widths=[CONTENT_W * 0.20, CONTENT_W * 0.80], mono_first=True)
 
 story.append(PageBreak())
 # =========================================================================
-H1('7. Mapping crowns in one image', story)
+H1('5. Mapping one orthomosaic', story)
 story.append(P("""
-This is the main thing the models are for: give it a UAV orthomosaic, get back
-a canopy map. The image can be far larger than the computer's memory - it is
-read in overlapping windows and blended, so nothing has to fit at once.
+This procedure takes a UAV orthomosaic and produces a canopy map. The image may
+be far larger than the memory of the computer, since it is read in overlapping
+windows and the predictions are blended, leaving no visible seams.
 """))
 
 box("""
-**Start with the small clip.** `Kalba26_sample.tif` is a piece cut from the
-full survey. It runs in a couple of minutes and produces exactly the same kind
-of output, so it proves the whole chain works before you commit to a run of
-hours. Only once that has worked is the full mosaic worth starting.
+**Begin with the sample clip.** `Kalba26_sample.tif` is a piece cut from the
+full survey. It completes in a few minutes and produces the same outputs as a
+full mosaic, which establishes that the installation is correct before a run of
+several hours is started.
 """, story)
 
-story.append(Paragraph('The command', S['h2']))
-story.append(P("""
-Move into the code folder first, so the rest of the command stays short:
-"""))
+story.append(Paragraph('5.1 The command', S['h2']))
+story.append(P('Change into the code folder first, which keeps the paths short.'))
 code(r'cd /d D:\ghaf-project\code', story)
 code(r"""python -m ghaf.inference.large_image ..\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py ..\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth ..\samples\Kalba26_sample.tif --out-mask ..\output\crowns.tif --out-prob ..\output\probability.tif --out-polygons ..\output\crowns.gpkg --batch-size 4""",
      story)
 story.append(P("""
-Reading it left to right: the **recipe**, the **weights**, the **image**, then
-where to put each of the three outputs. `--batch-size 4` processes four
-windows at a time, which is faster on a GPU with memory to spare.
+The arguments are, in order, the configuration, the weights, the input image,
+and the destination of each output. `--batch-size 4` processes four windows at
+a time and is faster on a GPU with memory to spare.
 """))
-
-output("""
+output(r"""
 INFO Kalba26_sample.tif: 8192 x 8192 px, 225 window(s) of 1024 px (overlap 512), batch 4, 0.6 GB scratch
 Kalba26_sample: 100%|##############################| 57/57 [00:40<00:00,  1.42batch/s]
 INFO Created 27 records
-INFO wrote ..\\output\\crowns.gpkg (27 polygon(s))
+INFO wrote ..\output\crowns.gpkg (27 polygon(s))
 INFO canopy: 650055 of 67108864 valid px (0.97%)
 """, story)
-
 story.append(P("""
-Between 40 seconds and two and a half minutes on one GPU, depending on how
-many outputs are written and whether they go to a local disk or a network
-drive. The progress bar is the honest guide to how much is left.
+Between 40 seconds and two and a half minutes on one GPU, depending on how many
+outputs are requested and whether they are written to a local disk or a network
+drive.
 """))
 
-story.append(Paragraph('Is the answer sensible?', S['h2']))
-table(['Number', 'Expected', 'If it is far off'],
-      [['Canopy percentage', 'About **1%** on this clip. Scattered Ghaf in '
-        'desert is a low number by nature',
-        '`0.00%` means the run found nothing; above 50% means it found '
-        'everything. Both point upstream: usually the wrong checkpoint, or '
-        'bands that are not red, green, blue'],
-       ['Polygon count', '27 on this clip at the default settings',
-        'A wildly larger number usually means single-pixel specks - see '
-        '`--min-area` below'],
-       ['Crown areas', 'Roughly 2 to 112 m2 for real crowns',
-        'Hundreds of square metres suggests crowns merged, or the image is '
-        'not at the resolution the model expects']],
-      story, widths=[CONTENT_W * 0.20, CONTENT_W * 0.36, CONTENT_W * 0.44])
+story.append(Paragraph('5.2 The three outputs', S['h2']))
+table(['File', 'Content', 'Typical use'],
+      [['crowns.gpkg', 'The crowns as polygons, with an `area_m2` column',
+        'Counting trees, measuring crowns, and joining to other GIS layers. '
+        'This is the primary result'],
+       ['crowns.tif', 'A raster the size of the input in which each pixel is '
+        '1 for crown and 0 for background',
+        'Overlaying on the imagery, computing canopy cover, and differencing '
+        'against a labelled mask'],
+       ['probability.tif', 'A raster of the same size holding the confidence '
+        'of each pixel between 0.00 and 1.00',
+        'Applying a stricter or looser cut-off after the run, and identifying '
+        'where the model was uncertain']],
+      story, widths=[CONTENT_W * 0.19, CONTENT_W * 0.36, CONTENT_W * 0.45],
+      mono_first=True)
+story.append(P("""
+All three carry the coordinate reference system of the input, so they align
+with other layers without manual positioning.
+"""))
 
-story.append(Paragraph('Adjustments worth knowing', S['h2']))
+story.append(Paragraph('5.3 Confirming that the result is plausible', S['h2']))
+table(['Quantity', 'Expected on the sample clip', 'If the value is far from it'],
+      [['Canopy percentage', 'About 1 per cent. Scattered Ghaf in arid terrain '
+        'gives a low figure',
+        '0.00 per cent means nothing was found and a figure above 50 per cent '
+        'means everything was. Both indicate a problem upstream, most often '
+        'the wrong checkpoint or bands that are not red, green and blue'],
+       ['Polygon count', '27 at the default settings',
+        'A much larger count is usually caused by single-pixel fragments. '
+        'See `--min-area` below'],
+       ['Crown area', 'Between 2 and 112 square metres',
+        'Areas in the hundreds of square metres indicate that neighbouring '
+        'crowns have merged, or that the imagery is not at the resolution the '
+        'model expects']],
+      story, widths=[CONTENT_W * 0.18, CONTENT_W * 0.34, CONTENT_W * 0.48])
+
+story.append(Paragraph('5.4 Options', S['h2']))
 table(['Option', 'Effect'],
-      [['--threshold 0.6', 'Stricter: fewer, more confident crowns. `0.4` is '
-        'more inclusive. Default 0.5'],
-       ['--min-area 1', 'Drop crown polygons under 1 m2. Removes the stray '
-        'single-pixel specks that any threshold leaves behind, which '
-        'otherwise inflate a crown count. On the sample clip this removes 11 '
-        'of 27 "crowns" and leaves the 16 real ones'],
-       ['--batch-size 4', 'Faster on a GPU with spare memory. Lower it to 1 if '
-        'you see `CUDA out of memory`'],
-       ['--device cpu', 'Run without a GPU. Much slower, but it works'],
-       [r'--scratch-dir E:\scratch', 'Put the temporary working files on a '
-        'bigger or faster drive'],
-       ['--bands 1 2 3', 'Which bands of the image are red, green and blue. '
-        'Only needed for unusual imagery']],
-      story, widths=[CONTENT_W * 0.26, CONTENT_W * 0.74], mono_first=True)
+      [['--threshold 0.6', 'Raises the confidence required to call a pixel a '
+        'crown, giving fewer crowns. A value of 0.4 is more inclusive. The '
+        'default is 0.5'],
+       ['--min-area 1', 'Discards crown polygons below 1 square metre. This '
+        'removes the single-pixel fragments that any threshold produces, which '
+        'otherwise inflate the crown count. On the sample clip it removes 11 '
+        'of the 27 polygons and retains the 16 genuine crowns'],
+       ['--batch-size 4', 'Processes four windows at a time. Reduce it to 1 if '
+        'the run reports insufficient GPU memory'],
+       ['--device cpu', 'Runs without a GPU'],
+       [r'--scratch-dir E:\scratch', 'Places the temporary working files on a '
+        'larger or faster drive'],
+       ['--bands 1 2 3', 'Identifies which bands of the input are red, green '
+        'and blue. Required only for imagery in an unusual band order']],
+      story, widths=[CONTENT_W * 0.24, CONTENT_W * 0.76], mono_first=True)
 
-story.append(Paragraph('The full survey mosaic', S['h2']))
+story.append(Paragraph('5.5 The full survey mosaic', S['h2']))
 story.append(P("""
-`Kalba26.tif` is 84 072 x 103 691 pixels - 8.7 billion of them. At 9 bytes per
-pixel that is about **79 GB of temporary space**, and roughly 33 500 windows
-to predict: a run of hours rather than minutes on one GPU. Point
-`--scratch-dir` at a drive with room, start it, and leave it. The program
-checks the free space before it begins rather than failing part-way through.
+`Kalba26.tif` measures 84 072 by 103 691 pixels, which is 8.7 billion pixels. At
+9 bytes per pixel the run requires about 79 GB of temporary space and about
+33 500 windows, giving a duration of hours rather than minutes on one GPU.
+Direct `--scratch-dir` at a drive with sufficient room. Free space is verified
+before the run begins rather than part-way through.
 """))
 
-story.append(Paragraph('Cutting your own sample', S['h2']))
+story.append(Paragraph('5.6 Cutting a clip from a larger mosaic', S['h2']))
 story.append(P("""
-To try a different part of a mosaic, or to make a quick sample from a new
-survey, cut one out first. A minute or two:
+To test a different part of a mosaic, or to produce a quick sample from a new
+survey, cut a clip first. One to two minutes.
 """))
 code(r'python tools\make_sample.py ..\samples\Kalba26.tif --output ..\samples\my_sample.tif --size 8192 --origin 30000 40000',
      story)
 story.append(P("""
-`--size` is the clip in pixels. `--origin` is its top-left corner; leave it out
-and the clip is taken from the centre. The tool reports how much of the clip
-is real imagery rather than the transparent border around a survey, so a badly
-placed window is obvious immediately.
+`--size` gives the clip in pixels and `--origin` its top-left corner. Omitting
+`--origin` takes the clip from the centre. The program reports the proportion
+of the clip that is imagery rather than the transparent border surrounding a
+survey, which identifies a poorly placed window immediately.
 """))
 
 story.append(PageBreak())
 # =========================================================================
-H1('8. Mapping a whole folder of images', story)
+H1('6. Mapping every image in a folder', story)
 story.append(P("""
-When you have many images rather than one - a season's clips, a set of survey
-plots, the frames from one flight - point the batch tool at the folder and
-leave it. Each image is windowed exactly as a full mosaic is, so they need not
-be the same size and none of them has to fit in memory.
+Where a survey consists of many images rather than one, this procedure maps all
+of them in a single run. Each image is processed in windows exactly as a full
+mosaic is, so the images need not share a size and none of them has to fit in
+memory.
 """))
 code(r'cd /d D:\ghaf-project\code', story)
 code(r"""python tools\predict_folder.py ..\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py ..\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth D:\my-images --out-dir ..\output\folder --batch-size 4 --min-area 1""",
@@ -862,431 +915,422 @@ INFO 1 predicted, 0 skipped, 0 failed; canopy 0.97% of valid px
 INFO wrote ..\output\folder\summary.json
 """, story)
 
-story.append(Paragraph('What it writes', S['h2']))
+story.append(Paragraph('6.1 The output folder', S['h2']))
 output(r"""
 folder\
-+-- polygons\      one .gpkg of crowns per image, with area_m2      <- the output
-+-- masks\         the 0/1 raster, only if you add --save-mask
-+-- probability\   the confidence raster, only with --save-probability
++-- polygons\      one GeoPackage of crowns per image, with area_m2
++-- masks\         the 0/1 raster, written only with --save-mask
++-- probability\   the confidence raster, written only with --save-probability
 +-- summary.json   every image, its canopy share, and any failures
-""", story, caption='Output layout')
-
+""", story, kind='tree', caption='Layout of the output')
 story.append(P("""
-**You get crowns, not rasters.** A GeoPackage of crowns is a few hundred
-kilobytes where the mask behind it is hundreds of megabytes, and it is the
-crowns you count, measure and drape over the imagery. The mask is still made -
-the polygons are traced from it - but it is written to temporary space and
-deleted when that image is done. Add `--save-mask` when you want to keep it.
+The output of a batch run is the crowns. A GeoPackage occupies a few hundred
+kilobytes where the mask it was derived from occupies hundreds of megabytes,
+and the crowns are what is counted, measured and displayed over the imagery.
+The mask is still produced, since the polygons are traced from it, but it is
+written to temporary space and deleted once that image is complete. Add
+`--save-mask` where the raster is required.
 """))
 story.append(P("""
-If the input folder has subfolders, the output mirrors them, so two images
-with the same name in different folders cannot overwrite each other.
+Where the input folder contains subfolders, the output reproduces the same
+structure, so two images of the same name in different subfolders cannot
+overwrite one another.
 """))
 
-story.append(Paragraph('Switches for a long batch', S['h2']))
-table(['Switch', 'Effect'],
-      [['--limit 3', 'Stop after three images. Always do this first on a big '
-        'folder: it proves the settings before you commit to hundreds'],
-       ['--recursive', 'Include images in subfolders'],
-       ['--pattern "*_rgb.tif"', 'Only files whose name matches. Useful when a '
-        'folder mixes RGB images with elevation models'],
-       ['--skip-existing', 'Carry on where an interrupted run stopped, instead '
-        'of redoing finished images'],
-       ['--save-mask', 'Also keep the 0/1 raster per image'],
-       ['--save-probability', 'Also keep the confidence raster per image'],
-       ['--min-area 1', 'Drop crowns under 1 square metre']],
-      story, widths=[CONTENT_W * 0.26, CONTENT_W * 0.74], mono_first=True)
+story.append(Paragraph('6.2 Options for a long run', S['h2']))
+table(['Option', 'Effect'],
+      [['--limit 3', 'Stops after three images. Run a large folder this way '
+        'first, to confirm the settings before committing to hundreds of '
+        'images'],
+       ['--recursive', 'Includes images held in subfolders'],
+       ['--pattern "*_rgb.tif"', 'Selects only files whose name matches. '
+        'Useful where a folder mixes imagery with elevation models'],
+       ['--skip-existing', 'Resumes an interrupted run rather than repeating '
+        'images already completed'],
+       ['--save-mask', 'Retains the 0/1 raster for each image'],
+       ['--save-probability', 'Retains the confidence raster for each image'],
+       ['--min-area 1', 'Discards crowns below one square metre']],
+      story, widths=[CONTENT_W * 0.24, CONTENT_W * 0.76], mono_first=True)
 
 box("""
-**One bad file does not stop the run.** If an image is unreadable or has an
-unexpected number of bands, that image is reported, the batch carries on, and
-the failure is listed in `summary.json` at the end. Read `summary.json` after
-any long run: it names anything that did not work.
+**A single unreadable file does not halt the run.** The image is reported, the
+batch continues, and the failure is recorded in `summary.json`. Read that file
+after any long run, since it names everything that did not succeed.
 """, story)
 
 story.append(PageBreak())
 # =========================================================================
-H1('9. Looking at the results', story)
+H1('7. Reviewing the results', story)
 story.append(P("""
-Everything the tools write carries the coordinate system of the image it came
-from, so it lands in the right place on the map with no manual positioning.
+Every file written by these programs carries the coordinate reference system of
+the image it was derived from, and therefore requires no manual positioning.
 """))
 
-story.append(Paragraph('Opening the crowns in QGIS', S['h2']))
+story.append(Paragraph('7.1 Opening the crowns in QGIS', S['h2']))
 bullets([
-    'Open QGIS. **Layer > Add Layer > Add Vector Layer**, browse to '
-    '`crowns.gpkg`, and click **Add**.',
-    'Add the imagery underneath it: **Layer > Add Layer > Add Raster Layer**, '
-    'and choose the image you mapped. Drag it below the crowns in the Layers '
-    'panel.',
-    'Right-click the crowns layer > **Properties > Symbology**. Set **Fill '
-    'style** to *No brush* and pick a bright outline colour, so you can see '
-    'the imagery through each crown.',
-    'Right-click > **Open Attribute Table** to see one row per crown, with '
-    '`area_m2`. The row count at the top of that window is your tree count.',
-    'For totals: **Vector > Analysis Tools > Basic Statistics for Fields**, '
-    'choose the crowns layer and the `area_m2` field. It gives the count, sum, '
-    'mean, minimum and maximum crown area.',
+    'Select **Layer > Add Layer > Add Vector Layer**, browse to `crowns.gpkg`, '
+    'and click **Add**.',
+    'Add the imagery through **Layer > Add Layer > Add Raster Layer**, then '
+    'drag it below the crowns in the Layers panel.',
+    'Right-click the crowns layer and select **Properties > Symbology**. Set '
+    'the fill style to *No brush* and choose a bright outline colour, so that '
+    'the imagery remains visible inside each crown.',
+    'Right-click the layer and select **Open Attribute Table**. Each row is one '
+    'crown, with its area in the `area_m2` column. The row count shown at the '
+    'top of the window is the number of crowns.',
+    'For summary figures, select **Vector > Analysis Tools > Basic Statistics '
+    'for Fields**, then choose the crowns layer and the `area_m2` field. The '
+    'result gives the count, sum, mean, minimum and maximum crown area.',
 ], story, numbered=True)
 
-story.append(Paragraph('Opening the rasters', S['h2']))
+story.append(Paragraph('7.2 Opening the rasters in QGIS', S['h2']))
 story.append(P("""
-`crowns.tif` and `probability.tif` are added the same way, through **Add Raster
-Layer**. Two tips that save confusion:
+Both rasters are added through **Add Raster Layer**. Two points avoid
+confusion.
 """))
 bullets([
-    'The mask looks black at first, because its values are 0 and 1 and QGIS '
-    'stretches 0-255 by default. Right-click > **Properties > Symbology**, set '
-    'the render type to **Paletted/Unique values**, and click **Classify** - '
-    'you then get two colours, one per class.',
-    'For the probability raster, use **Singleband pseudocolor** and a colour '
-    'ramp from 0 to 1. Anywhere yellow-to-red is where the model was most '
-    'confident.',
+    'The mask appears black on first opening, because its values are 0 and 1 '
+    'while QGIS stretches the display across 0 to 255. In **Properties > '
+    'Symbology**, set the render type to **Paletted/Unique values** and click '
+    '**Classify**, which assigns one colour to each class.',
+    'For the probability raster, select **Singleband pseudocolor** with a '
+    'colour ramp from 0 to 1. The upper end of the ramp marks the pixels the '
+    'model was most confident about.',
 ], story)
 
-story.append(Paragraph('Numbers to sanity-check against', S['h2']))
-table(['Quantity', 'Value seen in this project'],
-      [['Canopy share, sample clip', 'About 0.97% of valid pixels'],
-       ['Canopy share, test split', 'About 3.44% across the 767 test tiles'],
-       ['Crown count, sample clip', '27 raw; 16 after `--min-area 1`'],
-       ['Crown areas, sample clip', 'About 2.4 to 112 m2'],
-       ['Ground sampling distance', 'About 2.68 cm per pixel'],
-       ['Total crown area, sample clip', 'About 469 m2, against 467 m2 '
-        'computed from the mask pixels - the two agree, as they should']],
-      story, widths=[CONTENT_W * 0.36, CONTENT_W * 0.64])
-
+story.append(Paragraph('7.3 Reference figures', S['h2']))
 story.append(P("""
-Those figures are the yardstick. A result an order of magnitude away from them
-is worth investigating before it goes into a report.
+The values below were obtained from the delivered models and sample data. A
+result differing from them by an order of magnitude should be investigated
+before it is reported.
 """))
+table(['Quantity', 'Value'],
+      [['Canopy share, sample clip', '0.97 per cent of valid pixels'],
+       ['Canopy share, test split', '3.44 per cent across the 767 test tiles'],
+       ['Crown count, sample clip', '27 before filtering, 16 after '
+        '`--min-area 1`'],
+       ['Crown area, sample clip', '2.4 to 112 square metres'],
+       ['Ground sampling distance', '2.68 cm per pixel'],
+       ['Total crown area, sample clip', '469 square metres from the polygons, '
+        'against 467 square metres computed from the mask pixels']],
+      story, widths=[CONTENT_W * 0.34, CONTENT_W * 0.66])
 
 story.append(PageBreak())
 # =========================================================================
-H1('10. Scoring a model against the labelled tiles', story)
+H1('8. Evaluating a model', story)
 story.append(P("""
-This reproduces the published numbers from the weights you were given - the
-strongest single check that everything on your machine is correct. About three
-minutes on a GPU.
+This procedure reproduces the published scores from the delivered weights and
+provides the strongest single confirmation that the installation is correct.
+About three minutes on a GPU.
 """))
 code(r'cd /d D:\ghaf-project\code', story)
 code(r"""python tools\test.py ..\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py ..\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth --data-root ..\data\ghaf""",
      story)
 story.append(P("""
-The last line reports `mIoU`, `mDice` and `mFscore`, with a table above it
-giving the two classes separately.
-"""))
-table(['Model', 'mIoU', 'F1'],
-      [['**FastViT-MA36 + Mask2Former**', '**79.32**', '**87.22**'],
-       ['PoolFormer-S36 + FPN', '78.65', '86.72'],
-       ['DPN-98 + FPN', '78.19', '86.35'],
-       ['ConvNeXt-S + UPerNet', '78.02', '86.20'],
-       ['ResNet-50 + Mask2Former', '77.69', '85.98'],
-       ['EfficientNet-B3 + FPN', '70.77', '80.29']],
-      story, widths=[CONTENT_W * 0.56, CONTENT_W * 0.22, CONTENT_W * 0.22])
-story.append(P("""
-Swap the two paths to score any of the other five. If your number differs from
-the table by more than a rounding error, the cause is almost always the data
-root pointing somewhere unexpected, or a checkpoint that is not the one it
-claims to be - check 2 in chapter 6 settles the second case.
+The final line reports mIoU, mDice and mFscore, above which a table gives the
+two classes separately. Expected values for all six models are listed in
+section 1.2. A departure larger than a rounding difference is caused either by
+a data root pointing at an unintended folder or by a checkpoint that is not the
+one it is taken to be, and check 2 in section 4 settles the second case.
 """))
 
-story.append(Paragraph('Per-tile predictions over a labelled split', S['h2']))
+story.append(Paragraph('8.1 Predictions for every tile in a split', S['h2']))
 story.append(P("""
-Scoring reduces a whole split to a few numbers. If you want the maps behind
-those numbers - for figures, or to see *where* the model is wrong rather than
-by how much - predict the split tile by tile. A few minutes for the test
-split:
+Scoring reduces a split to a small number of figures. Where the underlying maps
+are required, for illustration or to establish where the model errs rather than
+by how much, predict the split tile by tile. A few minutes for the test split.
 """))
 code(r"""python tools\predict_split.py ..\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py ..\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth --data-root ..\data\ghaf --split testing --out-dir ..\output\predictions --save-probability""",
      story)
 story.append(P("""
-One predicted mask per tile, encoded exactly like the ground-truth masks
-(`0` background, `1` ghaf), so a prediction and its label can be subtracted
-directly to make an error map. `--limit 20` runs a quick partial pass first.
-Expect a canopy fraction around **3.4%** over the test split.
+The result is one predicted mask per tile, encoded exactly as the ground-truth
+masks are, with `0` for background and `1` for ghaf, so that a prediction and
+its label can be subtracted directly to produce an error map. `--limit 20`
+performs a partial run first. The canopy fraction over the test split is 3.4
+per cent.
 """))
 
 story.append(PageBreak())
 # =========================================================================
-H1('11. Training and fine-tuning', story)
+H1('9. Training and fine-tuning', story)
 story.append(P("""
-Only worth doing if you are changing something. The six trained models are
-already provided, and training the published configuration takes many hours on
-one GPU.
+Training is required only where something is to be changed, since six trained
+models are supplied. A full training run of the published configuration takes
+many hours on one GPU.
 """))
 
-story.append(Paragraph('Training from scratch', S['h2']))
+story.append(Paragraph('9.1 Training from scratch', S['h2']))
 code(r'python tools\train.py configs\ghaf\fastvit-ma36_mask2former.py --data-root ..\data\ghaf',
      story)
 story.append(P("""
-Checkpoints and logs go to `work_dirs\\<config-name>\\`. The model is scored on
-the validation split every 3 500 iterations and the best one is kept as
-`best_mIoU_iter_*.pth`. If a run is interrupted - a power cut, a closed window
-- continue it, optimiser state and all:
+Checkpoints and logs are written to `work_dirs\\<config-name>\\`. The model is
+scored on the validation split every 3500 iterations and the best result is
+retained as `best_mIoU_iter_*.pth`. An interrupted run is continued with
+`--resume`, which restores the optimiser state and the iteration count.
 """))
 code(r'python tools\train.py configs\ghaf\fastvit-ma36_mask2former.py --data-root ..\data\ghaf --resume',
      story)
 box("""
-**Keep `work_dirs\\` when a run finishes.** It holds the loss curves, the
-validation history and the exact configuration the run used. Those logs cannot
-be reconstructed afterwards, and they are what a reviewer asks for.
+**Retain `work_dirs\\` after a run completes.** It holds the loss curves, the
+validation history and the exact configuration used. These records cannot be
+reconstructed afterwards and are the material a reviewer requests.
 """, story)
 
-story.append(Paragraph('Fine-tuning on labels from a new site', S['h2']))
+story.append(Paragraph('9.2 Fine-tuning on labels from a new site', S['h2']))
 story.append(P("""
-Starting from a released checkpoint is much cheaper than training from
-scratch, and usually better. First prepare the new tiles in the same layout -
-`training/{images,masks}`, `validation/{images,masks}`, 1024 x 1024 PNG pairs,
-masks containing only 0 and 1 - and check them:
+Starting from a released checkpoint costs far less than training from scratch
+and generally gives a better result. Prepare the new tiles in the layout
+described in section 1.3, with 1024 by 1024 PNG pairs and masks containing only
+the values 0 and 1, then verify them.
 """))
 code(r'python tools\check_dataset.py D:\ghaf-project\data\new-site --full', story)
-story.append(P('Then fine-tune, with a shorter schedule and a smaller learning rate:'))
+story.append(P('Fine-tune with a shorter schedule and a smaller learning rate.'))
 code(r"""python tools\train.py configs\ghaf\fastvit-ma36_mask2former.py --data-root ..\data\new-site --load-from ..\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth --cfg-options train_cfg.max_iters=4000 optim_wrapper.optimizer.lr=1e-5""",
      story)
-table(['Flag', 'What it does'],
-      [['--load-from', 'Takes the weights and starts a **fresh** schedule. '
-        'This is what fine-tuning means'],
-       ['--resume', 'Continues an **interrupted** run of your own, keeping the '
-        'optimiser state and iteration count. A different thing entirely'],
-       ['--cfg-options train_cfg.max_iters=4000', 'A shorter schedule: 4000 '
-        'iterations rather than the full run'],
-       ['--cfg-options optim_wrapper.optimizer.lr=1e-5', 'A smaller learning '
-        'rate, so the model adjusts to the new site without forgetting what '
-        'it already knows']],
-      story, widths=[CONTENT_W * 0.38, CONTENT_W * 0.62], mono_first=True)
+table(['Argument', 'Effect'],
+      [['--load-from', 'Takes the weights and begins a new schedule, which is '
+        'what fine-tuning requires'],
+       ['--resume', 'Continues an interrupted run of your own, retaining the '
+        'optimiser state and iteration count. Distinct from `--load-from`'],
+       ['--cfg-options train_cfg.max_iters=4000', 'Shortens the schedule to '
+        '4000 iterations'],
+       ['--cfg-options optim_wrapper.optimizer.lr=1e-5', 'Reduces the learning '
+        'rate, so that the model adapts to the new site without discarding '
+        'what it has already learned']],
+      story, widths=[CONTENT_W * 0.36, CONTENT_W * 0.64], mono_first=True)
 story.append(P("""
-Score the result exactly as in chapter 10, pointing `--data-root` at the new
-site and the checkpoint at your new `work_dirs\\...\\best_mIoU_iter_*.pth`.
+Score the result as described in section 8, with `--data-root` directed at the
+new site and the checkpoint at the new `work_dirs\\...\\best_mIoU_iter_*.pth`.
 """))
 
 story.append(PageBreak())
 # =========================================================================
-H1('12. When something goes wrong', story)
+H1('10. Diagnosing errors', story)
 story.append(P("""
-Nothing here is dangerous. No command in this handbook deletes your data, and
-a failed run can always be started again. The skill worth having is reading
-what the computer said.
+No command in this handbook deletes data, and an interrupted run can always be
+started again. Almost every failure announces itself in the last few lines of
+output, and this section sets out how to read them.
 """))
 
-story.append(Paragraph('The method: five steps', S['h2']))
+story.append(Paragraph('10.1 Procedure', S['h2']))
 bullets([
-    '**Read the last three lines first.** Python prints the history of what it '
-    'was doing (the "traceback") and then, on the very last line, what '
-    'actually went wrong. That last line is the error. Everything above it is '
-    'context.',
-    '**Find the error type.** The last line looks like '
-    '`SomeError: some message`. The part before the colon is the type - '
-    '`FileNotFoundError`, `RuntimeError`, `ModuleNotFoundError` - and it tells '
-    'you the category of the problem.',
-    '**Check the table on the next page.** Most of what happens in practice is '
-    'in it, with the fix.',
-    '**Ask the three questions** in "Before you search" below. They resolve a '
-    'large share of problems without any searching at all.',
-    '**Then search**, using the recipe below. Copy the error, not your paths.',
+    '**Read the last three lines.** Python prints a record of what it was doing '
+    'and then, on the final line, what went wrong. That final line is the '
+    'error; everything above it is context.',
+    '**Identify the error type.** The final line takes the form '
+    '`SomeError: message`. The word before the colon states the category, for '
+    'example `FileNotFoundError`, `RuntimeError` or `ModuleNotFoundError`.',
+    '**Consult the table in section 10.3**, which covers the failures that '
+    'occur in practice.',
+    '**Answer the three questions in section 10.2**, which resolve a large '
+    'proportion of problems without further investigation.',
+    '**Search**, following section 10.4.',
 ], story, numbered=True)
 
 box("""
-**Copy the error text before you do anything else.** Select it in the terminal
-window and press Enter (in the Anaconda Prompt this copies), then paste it
-into Notepad. If you close the window or run another command the text is
-usually gone, and an error you cannot quote is an error nobody can help with.
+**Copy the error text before running anything else.** Select it in the terminal
+window, press Enter to copy, and paste it into a text file. Closing the window
+or running another command usually loses it, and an error that cannot be quoted
+cannot be diagnosed by anyone else.
 """, story, kind='warn')
 
-story.append(Paragraph('Before you search: three questions', S['h2']))
+story.append(Paragraph('10.2 Three questions to answer first', S['h2']))
 table(['Question', 'How to check', 'Why it matters'],
-      [['Am I in the `ghaf` environment?', 'The prompt should start with '
-        '`(ghaf)`. If not: `conda activate ghaf`',
-        'The single most common cause of "module not found". A new terminal '
-        'window always starts outside it'],
-       ['Am I running the right Python?',
-        '`python -c "import sys; print(sys.executable)"` - the path printed '
+      [['Is the `ghaf` environment active?', 'The prompt begins with `(ghaf)`. '
+        'If it does not, run `conda activate ghaf`',
+        'This is the most frequent cause of a missing module. Every new '
+        'terminal window opens outside the environment'],
+       ['Is the correct Python running?',
+        'Run `python -c "import sys; print(sys.executable)"`. The path printed '
         'must contain `envs\\ghaf`',
-        'A base Anaconda install ahead on the PATH will answer instead, and '
-        'has none of this project\'s packages'],
-       ['Am I in the right folder?', '`cd` on its own prints where you are. '
-        '`dir` lists what is there',
-        'Commands here assume the `code` folder. A path typed relative to '
-        'somewhere else will not be found']],
+        'A base Anaconda installation earlier in the PATH answers instead, and '
+        'holds none of this project\'s packages'],
+       ['Is the working folder correct?', 'Run `cd` alone to print the current '
+        'folder, and `dir` to list its contents',
+        'The commands in this handbook assume the `code` folder. A relative '
+        'path entered elsewhere will not resolve']],
       story, widths=[CONTENT_W * 0.26, CONTENT_W * 0.40, CONTENT_W * 0.34])
 
-story.append(PageBreak())
-story.append(Paragraph('Errors you may actually meet', S['h2']))
-table(['What you see', 'What it means', 'What to do'],
-      [['`No module named mmengine` / `pytest` / `ghaf`',
-        'A different Python is running than the one you installed into',
-        'Run `conda activate ghaf`. Verify with '
-        '`python -c "import sys; print(sys.executable)"`. Always start '
-        'commands with `python -m`'],
+story.append(Paragraph('10.3 Reported errors and their remedies', S['h2']))
+table(['Message', 'Cause', 'Remedy'],
+      [['`No module named mmengine`, `pytest` or `ghaf`',
+        'A different Python is running than the one the packages were '
+        'installed into',
+        'Run `conda activate ghaf` and confirm with '
+        '`python -c "import sys; print(sys.executable)"`. Begin commands with '
+        '`python -m`'],
        ['`mmseg ... is not installed in conda environment "X"`',
-        'Wrong environment, or the stack was never installed on this machine',
-        'The message names the interpreter it asked. `conda activate ghaf`, '
-        'then repeat the command'],
+        'The wrong environment is active, or the framework was never installed '
+        'on this machine',
+        'The message names the interpreter that was queried. Run '
+        '`conda activate ghaf` and repeat the command'],
        ['`No module named ftfy`',
-        'mmsegmentation imports a tokenizer that needs it, although its own '
-        'metadata does not say so',
-        '`python -m pip install ftfy regex`'],
+        'mmsegmentation imports a tokenizer requiring this package, although '
+        'its own metadata does not declare it',
+        'Run `python -m pip install ftfy regex`'],
        ['`RuntimeError: Numpy is not available`',
-        'NumPy 2 alongside a PyTorch built for NumPy 1',
-        '`python -m pip install "numpy<2"`'],
-       ['`opencv-python ... requires numpy>=2` while installing',
-        'A note from pip\'s resolver, not an error',
-        'Ignore it. OpenCV works with either'],
+        'NumPy 2 is installed alongside a PyTorch built against NumPy 1',
+        'Run `python -m pip install "numpy<2"`'],
+       ['`opencv-python ... requires numpy>=2` during installation',
+        'A note from the pip resolver rather than an error',
+        'No action. OpenCV functions with either version'],
        ['`CUDA out of memory`',
-        'The GPU ran out of room, usually because the batch size is too high '
-        'or another program is using the card',
-        'Lower `--batch-size` to 2 or 1. Close other GPU programs. Or add '
+        'The GPU has insufficient free memory, commonly because the batch size '
+        'is too high or another program is using the card',
+        'Reduce `--batch-size` to 2 or 1, close other GPU programs, or add '
         '`--device cpu`'],
        ['`not enough scratch space`',
         'The drive holding temporary files is too small for this image',
-        'Add `--scratch-dir` pointing at a drive with room. An image needs 9 '
-        'bytes per pixel'],
+        'Add `--scratch-dir` directed at a drive with room. An image requires '
+        '9 bytes per pixel'],
        ['`FileNotFoundError` naming a path',
-        'A file or folder in the command does not exist as typed',
-        'Check for a typo, a missing `..\\`, or a path with spaces that needs '
-        'double quotes'],
+        'A file or folder in the command does not exist as entered',
+        'Check for a typographical error, a missing `..\\`, or a path with '
+        'spaces requiring double quotes'],
        ['`The system cannot find the path specified`, printed twice',
-        'The path contains an `&`, which the Command Prompt read as two '
+        'The path contains an ampersand, which the Command Prompt read as two '
         'separate commands',
-        'Put the whole path in double quotes'],
+        'Enclose the whole path in double quotes'],
        ['`The process cannot access the file because it is being used by '
         'another process`',
-        'QGIS, ArcGIS or another window has the file open',
-        'Close the program holding it. If you are deleting a folder, first '
-        '`cd` out of it - a terminal sitting inside a folder holds it open'],
+        'QGIS, ArcGIS or another program holds the file open',
+        'Close the program concerned. When deleting a folder, first change out '
+        'of it, since a terminal within a folder holds it open'],
        ['`NO TILES` from `check_dataset.py`',
-        'The folders exist but hold no `.png` or `.tif` tiles',
-        'The row names what it found instead; usually the tiles are one '
-        'folder deeper, or in another format'],
+        'The folders exist but contain no PNG or TIF tiles',
+        'The row names the file types found instead. The tiles are usually one '
+        'level deeper, or in a different format'],
        ['`SHA-256 mismatch` from `smoke_test.py`',
-        'A checkpoint does not match the one that was released',
+        'A checkpoint does not match the file that was released',
         'That copy is damaged. Copy it again from the original'],
        ['`0.00% ghaf` from `smoke_test.py`',
-        'Nothing. That step predicts on a blank tile',
-        'Expected. See chapter 6'],
-       ['`0.00%` canopy on real imagery',
-        'The run genuinely found nothing',
-        'Usually the wrong checkpoint, or bands that are not red, green, blue. '
-        'Check the config and checkpoint paths, then try `--bands`'],
-       ['Screens of `UserWarning` about `__floordiv__`, `meshgrid`, '
+        'None. That check predicts on a blank tile',
+        'No action. See section 4'],
+       ['0.00 per cent canopy on real imagery',
+        'The run found nothing',
+        'Usually the wrong checkpoint, or bands that are not red, green and '
+        'blue. Verify the configuration and checkpoint paths, then try '
+        '`--bands`'],
+       ['Numerous `UserWarning` lines about `__floordiv__`, `meshgrid` or '
         '`build_loss`',
-        'Deprecation notices from inside PyTorch and mmsegmentation',
-        'Nothing. They appear on a correct run'],
+        'Deprecation notices from within PyTorch and mmsegmentation',
+        'No action. They appear on a correct run'],
        ['`KeyboardInterrupt`',
-        'Someone pressed Ctrl+C, or the terminal was closed',
-        'Nothing broke. Run the command again; long runs can be resumed with '
+        'Ctrl+C was pressed, or the terminal was closed',
+        'Nothing is damaged. Run the command again. Long runs resume with '
         '`--skip-existing` or `--resume`'],
-       ['The command did something odd after pasting several lines',
-        'The terminal joined them into one line',
-        'Paste and run one command at a time']],
+       ['Unexpected behaviour after pasting several lines',
+        'The terminal joined them into a single line',
+        'Enter one command at a time']],
       story, widths=[CONTENT_W * 0.30, CONTENT_W * 0.32, CONTENT_W * 0.38])
 
-story.append(PageBreak())
-story.append(Paragraph('How to search for an answer', S['h2']))
+story.append(Paragraph('10.4 Searching for a solution', S['h2']))
 story.append(P("""
-If the error is not in the table, it is almost certainly something another
-person has already hit. Searching well is a skill with a recipe.
+An error absent from the table above has almost certainly been encountered by
+someone else. What follows is a reliable procedure for finding their answer.
 """))
 
-story.append(Paragraph('What to paste into the search box', S['h3']))
+story.append(Paragraph('Preparing the query', S['h3']))
 story.append(P("""
-Take the **last line** of the error. Remove anything specific to your
-computer - your name, your drive letters, your file names, any long numbers -
-because those appear in nobody else's error. Add the name of the library it
-came from. So this:
+Take the final line of the error and remove everything specific to your
+computer, which includes your user name, drive letters, file names and any long
+numbers, since none of these appear in anyone else's error. Add the name of the
+library that raised it.
 """))
 output(r"""
   File "D:\ghaf-project\code\ghaf\inference\large_image.py", line 322, in predict_large_image
     with rasterio.open(src_path) as src:
 rasterio.errors.RasterioIOError: D:\surveys\flight_07\north_block.tif: No such file or directory
-""", story, caption='What you saw')
-story.append(P('becomes this:'))
+""", story, caption='The error as printed')
 output("""
 rasterio RasterioIOError No such file or directory
-""", story, caption='What to search for')
+""", story, caption='The text to search for')
 
 story.append(Paragraph('Where to search, in order', S['h3']))
-table(['Where', 'How', 'Best for'],
+table(['Source', 'Method', 'Best suited to'],
       [['A search engine',
-        'Paste the cleaned error. Add `mmsegmentation` or `rasterio` or '
-        '`pytorch` - whichever library the error came from',
-        'Almost everything. Try this first'],
-       ['GitHub issues for the library',
-        'Go to the library\'s GitHub page, click **Issues**, and search there. '
-        'Include closed issues - a closed one usually contains the fix',
-        'Errors from inside mmsegmentation, mmcv, mmdet: '
+        'Enter the prepared query, with the name of the library that raised '
+        'the error, such as `mmsegmentation`, `rasterio` or `pytorch`',
+        'Most problems. Start here'],
+       ['The library issue tracker',
+        'Open the library page on GitHub, select **Issues**, and search there. '
+        'Include closed issues, since a closed issue commonly contains the '
+        'resolution',
+        'Errors raised inside mmsegmentation, mmcv or mmdet, at '
         'github.com/open-mmlab/mmsegmentation'],
        ['Stack Overflow',
-        'Search the error text. Read the accepted answer and the comments '
-        'under it',
+        'Search the error text and read the accepted answer together with the '
+        'comments beneath it',
         'General Python, conda and installation problems'],
-       ['This project\'s own documents',
-        'The `docs\\` folder beside the code: GETTING_STARTED, '
-        'AREA_WIDE_INFERENCE, MODEL_ZOO, RELEASE_BUNDLE',
-        'Anything about this project specifically rather than the libraries '
-        'it uses'],
-       ['The tool\'s own help',
-        'Add `--help` to any command, for example '
+       ['The project documentation',
+        'The `docs\\` folder beside the code, which holds GETTING_STARTED, '
+        'AREA_WIDE_INFERENCE, MODEL_ZOO and RELEASE_BUNDLE',
+        'Questions about this project rather than the libraries it uses'],
+       ['The program itself',
+        r'Append `--help` to any command, for example '
         r'`python tools\predict_folder.py --help`',
-        'Remembering what an option is called, and what it does']],
+        'The name and effect of an option']],
       story, widths=[CONTENT_W * 0.22, CONTENT_W * 0.44, CONTENT_W * 0.34])
 
-story.append(Paragraph('Judging what you find', S['h3']))
+story.append(Paragraph('Assessing what you find', S['h3']))
 bullets([
     '**Check the versions.** An answer written for mmsegmentation 0.x does not '
-    'apply to 1.2.2, and one for PyTorch 2.x may not apply to 1.12.1. If the '
-    'page does not say which version it is about, treat it with suspicion.',
-    '**Prefer answers that explain why.** An answer that only says "run this '
-    'command" and cannot say what it fixes is as likely to break something as '
-    'to help.',
-    '**Never blindly upgrade.** Advice of the form "just upgrade mmcv / torch / '
-    'numpy" will usually break this installation: the versions in chapter 5 '
-    'were chosen because they work together and match the trained weights. If '
-    'you think a version must change, write down what you had first.',
-    '**Change one thing at a time**, and re-run the checks in chapter 6 after '
-    'each change. Two changes at once and you will not know which one helped.',
+    'apply to version 1.2.2, and one written for PyTorch 2.x may not apply to '
+    '1.12.1. Treat a page that does not state its versions with caution.',
+    '**Prefer answers that explain the cause.** An answer offering a command '
+    'without stating what it corrects is as likely to cause damage as to help.',
+    '**Do not upgrade packages on the strength of general advice.** '
+    'Instructions to upgrade mmcv, PyTorch or NumPy will normally break this '
+    'installation, since the versions given in section 3 were selected to work '
+    'together and to match the trained weights. Where a version genuinely must '
+    'change, record the existing version first.',
+    '**Change one thing at a time**, and repeat the checks in section 4 after '
+    'each change. Two simultaneous changes leave the cause of any improvement '
+    'unknown.',
 ], story)
 
 box("""
-**The escape hatch.** If an installation gets into a state you cannot explain,
-delete the environment and build it again from chapter 5. It costs twenty
-minutes and touches none of your data:
-`conda deactivate`, then `conda env remove -n ghaf`, then start at Step 1.
+**Reinstalling.** Where an installation reaches a state that cannot be
+explained, delete the environment and rebuild it from section 3. This takes
+about twenty minutes and affects no data. Run `conda deactivate`, then
+`conda env remove -n ghaf`, then begin at step 2.
 """, story)
 
-story.append(Paragraph('Asking a person for help', S['h2']))
+story.append(Paragraph('10.5 Reporting a problem to a colleague', S['h2']))
 story.append(P("""
-When you do need to ask someone, send all six of these. An answer usually
-comes back in one round instead of five:
+Provide all six items below. A complete report is normally resolved in one
+exchange rather than several.
 """))
 bullets([
-    'The **exact command** you ran, copied and pasted, not retyped from memory.',
-    'The **complete output**, from the command down to the last line. Not a '
-    'screenshot of part of it, and not just the last line.',
-    'What you **expected** to happen instead.',
-    'The result of `python -c "import sys; print(sys.executable)"`.',
-    'The result of `python -m pip list` (or at least the lines for `torch`, '
-    '`mmcv`, `mmsegmentation`, `mmdet`, `numpy`).',
-    'Whether the checks in chapter 6 pass **now** - and whether they ever did '
-    'on this machine.',
+    'The exact command, copied rather than retyped.',
+    'The complete output, from the command to the final line, as text rather '
+    'than as an image.',
+    'The result that was expected instead.',
+    'The output of `python -c "import sys; print(sys.executable)"`.',
+    'The output of `python -m pip list`, or at minimum the entries for `torch`, '
+    '`mmcv`, `mmsegmentation`, `mmdet` and `numpy`.',
+    'Whether the checks in section 4 pass at present, and whether they have '
+    'ever passed on this machine.',
 ], story, numbered=True)
 
 story.append(PageBreak())
 # =========================================================================
-H1('13. Quick reference', story)
+H1('11. Command reference', story)
 story.append(P("""
-Every routine command in one place. All of them assume you have run
-`conda activate ghaf` and `cd /d D:\\ghaf-project\\code` in that window, and
-that `MODEL` stands for
-`..\\models\\fastvit-ma36_mask2former\\fastvit-ma36_mask2former.py` and
-`WEIGHTS` for `..\\models\\fastvit-ma36_mask2former\\best_mIoU_iter_3500.pth`.
+Every routine command, collected. Each assumes that `conda activate ghaf` and
+`cd /d D:\\ghaf-project\\code` have been run in the same window, that `MODEL`
+stands for
+`..\\models\\fastvit-ma36_mask2former\\fastvit-ma36_mask2former.py`, and that
+`WEIGHTS` stands for
+`..\\models\\fastvit-ma36_mask2former\\best_mIoU_iter_3500.pth`.
 """))
 
-story.append(Paragraph('Checks', S['h2']))
+story.append(Paragraph('Verification', S['h2']))
 code(r"""python -m pytest tests\ -q
 python tools\smoke_test.py --checkpoints ..\models
 python tools\check_dataset.py ..\data\ghaf""", story)
 
-story.append(Paragraph('Mapping crowns', S['h2']))
+story.append(Paragraph('Inference', S['h2']))
 code(r"""python -m ghaf.inference.large_image MODEL WEIGHTS image.tif --out-polygons crowns.gpkg --out-mask crowns.tif --batch-size 4 --min-area 1
 
 python tools\predict_folder.py MODEL WEIGHTS D:\my-images --out-dir ..\output\folder --batch-size 4 --min-area 1
@@ -1294,7 +1338,7 @@ python tools\predict_folder.py MODEL WEIGHTS D:\my-images --out-dir ..\output\fo
 python tools\make_sample.py big-mosaic.tif --output sample.tif --size 8192""",
      story)
 
-story.append(Paragraph('Scoring, predicting a split, training', S['h2']))
+story.append(Paragraph('Evaluation and training', S['h2']))
 code(r"""python tools\test.py MODEL WEIGHTS --data-root ..\data\ghaf
 
 python tools\predict_split.py MODEL WEIGHTS --data-root ..\data\ghaf --split testing --out-dir ..\output\predictions
@@ -1304,25 +1348,26 @@ python tools\train.py configs\ghaf\fastvit-ma36_mask2former.py --data-root ..\da
 python tools\train.py configs\ghaf\fastvit-ma36_mask2former.py --data-root ..\data\new-site --load-from WEIGHTS --cfg-options train_cfg.max_iters=4000 optim_wrapper.optimizer.lr=1e-5""",
      story)
 
-story.append(Paragraph('Getting out of trouble', S['h2']))
+story.append(Paragraph('Diagnosis', S['h2']))
 code(r"""conda activate ghaf
 python -c "import sys; print(sys.executable)"
 python tools\predict_folder.py --help
 conda env remove -n ghaf""", story)
 
-story.append(Paragraph('Where to read more', S['h2']))
-table(['Document', 'Covers'],
-      [[r'code\README.md', 'The project, the results, the repository layout'],
-       [r'code\docs\GETTING_STARTED.md', 'The same walkthrough as this '
+story.append(Paragraph('Further documentation', S['h2']))
+table(['Document', 'Subject'],
+      [[r'code\README.md', 'The project, its results, and the repository '
+        'layout'],
+       [r'code\docs\GETTING_STARTED.md', 'The same procedures as this '
         'handbook, in the code folder'],
-       [r'code\docs\MODEL_ZOO.md', 'All six models, per-class scores, training '
-        'settings'],
-       [r'code\docs\AREA_WIDE_INFERENCE.md', 'How a mosaic is tiled and '
-        'blended, and how to tune it'],
+       [r'code\docs\MODEL_ZOO.md', 'All six models, per-class scores and '
+        'training settings'],
+       [r'code\docs\AREA_WIDE_INFERENCE.md', 'How a mosaic is divided into '
+        'windows and blended, and how to adjust it'],
        [r'code\docs\RELEASE_BUNDLE.md', 'How the models folder is assembled '
         'and verified'],
-       ['MANIFEST.json', 'What is in the bundle, its sizes, and the version of '
-        'the code that produced it']],
+       ['MANIFEST.json', 'The contents of the bundle, its sizes, and the '
+        'version of the code that produced it']],
       story, widths=[CONTENT_W * 0.36, CONTENT_W * 0.64], mono_first=True)
 
 story.append(Spacer(1, 10))
@@ -1330,7 +1375,7 @@ story.append(Paragraph(md(
     'This handbook describes the repository at '
     'github.com/brakuta/Ghaf-Tree-Crown-Mapping-from-UAV-Data. The trained '
     'weights, the UAV imagery and the labelled tiles are not distributed with '
-    'the code; they are available from the corresponding author on reasonable '
+    'the code and are available from the corresponding author on reasonable '
     'request.'), S['caption']))
 
 build(story)
