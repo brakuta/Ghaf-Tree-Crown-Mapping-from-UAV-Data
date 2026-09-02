@@ -209,7 +209,7 @@ once that works is the full `Kalba26.tif` worth starting — see *How long the
 full mosaic takes* below.
 
 ```
-python -m ghaf.inference.large_image D:\ghaf-project\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py D:\ghaf-project\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth D:\ghaf-project\samples\sample_mosaic.tif --out-mask D:\ghaf-project\output\crowns.tif --out-prob D:\ghaf-project\output\probability.tif --out-polygons D:\ghaf-project\output\crowns.gpkg
+python -m ghaf.inference.large_image D:\ghaf-project\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py D:\ghaf-project\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth D:\ghaf-project\samples\Kalba26_sample.tif --out-mask D:\ghaf-project\output\crowns.tif --out-prob D:\ghaf-project\output\probability.tif --out-polygons D:\ghaf-project\output\crowns.gpkg
 ```
 
 That is one long command on one line. It writes three files:

@@ -575,7 +575,13 @@ def main(argv=None) -> int:
     args = parse_args(argv)
 
     import ghaf
-    from ghaf.environment import quiet_repeated_warnings
+    from ghaf.environment import quiet_repeated_warnings, require_stack
+
+    try:
+        require_stack()
+    except ModuleNotFoundError as exc:
+        print(exc)
+        return 1
 
     ghaf.register_all()
     quiet_repeated_warnings()
