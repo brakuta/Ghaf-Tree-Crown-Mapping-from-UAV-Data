@@ -241,9 +241,13 @@ python tools/predict_split.py \
     --data-root data/ghaf --split testing --out-dir predictions/testing
 ```
 
-Writes one predicted mask per tile, carrying each tile's CRS and geotransform,
-encoded the same way as the ground truth (`0` background, `1` ghaf) so the two
-can be differenced directly. `--save-probability` adds the float32 P(ghaf) map.
+Evaluation reduces a split to a few numbers; this keeps the maps those numbers
+came from. They are what per-tile error maps, figures and any statistic the
+metric does not report are made from — and the quickest way to see *where* a
+model is wrong rather than by how much. One predicted mask per tile, each
+carrying that tile's CRS and geotransform and encoded the same way as the
+ground truth (`0` background, `1` ghaf), so prediction and label can be
+differenced directly. `--save-probability` adds the float32 P(ghaf) map.
 
 **Package the models for sharing**
 
@@ -252,9 +256,15 @@ python tools/export_release.py --checkpoints /path/to/checkpoints \
                                --output      /path/to/ghaf-release
 ```
 
-Writes one self-contained folder per model — a resolved config beside its
-weights, in mmsegmentation's working-directory layout — with every checkpoint
-hashed before and after the copy. See
+The trained weights are not distributed in this repository
+([Availability](#availability)), and this is the tool that assembles the folder
+a recipient receives: one self-contained folder per model — a resolved config
+beside its weights, in mmsegmentation's working-directory layout. It is
+published so that step is not a private one. Each checkpoint is verified
+against the SHA-256 recorded in `ghaf/release.py` before the copy and again
+after, which means the command accepts only the six released checkpoints and a
+bundle cannot carry a silently corrupted file. Anyone who has been sent the
+weights can re-run it and obtain the same folder. See
 [`docs/RELEASE_BUNDLE.md`](docs/RELEASE_BUNDLE.md).
 
 **Cut a quick sample out of a large mosaic**
@@ -282,6 +292,13 @@ python -m ghaf.inference.large_image \
     --batch-size 4 \
     --scratch-dir /fast/disk
 ```
+
+Tiles exist to train and score a model; this is what the trained model is
+finally for. It reads a complete survey mosaic — hundreds of millions to
+billions of pixels, far past what fits in memory — and returns the canopy
+probability surface, the crown mask and the crown polygons, in the mosaic's own
+coordinate system and ready for GIS. It is the only step that produces a
+result covering the survey rather than the sample.
 
 `--batch-size` trades VRAM for throughput; raise it until memory is the limit.
 `--scratch-dir` places the temporary accumulators, which need **9 bytes per
