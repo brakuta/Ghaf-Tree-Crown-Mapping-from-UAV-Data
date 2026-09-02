@@ -25,12 +25,15 @@ configs that omit it.
 """
 
 import argparse
+import sys
 from pathlib import Path
 
-from mmengine.config import Config, DictAction
-from mmengine.runner import Runner
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import ghaf
+from mmengine.config import Config, DictAction  # noqa: E402
+from mmengine.runner import Runner  # noqa: E402
+
+import ghaf  # noqa: E402
 from ghaf import init_weights
 from ghaf.config import set_data_root
 from ghaf.environment import require_stack
