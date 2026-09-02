@@ -304,6 +304,35 @@ Expect a canopy fraction around **3.4%** over the test split. A number far
 from that means something is wrong upstream, most likely the wrong checkpoint
 or the wrong `--data-root`.
 
+### ...or every image in a folder
+
+Step 4 maps one orthomosaic and step 5 needs the dataset's `images\`/`masks\`
+layout. For the ordinary case — a folder of images that is neither — use:
+
+```
+python tools\predict_folder.py D:\ghaf-project\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py D:\ghaf-project\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth D:\my-images --out-dir D:\ghaf-project\output\folder --polygons
+```
+
+Every image in `D:\my-images` is mapped in one run. They need not be the same
+size and none of them has to fit in memory — each is windowed exactly as a
+full mosaic is — so a small plot and a large mosaic can sit in the same
+folder. The output mirrors the input's subfolders:
+
+```
+folder\
+├── masks\           one GeoTIFF per image: 0 background, 1 crown
+├── probability\     with --save-probability
+├── polygons\        one .gpkg of crowns per image   (--polygons)
+└── summary.json     per image, and the totals
+```
+
+Useful switches: `--recursive` to include subfolders, `--pattern "*_rgb.tif"`
+to take only some of the files, `--limit 3` for a quick look before committing
+to hundreds, and `--skip-existing` to carry on where an interrupted run
+stopped. If one image fails — an unreadable file, a strange band count — it is
+reported and the run continues; the failures are listed in `summary.json` at
+the end.
+
 ---
 
 ## 6. Score a model against the labelled test set

@@ -249,6 +249,37 @@ carrying that tile's CRS and geotransform and encoded the same way as the
 ground truth (`0` background, `1` ghaf), so prediction and label can be
 differenced directly. `--save-probability` adds the float32 P(ghaf) map.
 
+**Predict every image in a folder**
+
+```bash
+python tools/predict_folder.py \
+    configs/ghaf/fastvit-ma36_mask2former.py \
+    checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
+    images/ --out-dir predictions/plots --polygons
+```
+
+The two steps above assume a shape the data often does not have: a dataset
+split of same-sized tiles, or one orthomosaic. This takes a folder as it comes
+-- a season's clips, a set of survey plots, the frames from one flight -- and
+maps every image in it in a single run. Each image goes through the same
+windowed inference as a full mosaic, so they need not share a size and none of
+them has to fit in memory. Outputs mirror the input's folder structure, so two
+images with the same name in different subfolders cannot overwrite each other:
+
+```
+predictions/plots/
+├── masks/<subfolder>/<image>.tif          uint8, 0 background, 1 ghaf
+├── probability/<subfolder>/<image>.tif    with --save-probability
+├── polygons/<subfolder>/<image>.gpkg      with --polygons
+└── summary.json                           per image, and the totals
+```
+
+A failure on one image is reported and the run carries on to the next, since a
+batch is long and one unreadable file should not cost the rest;
+`summary.json` names each failure and the exit status is non-zero if there was
+one. `--skip-existing` resumes an interrupted run, `--recursive` descends into
+subfolders, and `--pattern "*_rgb.tif"` selects by name.
+
 **Package the models for sharing**
 
 ```bash
@@ -339,6 +370,7 @@ tools/
 ├── check_dataset.py       validate a tile tree before using it
 ├── train.py · test.py     thin wrappers over the mmengine runner
 ├── predict_split.py       per-tile predictions for a dataset split
+├── predict_folder.py      predictions for every image in a folder
 ├── make_sample.py         cut a small georeferenced sample from a mosaic
 ├── smoke_test.py          build every model, check parameter counts
 ├── export_release.py      assemble the shareable model bundle
