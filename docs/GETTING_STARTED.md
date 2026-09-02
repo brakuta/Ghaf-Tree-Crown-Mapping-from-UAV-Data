@@ -63,6 +63,11 @@ D:\ghaf-project\
 Tiles are 1024 × 1024 PNG pairs: an image and a mask sharing a filename. In a
 mask, `0` is background and `1` is a Ghaf crown.
 
+The test tiles have small sidecar files beside them (`.pgw`, `.png.aux.xml`)
+holding the patch of ground each one covers, so predictions made from them
+open in QGIS already in the right place. The training and validation tiles
+have no sidecars, which changes nothing about training or scoring.
+
 ---
 
 ## 2. Install, once

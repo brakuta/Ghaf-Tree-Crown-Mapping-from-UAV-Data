@@ -3,9 +3,14 @@
 
 Runs a trained model over every image in a split and saves the predicted mask
 as a GeoTIFF beside it, carrying whatever georeferencing the source tile has,
-so a tree cut as GeoTIFF gives predictions that drop straight into GIS. The
-published tiles are PNG and carry none; their masks line up with the tiles they
-came from, which is what the evaluation needs.
+so predictions drop straight into GIS wherever the tile can say where it is.
+
+The published tiles are PNG, and how much they carry differs by split: the
+test tiles have ``.pgw`` world files beside them and open with a real CRS and
+transform, so their predictions land in the right place on a map; the
+training and validation tiles have no sidecars and open ungeoreferenced,
+which the evaluation does not need -- it only needs each mask to line up with
+the tile it came from.
 
     python tools/predict_split.py \\
         configs/ghaf/fastvit-ma36_mask2former.py \\
@@ -66,10 +71,11 @@ def list_tiles(root: Path, split: str) -> List[Path]:
 def _quiet_ungeoreferenced():
     """Suppress rasterio's warning that a tile carries no geotransform.
 
-    The published tiles are PNG and have none, by design -- it is the mosaic
-    they were cut from that is georeferenced. Left alone the warning fires
-    twice per tile, thousands of times in a split, and says nothing anyone
-    running this can act on.
+    Training and validation tiles have none: they are cut from a mosaic that
+    is georeferenced, and their position is carried by their name. That is
+    expected rather than a fault, and left alone the warning fires twice per
+    tile -- thousands of times in a split -- saying nothing anyone running
+    this can act on. Test tiles come with world files and never trigger it.
     """
     _import('rasterio', 'rasterio')
     from rasterio.errors import NotGeoreferencedWarning
