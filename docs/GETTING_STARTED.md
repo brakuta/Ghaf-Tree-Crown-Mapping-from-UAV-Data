@@ -9,6 +9,11 @@ By the end you will be able to map Ghaf crowns in a new UAV orthomosaic,
 reproduce the published scores, train a model, and fine-tune one on new
 labels.
 
+**If you have just received this, do [section 3](#3-check-that-it-works)
+first.** Its three commands check that the models, the weights and the tiles
+all arrived intact and agree with each other. They take a few minutes and are
+worth running before anything else: everything later assumes they passed.
+
 Commands are written for the Windows Command Prompt. On macOS or Linux they
 are identical apart from the path separator (`/` instead of `\`).
 
@@ -44,6 +49,8 @@ the paths and nothing else changes.
 
 ```
 D:\ghaf-project\
+├── README.md                          what this is; start here
+├── MANIFEST.json                      every part, its size, and what was checked
 ├── code\                              this repository
 ├── models\
 │   ├── fastvit-ma36_mask2former\
@@ -51,13 +58,15 @@ D:\ghaf-project\
 │   │   ├── best_mIoU_iter_3500.pth        the weights
 │   │   └── metadata.json                  digest, size, scores
 │   └── ...                                five more
+├── init-weights\                      ImageNet weights, so training needs no internet
 ├── data\ghaf\
 │   ├── training\{images,masks}\           7 005 tiles
 │   ├── validation\{images,masks}\           869 tiles
 │   └── testing\ghaf26\{images,masks}\       767 tiles
-└── samples\
-    ├── Kalba26_sample.tif                 a small clip: start here, minutes
-    └── Kalba26.tif                        the full UAV orthomosaic, hours
+├── samples\
+│   ├── Kalba26_sample.tif                 a small clip: start here, minutes
+│   └── Kalba26.tif                        the full UAV orthomosaic, hours
+└── predictions\testing\                test-split predictions, already made
 ```
 
 Tiles are 1024 × 1024 PNG pairs: an image and a mask sharing a filename. In a
@@ -152,9 +161,29 @@ and runs a prediction through each one.
 python tools\smoke_test.py --checkpoints D:\ghaf-project\models
 ```
 
-Look for six rows reading `ok`, `all N matched`, and `+0` in the delta column.
-That means the code and the weights describe exactly the same model — nothing
-was corrupted or mismatched in transit. Allow a few minutes on a GPU.
+About 90 seconds on a GPU. The summary table at the end should read like this:
+
+```
+model                            digest                    weights  prediction
+--------------------------------------------------------------------------------
+fastvit-ma36_mask2former             ok          all 1,558 matched    0.00% ghaf
+```
+
+`ok` means the checkpoint file is byte-for-byte the one that was released.
+`all 1,558 matched` means every weight in the file found its place in the
+model built from the configuration — nothing missing, nothing left over. And
+`+0` in the delta column above means the parameter count matches the published
+figure exactly.
+
+**`0.00% ghaf` is the correct answer here.** This step predicts on a blank
+synthetic tile, not on imagery, so finding no trees is what should happen. Real
+imagery gives a few percent — see section 4.
+
+Every command that loads a model prints a handful of `UserWarning` lines from
+PyTorch and mmsegmentation — about `__floordiv__`, `torch.meshgrid`, binary
+segmentation and `build_loss`. They come from inside the frameworks, they
+appear on a correct run, and there is nothing to do about them. Read past them
+to the table.
 
 **Step 3 — the data.**
 
@@ -193,6 +222,18 @@ That is one long command on one line. It writes three files:
 
 All three carry the coordinate system of the input mosaic, so they line up with
 your other GIS layers without any manual placement.
+
+On the 8 192 × 8 192 clip this takes about **two and a half minutes** on one
+GPU — 225 windows — and reports a line like:
+
+```
+INFO canopy: 650055 of 67108864 valid px (0.97%)
+```
+
+About 1% canopy over that clip is the expected order of magnitude for scattered
+Ghaf. `0.00%` or something above 50% means the run found nothing or everything,
+and the cause is upstream: usually the wrong checkpoint, or bands that are not
+red, green and blue (see `--bands`).
 
 **Useful adjustments**
 
@@ -241,10 +282,26 @@ ground truth, or to hand on as a result set.
 python tools\predict_split.py D:\ghaf-project\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py D:\ghaf-project\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth --data-root D:\ghaf-project\data\ghaf --split testing --out-dir D:\ghaf-project\output\predictions --save-probability
 ```
 
-One predicted mask per tile, named after the tile it came from, in the same
-`0`/`1` encoding as the ground-truth masks — so the two can be compared
-directly. `--limit 20` does a quick partial run first, if you want to see the
-output before committing to all 767.
+About seven minutes for the 767 test tiles on a GPU. `--limit 20` does a quick
+partial run first, if you want to see the output before committing to all of
+them.
+
+The output folder is laid out like this:
+
+```
+predictions\
+├── masks\           one GeoTIFF per tile: 0 background, 1 crown
+├── probability\     one per tile, P(ghaf) as float32   (--save-probability)
+└── summary.json     what was run, and the canopy fraction over the split
+```
+
+Masks use the same `0`/`1` encoding as the ground truth, so the two can be
+differenced directly. Because the test tiles carry their position, these masks
+open in QGIS already in the right place — drag one in on top of the imagery.
+
+Expect a canopy fraction around **3.4%** over the test split. A number far
+from that means something is wrong upstream, most likely the wrong checkpoint
+or the wrong `--data-root`.
 
 ---
 
@@ -329,6 +386,9 @@ site and the checkpoint at your new `work_dirs\...\best_mIoU_iter_*.pth`.
 | `NO TILES` from `check_dataset.py` | The folders are there but hold no `.png` or `.tif` tiles | The row names what it found instead; usually the tiles are one folder deeper, or in another format |
 | `SHA-256 mismatch` from `smoke_test.py` | A checkpoint file does not match the one that was released | The copy is damaged. Copy it again from the original |
 | The command does something odd after pasting several lines | The terminal joined them into one line | Paste and run one command at a time |
+| Screens of `UserWarning` about `__floordiv__`, `meshgrid`, `build_loss` | Deprecation notices from inside PyTorch and mmsegmentation | Nothing. They appear on a correct run. The tools hold the repeating ones back to one line each |
+| `0.00% ghaf` from `smoke_test.py` | Nothing — that step predicts on a blank tile | Expected. Section 3 explains |
+| `AttributeError: 'WindowsPath' object has no attribute 'hardlink_to'` | An older Python than the tool expected | Fixed in this version; if you see it, your copy of the code predates the fix |
 
 Anything not listed here: keep the full text of the error. The last few lines
 usually name the file and the line that stopped, which is enough to act on.

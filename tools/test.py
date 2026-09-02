@@ -15,14 +15,17 @@ therefore needs no network access.
 """
 
 import argparse
+import sys
 from pathlib import Path
 
-from mmengine.config import Config, DictAction
-from mmengine.runner import Runner
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import ghaf
-from ghaf.config import set_data_root, skip_imagenet_weights
-from ghaf.environment import require_stack
+from mmengine.config import Config, DictAction  # noqa: E402
+from mmengine.runner import Runner  # noqa: E402
+
+import ghaf  # noqa: E402
+from ghaf.config import set_data_root, skip_imagenet_weights  # noqa: E402
+from ghaf.environment import require_stack  # noqa: E402
 
 
 def parse_args(argv=None):
