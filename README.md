@@ -23,11 +23,10 @@ framework setup.
 [![python](https://img.shields.io/badge/python-3.9%20%7C%203.11-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-**[Quick start](#quick-start)** · **[Install](#installation)** ·
-**[Data](#data)** · **[Training](#training)** ·
+**[Quick start](#quick-start)** · **[Layout](#repository-layout)** ·
+**[Install](#installation)** · **[Data](#data)** · **[Training](#training)** ·
 **[Evaluation](#evaluation)** · **[Results](#results)** ·
-**[Inference](#inference)** · **[Layout](#repository-layout)** ·
-**[Testing](#testing)**
+**[Inference](#inference)** · **[Testing](#testing)**
 
 [Getting started](docs/GETTING_STARTED.md) · [Model zoo](docs/MODEL_ZOO.md) ·
 [Area-wide inference](docs/AREA_WIDE_INFERENCE.md) ·
@@ -73,6 +72,46 @@ python tools/predict_folder.py \
 ```
 
 To train or score a model instead, start at [Data](#data).
+
+---
+
+## Repository layout
+
+```
+ghaf/
+├── config.py              point a config at a dataset root; skip ImageNet init
+├── environment.py         check the stack is in this Python, once
+├── init_weights.py        keep the ImageNet weights with the project
+├── datasets.py            GhafDataset — the two-class tile dataset
+├── splits.py              where each split lives, declared once and shared
+├── release.py             the published models: digests, params, scores
+├── models/
+│   ├── fastvit.py         FastViT-MA36 backbone
+│   ├── dpn.py             DPN-98 backbone
+│   └── modules/           MobileOne and RepLKNet blocks used by FastViT
+└── inference/
+    ├── tiling.py          window planning and Gaussian blending (pure NumPy)
+    └── large_image.py     orthomosaic inference and georeferenced output
+
+configs/
+├── _base_/ghaf.py         dataset, pipeline, schedule and runtime, shared
+└── ghaf/                  the six model configurations
+
+tools/
+├── check_dataset.py       validate a tile tree before using it
+├── train.py · test.py     thin wrappers over the mmengine runner
+├── predict_split.py       per-tile predictions for a dataset split
+├── predict_folder.py      crowns for every image in a folder
+├── make_sample.py         cut a small georeferenced sample from a mosaic
+├── smoke_test.py          build every model, check parameter counts
+├── export_release.py      assemble the shareable model bundle
+├── fetch_init_weights.py  collect the ImageNet weights, once, while online
+└── build_handover.py      assemble the whole handover folder
+tests/                     the suite; mmengine and NumPy, plus torch, timm,
+                           rasterio and geopandas for the end-to-end ones
+docs/                      getting started, model zoo, area-wide inference,
+                           release bundle
+```
 
 ---
 
@@ -307,9 +346,9 @@ python tools/predict_folder.py \
     images/ --out-dir predictions/plots
 ```
 
-The step above assumes one mosaic, and the step below a dataset split. This
-takes a folder as it comes — a season's clips, a set of survey plots, the
-frames from one flight — and maps every image in it in a single run. Each image
+The step above assumes a single mosaic. This takes a folder as it comes — a
+season's clips, a set of survey plots, the frames from one flight — and maps
+every image in it in a single run. Each image
 goes through the same windowed inference as a full mosaic, so they need not
 share a size and none of them has to fit in memory.
 
@@ -335,63 +374,6 @@ names each failure and the exit status is non-zero if there was one.
 `--skip-existing` resumes an interrupted run, `--recursive` descends into
 subfolders, `--pattern "*_rgb.tif"` selects by name, and `--min-area` drops
 crowns below a size in square metres.
-
-### A dataset split
-
-```bash
-python tools/predict_split.py \
-    configs/ghaf/fastvit-ma36_mask2former.py \
-    checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
-    --data-root data/ghaf --split testing --out-dir predictions/testing
-```
-
-Evaluation reduces a split to a few numbers; this keeps the maps those numbers
-came from. They are what per-tile error maps, figures and any statistic the
-metric does not report are made from — and the quickest way to see *where* a
-model is wrong rather than by how much. One predicted mask per tile, each
-carrying that tile's CRS and geotransform and encoded the same way as the
-ground truth (`0` background, `1` ghaf), so prediction and label can be
-differenced directly. `--save-probability` adds the float32 P(ghaf) map.
-
----
-
-## Repository layout
-
-```
-ghaf/
-├── config.py              point a config at a dataset root; skip ImageNet init
-├── environment.py         check the stack is in this Python, once
-├── init_weights.py        keep the ImageNet weights with the project
-├── datasets.py            GhafDataset — the two-class tile dataset
-├── splits.py              where each split lives, declared once and shared
-├── release.py             the published models: digests, params, scores
-├── models/
-│   ├── fastvit.py         FastViT-MA36 backbone
-│   ├── dpn.py             DPN-98 backbone
-│   └── modules/           MobileOne and RepLKNet blocks used by FastViT
-└── inference/
-    ├── tiling.py          window planning and Gaussian blending (pure NumPy)
-    └── large_image.py     orthomosaic inference and georeferenced output
-
-configs/
-├── _base_/ghaf.py         dataset, pipeline, schedule and runtime, shared
-└── ghaf/                  the six model configurations
-
-tools/
-├── check_dataset.py       validate a tile tree before using it
-├── train.py · test.py     thin wrappers over the mmengine runner
-├── predict_split.py       per-tile predictions for a dataset split
-├── predict_folder.py      crowns for every image in a folder
-├── make_sample.py         cut a small georeferenced sample from a mosaic
-├── smoke_test.py          build every model, check parameter counts
-├── export_release.py      assemble the shareable model bundle
-├── fetch_init_weights.py  collect the ImageNet weights, once, while online
-└── build_handover.py      assemble the whole handover folder
-tests/                     the suite; mmengine and NumPy, plus torch, timm,
-                           rasterio and geopandas for the end-to-end ones
-docs/                      getting started, model zoo, area-wide inference,
-                           release bundle
-```
 
 ---
 
