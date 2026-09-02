@@ -31,7 +31,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from mmengine.config import Config, DictAction  # noqa: E402
-from mmengine.runner import Runner  # noqa: E402
 
 import ghaf  # noqa: E402
 from ghaf import init_weights
@@ -107,6 +106,11 @@ def main(argv=None) -> int:
             print(f'{name}={value}')
 
     ghaf.register_all()
+
+    # Imported here rather than at the top: mmengine.runner pulls in torch,
+    # and everything above -- argument parsing and config assembly included --
+    # works without it. tests/test_train_args.py relies on that.
+    from mmengine.runner import Runner
 
     cfg = apply_args(Config.fromfile(args.config), args)
     Runner.from_cfg(cfg).train()

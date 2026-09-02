@@ -129,14 +129,6 @@ target/
 .DS_Store
 Thumbs.db
 
-# --- Restructured repository ---
-/data/
-/checkpoints/
-/work_dirs/
-__pycache__/
-*.egg-info/
-.pytest_cache/
-
 # --- Tooling caches ---
 .ruff_cache/
 .mypy_cache/

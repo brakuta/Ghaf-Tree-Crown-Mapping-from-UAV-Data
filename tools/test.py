@@ -21,7 +21,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from mmengine.config import Config, DictAction  # noqa: E402
-from mmengine.runner import Runner  # noqa: E402
 
 import ghaf  # noqa: E402
 from ghaf.config import set_data_root, skip_imagenet_weights  # noqa: E402
@@ -68,6 +67,10 @@ def main(argv=None) -> int:
         return 1
 
     ghaf.register_all()
+
+    # Imported here rather than at the top: mmengine.runner pulls in torch,
+    # which the argument-level tests that import this module do not need.
+    from mmengine.runner import Runner
 
     cfg = Config.fromfile(args.config)
     cfg.launcher = args.launcher
