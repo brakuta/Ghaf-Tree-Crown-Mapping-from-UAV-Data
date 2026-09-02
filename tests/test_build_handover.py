@@ -140,6 +140,28 @@ def test_uncommitted_changes_are_flagged(tmp_path):
 
 
 @needs_git
+def test_an_untracked_file_is_not_an_uncommitted_change(tmp_path):
+    """It cannot make the copy differ from the commit: it is not copied.
+
+    A stray report or scratch file in the working folder is the normal state
+    of a repository being worked in. Calling that "uncommitted changes" tells
+    the recipient a bundle cannot be reproduced from its commit when it can,
+    and the note that matters -- the file was left behind -- is already made
+    separately.
+    """
+    source = checkout(tmp_path / 'code', 'README.md')
+    (source / 'dataset-report.json').write_text('{}')
+
+    part = B.add_code('code', source, tmp_path / 'out', link=False,
+                      dry_run=False)
+
+    assert part.revision['uncommitted_changes'] is False
+    assert not any('uncommitted' in n for n in part.notes)
+    assert any('1 file(s) git does not track' in n for n in part.notes)
+    assert not (tmp_path / 'out' / 'dataset-report.json').exists()
+
+
+@needs_git
 def test_a_tracked_file_deleted_from_disk_is_not_copied(tmp_path):
     source = checkout(tmp_path / 'code', 'README.md', 'gone.txt')
     (source / 'gone.txt').unlink()

@@ -188,9 +188,16 @@ def tracked_files(source: Path) -> Optional[List[Path]]:
 
 
 def code_revision(source: Path) -> Optional[Dict[str, object]]:
-    """Which commit a checkout is at, and whether anything is uncommitted."""
+    """Which commit a checkout is at, and whether anything is uncommitted.
+
+    Only tracked files count. An untracked file cannot make the copy differ
+    from the commit, because only tracked files are copied -- it is reported
+    separately as left behind. Letting ``--porcelain`` list it here would
+    put "with uncommitted changes" on a bundle that reproduces its commit
+    exactly, which is the opposite of the guarantee this note exists to give.
+    """
     commit = _git(source, 'rev-parse', 'HEAD')
-    status = _git(source, 'status', '--porcelain')
+    status = _git(source, 'status', '--porcelain', '--untracked-files=no')
     if commit is None or status is None:
         return None
     return {'commit': commit.strip(), 'uncommitted_changes': bool(status.strip())}
