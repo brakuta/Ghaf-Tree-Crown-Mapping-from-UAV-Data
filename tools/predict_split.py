@@ -39,15 +39,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from ghaf.environment import quiet_repeated_warnings, require_stack  # noqa: E402
 from ghaf.inference.large_image import _foreground_probability, _import  # noqa: E402
 from ghaf.inference.tiling import iter_batches  # noqa: E402
+from ghaf.splits import SPLITS  # noqa: E402
 
 LOGGER = logging.getLogger('predict_split')
 
 #: split name -> images directory, relative to the dataset root.
-SPLIT_IMAGES = {
-    'training': 'training/images',
-    'validation': 'validation/images',
-    'testing': 'testing/ghaf26/images',
-}
+SPLIT_IMAGES = {name: images for name, (images, _) in SPLITS.items()}
 
 #: Tile extensions, matched without regard to case.
 SUFFIXES = ('.png', '.tif', '.tiff')

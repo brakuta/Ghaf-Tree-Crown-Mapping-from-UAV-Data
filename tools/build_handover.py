@@ -20,6 +20,10 @@ Every part is optional: pass the ones you have. What is missing is reported
 rather than assumed, so a partial bundle is obvious at a glance instead of
 discovered later by whoever received it.
 
+``--data`` names the root of a tile tree, and only the dataset's own splits
+are taken from it -- whatever else the working directory has accumulated over
+a project's life stays where it is, and the count left behind is reported.
+
     python tools/build_handover.py --output D:\\ghaf-project ^
         --code . ^
         --checkpoints D:\\handover\\checkpoints ^
@@ -48,6 +52,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from ghaf import init_weights  # noqa: E402
 from ghaf.release import iter_models  # noqa: E402
+from ghaf.splits import directories  # noqa: E402
 
 #: Files never worth copying into a handover.
 EXCLUDED = ('.git', '__pycache__', '.pytest_cache', '.ruff_cache', 'work_dirs',
@@ -131,6 +136,50 @@ def add_part(name: str, source: Optional[Path], destination: Path,
     return part
 
 
+def add_dataset(name: str, source: Optional[Path], destination: Path,
+                link: bool, dry_run: bool) -> Part:
+    """Copy the dataset splits, and only those.
+
+    A tile tree normally lives inside a working directory that has collected
+    other things over a project's life -- earlier surveys, scratch output,
+    notes, an ``inference_errors`` folder. Copying the folder wholesale would
+    hand all of it to the recipient, unexamined and unexplained, and swamp
+    the tiles the documented commands actually read. So each split's image
+    and mask directory is copied by name, and anything else beside them is
+    left where it is and reported.
+    """
+    part = Part(name, source, destination)
+    if source is None:
+        part.notes.append('not given on the command line')
+        return part
+    if not source.exists():
+        part.ok = False
+        part.notes.append(f'{source} does not exist')
+        return part
+
+    for relative in directories():
+        folder = source / relative
+        if not folder.is_dir():
+            part.ok = False
+            part.notes.append(f'{relative} is missing')
+            continue
+        files, size = measure(folder)
+        if files == 0:
+            part.ok = False
+            part.notes.append(f'{relative} holds no tiles')
+            continue
+        part.files += files
+        part.bytes += size
+        copy_tree(folder, destination / relative, link, dry_run)
+
+    if part.ok:
+        beside = measure(source)[0] - part.files
+        if beside > 0:
+            part.notes.append(
+                f'{beside:,} file(s) beside the splits were left behind')
+    return part
+
+
 def verify_models(models_dir: Path) -> List[str]:
     """Check every released checkpoint that reached the bundle."""
     problems = []
@@ -191,7 +240,7 @@ python -m ghaf.inference.large_image ..\\models\\fastvit-ma36_mask2former\\fastv
 | `code/` | The repository, also public on GitHub. Start with its README |
 | `models/` | The six trained models. Each folder holds the weights, a self-contained config, and a metadata file with its digest and scores |
 | `init-weights/` | ImageNet weights the backbones start from. Needed only for training or fine-tuning, and only so that neither needs internet access: pass the folder as `--init-weights` |
-| `data/ghaf/` | The labelled tiles: 7 005 training, 869 validation, 767 test. Paired 1024 × 1024 PNGs, masks holding `0` for background and `1` for a crown |
+| `data/ghaf/` | The labelled tiles: 7 005 training, 869 validation, 767 test. Paired 1024 × 1024 PNGs, masks holding `0` for background and `1` for a crown. These splits alone -- other material from the working directory they were prepared in is not here |
 | `samples/` | Orthomosaics for trying inference end to end. The small clip first, then the full survey mosaic |
 | `predictions/` | Per-tile model output, if it was included |
 
@@ -240,12 +289,15 @@ def main(argv=None) -> int:
         ('code', args.code, output / 'code'),
         ('models', args.checkpoints, output / 'models'),
         ('init-weights', args.init_weights, output / 'init-weights'),
-        ('data', args.data, output / 'data' / 'ghaf'),
         ('samples', args.samples, output / 'samples'),
         ('predictions', args.predictions, output / 'predictions'),
     ]
     parts = [add_part(name, source, destination, args.link, args.dry_run)
              for name, source, destination in wanted]
+    # The dataset is not a folder to copy but a set of named splits: see
+    # add_dataset for why the difference matters.
+    parts.insert(3, add_dataset('data', args.data, output / 'data' / 'ghaf',
+                                args.link, args.dry_run))
 
     if args.checkpoints and not args.dry_run:
         problems = verify_models(output / 'models')

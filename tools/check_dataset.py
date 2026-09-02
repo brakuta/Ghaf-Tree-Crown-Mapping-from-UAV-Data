@@ -27,16 +27,13 @@ import sys
 import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence
 
 import numpy as np
 
-#: split name -> (images dir, masks dir), relative to the dataset root.
-SPLITS: Dict[str, Tuple[str, str]] = {
-    'training': ('training/images', 'training/masks'),
-    'validation': ('validation/images', 'validation/masks'),
-    'testing': ('testing/ghaf26/images', 'testing/ghaf26/masks'),
-}
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from ghaf.splits import SPLITS  # noqa: E402
 
 #: Tile counts of the published dataset. A different count is not an error --
 #: it is reported so a substitution is noticed rather than assumed.
