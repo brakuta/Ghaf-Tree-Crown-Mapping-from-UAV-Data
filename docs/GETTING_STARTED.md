@@ -310,7 +310,7 @@ Step 4 maps one orthomosaic and step 5 needs the dataset's `images\`/`masks\`
 layout. For the ordinary case — a folder of images that is neither — use:
 
 ```
-python tools\predict_folder.py D:\ghaf-project\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py D:\ghaf-project\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth D:\my-images --out-dir D:\ghaf-project\output\folder --polygons
+python tools\predict_folder.py D:\ghaf-project\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py D:\ghaf-project\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth D:\my-images --out-dir D:\ghaf-project\output\folder
 ```
 
 Every image in `D:\my-images` is mapped in one run. They need not be the same
@@ -320,18 +320,23 @@ folder. The output mirrors the input's subfolders:
 
 ```
 folder\
-├── masks\           one GeoTIFF per image: 0 background, 1 crown
-├── probability\     with --save-probability
-├── polygons\        one .gpkg of crowns per image   (--polygons)
+├── polygons\        one .gpkg of crowns per image, with area_m2
+├── masks\           the 0/1 raster, only with --save-mask
+├── probability\     only with --save-probability
 └── summary.json     per image, and the totals
 ```
 
+You get crowns, not rasters. A GeoPackage is a few hundred kilobytes where the
+mask behind it is hundreds of megabytes, and it is the crowns you count,
+measure and drape over the imagery in QGIS. Add `--save-mask` if you do want
+the raster for a particular job.
+
 Useful switches: `--recursive` to include subfolders, `--pattern "*_rgb.tif"`
 to take only some of the files, `--limit 3` for a quick look before committing
-to hundreds, and `--skip-existing` to carry on where an interrupted run
-stopped. If one image fails — an unreadable file, a strange band count — it is
-reported and the run continues; the failures are listed in `summary.json` at
-the end.
+to hundreds, `--min-area 1` to drop specks smaller than a square metre, and
+`--skip-existing` to carry on where an interrupted run stopped. If one image
+fails — an unreadable file, a strange band count — it is reported and the run
+continues; the failures are listed in `summary.json` at the end.
 
 ---
 

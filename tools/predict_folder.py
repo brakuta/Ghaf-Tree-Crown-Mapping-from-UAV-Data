@@ -1,31 +1,39 @@
 #!/usr/bin/env python
-"""Map every image in a folder, one run over the lot.
+"""Map every image in a folder to crown polygons, one run over the lot.
 
-Point this at a directory and it predicts each image in turn, writing a
-georeferenced mask -- and, on request, the probability map and crown polygons
--- for each one, then a single ``summary.json`` covering the batch. It is the
-step between the two existing ones: ``predict_split`` handles a dataset split
-of same-sized tiles, ``ghaf.inference.large_image`` handles one orthomosaic,
-and this handles the ordinary case of a folder holding neither -- a season's
-clips, a set of survey plots, the frames from one flight.
+Point this at a directory and it predicts each image in turn, writing one
+GeoPackage of crowns per image and a single ``summary.json`` covering the
+batch. It is the step between the two existing ones: ``predict_split`` handles
+a dataset split of same-sized tiles, ``ghaf.inference.large_image`` handles one
+orthomosaic, and this handles the ordinary case of a folder holding neither --
+a season's clips, a set of survey plots, the frames from one flight.
 
     python tools/predict_folder.py \\
         configs/ghaf/fastvit-ma36_mask2former.py \\
         checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \\
-        images/ --out-dir predictions/plots --polygons
+        images/ --out-dir predictions/plots
 
 Each image goes through the same windowed inference as a full mosaic, so the
 images in a folder need not share a size and none of them needs to fit in
 memory: a 900 px plot and a 40 000 px mosaic can sit side by side.
+
+Vectors are the output; the rasters are opt-in. A crown layer is a few hundred
+kilobytes where the mask it came from is hundreds of megabytes, and for
+counting crowns, measuring them or drawing them over the imagery the polygons
+are what gets used. The mask still has to exist for a moment -- polygons are
+traced from it -- but unless ``--save-mask`` asks for it, it is written to the
+scratch directory and deleted when the image is done. ``--save-probability``
+keeps the float32 P(ghaf) raster, which is what to reach for when a threshold
+other than the default is worth trying.
 
 Outputs mirror the input's folder structure, so subdirectories stay apart and
 two images with the same name in different folders cannot overwrite each
 other::
 
     <out-dir>/
-      masks/<subfolder>/<image>.tif          uint8, 0 background, 1 ghaf
-      probability/<subfolder>/<image>.tif    float32 P(ghaf), with --save-probability
-      polygons/<subfolder>/<image>.gpkg      crown polygons, with --polygons
+      polygons/<subfolder>/<image>.gpkg      crown polygons, with area_m2
+      masks/<subfolder>/<image>.tif          uint8 0/1, with --save-mask
+      probability/<subfolder>/<image>.tif    float32, with --save-probability
       summary.json                           per image, and the totals
 
 A batch is long, so a failure on one image is reported and the run carries on
@@ -41,10 +49,12 @@ import fnmatch
 import json
 import logging
 import sys
+import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Callable, List, Optional, Sequence
+from typing import Callable, Iterator, List, Optional, Sequence
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -116,27 +126,35 @@ def _is_within(path: Path, directory: Path) -> bool:
 
 @dataclass(frozen=True)
 class Outputs:
-    """Where one image's results are written."""
+    """Where one image's results are written.
 
-    mask: Path
+    The polygons are always produced. The two rasters are kept only when
+    asked for; ``None`` means the run does not leave one behind.
+    """
+
+    polygons: Path
+    mask: Optional[Path] = None
     probability: Optional[Path] = None
-    polygons: Optional[Path] = None
+
+    def paths(self) -> List[Path]:
+        """The outputs this run will actually keep."""
+        return [p for p in (self.polygons, self.mask, self.probability)
+                if p is not None]
 
     def exist(self) -> bool:
-        """Is every requested output already on disk?"""
-        return all(p.exists() for p in (self.mask, self.probability,
-                                        self.polygons) if p is not None)
+        """Is every kept output already on disk?"""
+        return all(p.exists() for p in self.paths())
 
 
 def output_paths(image: Path, root: Path, out_dir: Path,
+                 save_mask: bool = False,
                  save_probability: bool = False,
-                 polygons: bool = False,
                  polygon_suffix: str = '.gpkg') -> Outputs:
     """Where one image's outputs go, mirroring its place under ``root``.
 
-    An image at ``root/plot-3/north.tif`` writes its mask to
-    ``out_dir/masks/plot-3/north.tif``. Flattening the tree instead would let
-    two images of the same name in different folders overwrite each other,
+    An image at ``root/plot-3/north.tif`` writes its crowns to
+    ``out_dir/polygons/plot-3/north.gpkg``. Flattening the tree instead would
+    let two images of the same name in different folders overwrite each other,
     silently and only in the second run.
     """
     try:
@@ -147,30 +165,55 @@ def output_paths(image: Path, root: Path, out_dir: Path,
         relative = Path('.')
     stem = Path(image).stem
     return Outputs(
-        mask=out_dir / 'masks' / relative / f'{stem}.tif',
+        polygons=out_dir / 'polygons' / relative / f'{stem}{polygon_suffix}',
+        mask=(out_dir / 'masks' / relative / f'{stem}.tif'
+              if save_mask else None),
         probability=(out_dir / 'probability' / relative / f'{stem}.tif'
                      if save_probability else None),
-        polygons=(out_dir / 'polygons' / relative / f'{stem}{polygon_suffix}'
-                  if polygons else None),
     )
+
+
+@contextmanager
+def _mask_path(outputs: Outputs, stem: str,
+               scratch_dir: Optional[Path]) -> Iterator[Path]:
+    """The mask to trace polygons from, kept only if it was asked for.
+
+    Polygons are traced from a written mask, so one exists for every image
+    whatever the caller wants kept. When it is not wanted it goes to the
+    scratch directory -- the same disk the accumulators use, chosen for space
+    and speed -- and leaves with the context.
+    """
+    if outputs.mask is not None:
+        outputs.mask.parent.mkdir(parents=True, exist_ok=True)
+        yield outputs.mask
+        return
+
+    if scratch_dir is not None:
+        Path(scratch_dir).mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='ghaf-mask-',
+                                     dir=str(scratch_dir) if scratch_dir
+                                     else None) as tmp:
+        yield Path(tmp) / f'{stem}.tif'
 
 
 def predict_folder(model, images: Sequence[Path], root: Path, out_dir: Path,
                    threshold: float = 0.5, bands: Sequence[int] = (1, 2, 3),
                    batch_size: int = 1, tile: int = 1024, overlap: int = 512,
                    sigma: float = 0.4, min_area: float = 0.0,
-                   save_probability: bool = False, polygons: bool = False,
+                   save_mask: bool = False, save_probability: bool = False,
                    polygon_suffix: str = '.gpkg',
                    scratch_dir: Optional[Path] = None,
                    skip_existing: bool = False, progress: bool = True,
                    predict: Callable = predict_large_image) -> dict:
-    """Predict every image and write its outputs. Returns a summary dict.
+    """Predict every image and write its crowns. Returns a summary dict.
 
     Args:
         model: a segmentor from :func:`mmseg.apis.init_model`.
         images: the images to predict, as returned by :func:`list_images`.
         root: the folder they were listed from; output paths mirror it.
-        out_dir: where ``masks/``, ``probability/`` and ``polygons/`` go.
+        out_dir: where ``polygons/`` and any kept rasters go.
+        save_mask: keep the uint8 mask GeoTIFF as well as the polygons.
+        save_probability: keep the float32 P(ghaf) GeoTIFF too.
         predict: the per-image engine. Injectable so the loop -- skipping,
             failure handling and the totals -- can be tested without a model.
 
@@ -186,8 +229,9 @@ def predict_folder(model, images: Sequence[Path], root: Path, out_dir: Path,
     canopy = valid = failed = skipped = 0
 
     for number, image in enumerate(images, start=1):
-        outputs = output_paths(image, root, out_dir, save_probability,
-                               polygons, polygon_suffix)
+        image = Path(image)
+        outputs = output_paths(image, root, out_dir, save_mask,
+                               save_probability, polygon_suffix)
         name = _relative_name(image, root)
 
         if skip_existing and outputs.exist():
@@ -198,19 +242,20 @@ def predict_folder(model, images: Sequence[Path], root: Path, out_dir: Path,
             continue
 
         LOGGER.info('[%d/%d] %s', number, len(images), name)
-        for path in (outputs.mask, outputs.probability, outputs.polygons):
-            if path is not None:
-                path.parent.mkdir(parents=True, exist_ok=True)
+        for path in outputs.paths():
+            path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            summary = predict(
-                model, Path(image),
-                out_prob=outputs.probability,
-                out_mask=outputs.mask,
-                out_polygons=outputs.polygons,
-                tile=tile, overlap=overlap, sigma=sigma, threshold=threshold,
-                bands=tuple(bands), batch_size=batch_size, min_area=min_area,
-                scratch_dir=scratch_dir, progress=progress)
+            with _mask_path(outputs, image.stem, scratch_dir) as mask:
+                summary = predict(
+                    model, image,
+                    out_prob=outputs.probability,
+                    out_mask=mask,
+                    out_polygons=outputs.polygons,
+                    tile=tile, overlap=overlap, sigma=sigma,
+                    threshold=threshold, bands=tuple(bands),
+                    batch_size=batch_size, min_area=min_area,
+                    scratch_dir=scratch_dir, progress=progress)
         except Exception as exc:                     # noqa: BLE001 -- reported
             LOGGER.error('[%d/%d] %s failed: %s', number, len(images), name, exc)
             rows.append({'image': name, 'error': f'{type(exc).__name__}: {exc}'})
@@ -227,7 +272,8 @@ def predict_folder(model, images: Sequence[Path], root: Path, out_dir: Path,
             'canopy_pixels': summary.canopy_pixels,
             'valid_pixels': summary.valid_pixels,
             'canopy_fraction': summary.canopy_fraction,
-            'outputs': [str(p) for p in summary.outputs],
+            # The temporary mask is gone by now; report only what was kept.
+            'outputs': [str(p) for p in outputs.paths()],
         })
 
     return {
@@ -236,6 +282,7 @@ def predict_folder(model, images: Sequence[Path], root: Path, out_dir: Path,
         'skipped': skipped,
         'failed': failed,
         'threshold': threshold,
+        'min_area_m2': min_area,
         'canopy_pixels': canopy,
         'valid_pixels': valid,
         'canopy_fraction': canopy / valid if valid else 0.0,
@@ -265,15 +312,15 @@ def parse_args(argv=None) -> argparse.Namespace:
                              'e.g. "*_rgb.tif"')
     parser.add_argument('--recursive', action='store_true',
                         help='descend into subfolders')
-    parser.add_argument('--save-probability', action='store_true',
-                        help='also write the float32 P(ghaf) map per image')
-    parser.add_argument('--polygons', action='store_true',
-                        help='also write crown polygons per image')
     parser.add_argument('--polygon-suffix', default='.gpkg',
-                        help='vector format for --polygons, by extension')
-    parser.add_argument('--threshold', type=float, default=0.5)
+                        help='vector format for the crowns, by extension')
     parser.add_argument('--min-area', type=float, default=0.0,
                         help='drop crown polygons smaller than this many m2')
+    parser.add_argument('--save-mask', action='store_true',
+                        help='also keep the uint8 mask GeoTIFF per image')
+    parser.add_argument('--save-probability', action='store_true',
+                        help='also keep the float32 P(ghaf) map per image')
+    parser.add_argument('--threshold', type=float, default=0.5)
     parser.add_argument('--bands', type=int, nargs=3, default=(1, 2, 3),
                         metavar=('R', 'G', 'B'))
     parser.add_argument('--tile', type=int, default=1024,
@@ -282,7 +329,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument('--sigma', type=float, default=0.4)
     parser.add_argument('--batch-size', type=int, default=1)
     parser.add_argument('--scratch-dir', type=Path,
-                        help='where the temporary accumulators go')
+                        help='where the accumulators and the temporary mask go')
     parser.add_argument('--skip-existing', action='store_true',
                         help='leave images whose outputs are already written')
     parser.add_argument('--limit', type=int,
@@ -322,8 +369,8 @@ def main(argv=None) -> int:
         model, images, args.images, args.out_dir,
         threshold=args.threshold, bands=tuple(args.bands),
         batch_size=args.batch_size, tile=args.tile, overlap=args.overlap,
-        sigma=args.sigma, min_area=args.min_area,
-        save_probability=args.save_probability, polygons=args.polygons,
+        sigma=args.sigma, min_area=args.min_area, save_mask=args.save_mask,
+        save_probability=args.save_probability,
         polygon_suffix=args.polygon_suffix, scratch_dir=args.scratch_dir,
         skip_existing=args.skip_existing, progress=not args.no_progress)
 

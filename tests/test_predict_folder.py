@@ -27,7 +27,7 @@ def touch(path: Path, name: str) -> Path:
     return target
 
 
-def stub_predict(canopy=10, valid=100, recorder=None, fails=()):
+def stub_predict(canopy=10, valid=100, recorder=None, masks=None, fails=()):
     """An engine that writes its outputs and reports a fixed canopy share."""
     def predict(model, image, out_prob=None, out_mask=None, out_polygons=None,
                 **kwargs):
@@ -35,6 +35,8 @@ def stub_predict(canopy=10, valid=100, recorder=None, fails=()):
             raise RuntimeError('boom')
         if recorder is not None:
             recorder.append(Path(image))
+        if masks is not None:
+            masks.append(Path(out_mask))
         written = []
         for path in (out_prob, out_mask, out_polygons):
             if path is not None:
@@ -76,12 +78,12 @@ def test_a_pattern_selects_by_name(tmp_path):
 
 
 def test_the_output_folder_is_not_read_back_in(tmp_path):
-    """A second run must not predict the first run's predictions.
+    """A second run must not predict the first run's own rasters.
 
-    Writing outputs inside the input folder is a natural thing to do, and a
-    recursive listing would then pick up every mask written last time -- each
-    one a valid single-band raster, so nothing would fail. The batch would
-    simply double in size and fill with predictions of predictions.
+    Writing outputs inside the input folder is a natural thing to do, and with
+    --save-mask a recursive listing would then pick up every mask written last
+    time -- each one a valid single-band raster, so nothing would fail. The
+    batch would simply double in size and fill with predictions of predictions.
     """
     touch(tmp_path, 'source.tif')
     out_dir = tmp_path / 'predictions'
@@ -106,25 +108,34 @@ def test_a_missing_folder_is_an_error(tmp_path):
 # output layout
 # --------------------------------------------------------------------------
 
+def test_polygons_are_the_output_and_rasters_are_not(tmp_path):
+    out = F.output_paths(tmp_path / 'a.tif', tmp_path, Path('out'))
+
+    assert out.polygons == Path('out/polygons/a.gpkg')
+    assert out.mask is None and out.probability is None
+    assert out.paths() == [Path('out/polygons/a.gpkg')]
+
+
 def test_outputs_mirror_the_input_tree(tmp_path):
     out = F.output_paths(tmp_path / 'plot-3' / 'north.tif', tmp_path,
-                         Path('predictions'), save_probability=True,
-                         polygons=True)
+                         Path('predictions'), save_mask=True,
+                         save_probability=True)
 
+    assert out.polygons == Path('predictions/polygons/plot-3/north.gpkg')
     assert out.mask == Path('predictions/masks/plot-3/north.tif')
     assert out.probability == Path('predictions/probability/plot-3/north.tif')
-    assert out.polygons == Path('predictions/polygons/plot-3/north.gpkg')
 
 
 def test_same_name_in_two_folders_does_not_collide(tmp_path):
     first = F.output_paths(tmp_path / 'north' / 'plot.tif', tmp_path, Path('out'))
     second = F.output_paths(tmp_path / 'south' / 'plot.tif', tmp_path, Path('out'))
-    assert first.mask != second.mask
+    assert first.polygons != second.polygons
 
 
-def test_optional_outputs_are_absent_unless_asked(tmp_path):
-    out = F.output_paths(tmp_path / 'a.tif', tmp_path, Path('out'))
-    assert out.probability is None and out.polygons is None
+def test_the_vector_format_follows_the_suffix(tmp_path):
+    out = F.output_paths(tmp_path / 'a.tif', tmp_path, Path('out'),
+                         polygon_suffix='.shp')
+    assert out.polygons == Path('out/polygons/a.shp')
 
 
 # --------------------------------------------------------------------------
@@ -143,7 +154,52 @@ def test_every_image_is_predicted_and_the_totals_add_up(tmp_path):
     assert summary['images'] == summary['predicted'] == 3
     assert summary['canopy_pixels'] == 30 and summary['valid_pixels'] == 300
     assert summary['canopy_fraction'] == pytest.approx(0.1)
-    assert (tmp_path / 'out' / 'masks' / 'a.tif').exists()
+    assert (tmp_path / 'out' / 'polygons' / 'a.gpkg').exists()
+
+
+def test_the_mask_is_temporary_unless_it_is_asked_for(tmp_path):
+    """Polygons are traced from a mask, but the mask need not be kept.
+
+    It goes to a temporary directory instead, so a folder of large images
+    leaves crowns behind rather than the hundreds of megabytes of raster the
+    crowns were traced from.
+    """
+    images = [touch(tmp_path, 'a.tif')]
+    masks = []
+
+    summary = F.predict_folder(None, images, tmp_path, tmp_path / 'out',
+                               predict=stub_predict(masks=masks))
+
+    used = masks[0]
+    assert used.name == 'a.tif'
+    assert not used.exists()                      # removed with its directory
+    assert (tmp_path / 'out' / 'masks').exists() is False
+    assert summary['results'][0]['outputs'] == [
+        str(tmp_path / 'out' / 'polygons' / 'a.gpkg')]
+
+
+def test_the_temporary_mask_can_be_placed_on_a_chosen_disk(tmp_path):
+    """--scratch-dir points the accumulators and the mask at the same disk."""
+    images = [touch(tmp_path, 'a.tif')]
+    scratch = tmp_path / 'fast-disk'
+    masks = []
+
+    F.predict_folder(None, images, tmp_path, tmp_path / 'out',
+                     scratch_dir=scratch, predict=stub_predict(masks=masks))
+
+    assert scratch in masks[0].parents
+
+
+def test_the_mask_is_kept_where_it_belongs_when_asked_for(tmp_path):
+    images = [touch(tmp_path, 'a.tif')]
+    masks = []
+
+    summary = F.predict_folder(None, images, tmp_path, tmp_path / 'out',
+                               save_mask=True, predict=stub_predict(masks=masks))
+
+    kept = tmp_path / 'out' / 'masks' / 'a.tif'
+    assert masks[0] == kept and kept.exists()
+    assert str(kept) in summary['results'][0]['outputs']
 
 
 def test_a_failed_image_does_not_stop_the_batch(tmp_path):
@@ -164,7 +220,7 @@ def test_a_failed_image_does_not_stop_the_batch(tmp_path):
 def test_skip_existing_leaves_finished_images_alone(tmp_path):
     """An interrupted run is resumed, not repeated."""
     images = [touch(tmp_path, name) for name in ('a.tif', 'b.tif')]
-    touch(tmp_path / 'out', 'masks/a.tif')
+    touch(tmp_path / 'out', 'polygons/a.gpkg')
     seen = []
 
     summary = F.predict_folder(None, images, tmp_path, tmp_path / 'out',
@@ -175,14 +231,14 @@ def test_skip_existing_leaves_finished_images_alone(tmp_path):
     assert summary['skipped'] == 1 and summary['predicted'] == 1
 
 
-def test_a_missing_optional_output_is_not_treated_as_finished(tmp_path):
-    """The mask alone is not the whole job when polygons were asked for."""
+def test_a_missing_raster_is_not_treated_as_finished(tmp_path):
+    """The crowns alone are not the whole job when --save-mask was asked for."""
     images = [touch(tmp_path, 'a.tif')]
-    touch(tmp_path / 'out', 'masks/a.tif')
+    touch(tmp_path / 'out', 'polygons/a.gpkg')
     seen = []
 
     F.predict_folder(None, images, tmp_path, tmp_path / 'out',
-                     polygons=True, skip_existing=True,
+                     save_mask=True, skip_existing=True,
                      predict=stub_predict(recorder=seen))
 
     assert [p.name for p in seen] == ['a.tif']
@@ -196,11 +252,11 @@ def test_the_canopy_share_is_weighted_by_valid_pixels(tmp_path):
     def predict(model, image, out_prob=None, out_mask=None, out_polygons=None,
                 **kwargs):
         canopy, valid = next(sizes)
-        Path(out_mask).parent.mkdir(parents=True, exist_ok=True)
-        Path(out_mask).write_bytes(b'x')
+        Path(out_polygons).parent.mkdir(parents=True, exist_ok=True)
+        Path(out_polygons).write_bytes(b'x')
         return PredictionSummary(width=1, height=1, windows=1,
                                  canopy_pixels=canopy, valid_pixels=valid,
-                                 outputs=(Path(out_mask),))
+                                 outputs=(Path(out_polygons),))
 
     summary = F.predict_folder(None, images, tmp_path, tmp_path / 'out',
                                predict=predict)
@@ -218,8 +274,9 @@ def test_the_summary_names_images_the_way_the_user_typed_them(tmp_path):
 # end to end, with only the segmentor stubbed
 # --------------------------------------------------------------------------
 
-def test_a_folder_of_rasters_is_mapped_end_to_end(tmp_path, monkeypatch):
+def test_a_folder_of_rasters_becomes_a_folder_of_crowns(tmp_path, monkeypatch):
     pytest.importorskip('torch')
+    gpd = pytest.importorskip('geopandas')
     import ghaf.inference.large_image as L
     from tests.test_large_image import _stub_inference, write_raster
 
@@ -241,9 +298,11 @@ def test_a_folder_of_rasters_is_mapped_end_to_end(tmp_path, monkeypatch):
                                tile=64, overlap=32, progress=False)
 
     assert summary['predicted'] == 2 and summary['failed'] == 0
-    for relative, size in (('plot-1.tif', (80, 70)), ('north/plot-2.tif', (64, 64))):
-        mask = tmp_path / 'out' / 'masks' / relative
-        with rasterio.open(mask) as src:
-            assert (src.width, src.height) == size
-            assert src.crs is not None
-            assert src.read(1).min() == 1        # 0.9 >= the 0.5 threshold
+    for relative in ('plot-1.gpkg', 'north/plot-2.gpkg'):
+        crowns = gpd.read_file(tmp_path / 'out' / 'polygons' / relative)
+        assert len(crowns) == 1                   # one blanket crown, all ghaf
+        assert crowns.crs is not None
+        assert crowns['area_m2'].iloc[0] > 0
+
+    # The masks the crowns were traced from are not left behind.
+    assert not (tmp_path / 'out' / 'masks').exists()
