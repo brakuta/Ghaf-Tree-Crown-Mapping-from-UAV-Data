@@ -50,8 +50,6 @@ ghaf-release/
 └── efficientnet-b3_fpn/
 ```
 
-Total is about 2.07 GB across the six models.
-
 ## Why the config is resolved
 
 The file written into each folder is **flattened**: mmengine's `_base_`
@@ -117,7 +115,7 @@ not change. Alongside the bundle:
 
 ```
 ghaf-project/
-├── ghaf-release/                      built by the command above, ~2.07 GB
+├── ghaf-release/                      built by the command above
 └── data/ghaf/
     ├── training/{images,masks}/
     ├── validation/{images,masks}/

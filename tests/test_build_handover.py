@@ -6,12 +6,19 @@ over.
 """
 
 import json
+import shutil
+import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tools import build_handover as B  # noqa: E402
+
+needs_git = pytest.mark.skipif(shutil.which('git') is None,
+                               reason='git is not installed')
 
 
 def tree(root: Path, *names: str) -> Path:
@@ -64,6 +71,144 @@ def test_git_and_caches_are_left_behind(tmp_path):
     assert (tmp_path / 'out' / 'tools' / 'train.py').is_file()
     for unwanted in ('.git', '__pycache__', 'work_dirs'):
         assert not (tmp_path / 'out' / unwanted).exists(), unwanted
+
+
+# --------------------------------------------------------------------------
+# the code: what git tracks, at a named commit
+# --------------------------------------------------------------------------
+
+def git(root: Path, *args: str) -> str:
+    done = subprocess.run(
+        ['git', '-C', str(root), '-c', 'user.name=t', '-c', 'user.email=t@x',
+         *args], check=True, capture_output=True, text=True)
+    return done.stdout.strip()
+
+
+def checkout(root: Path, *names: str) -> Path:
+    """A real repository with ``names`` committed."""
+    tree(root, *names)
+    git(root, 'init', '-q')
+    git(root, 'add', '-A')
+    git(root, 'commit', '-q', '-m', 'init')
+    return root
+
+
+@needs_git
+def test_only_tracked_files_are_copied_from_a_checkout(tmp_path):
+    """A working copy holds more than the repository; the bundle must not."""
+    source = checkout(tmp_path / 'code', 'tools/train.py', 'README.md')
+    tree(source, 'checkpoints/best.pth', 'pkg.egg-info/PKG-INFO',
+         'old_layout/mmseg/x.py')
+    out = tmp_path / 'out'
+
+    part = B.add_code('code', source, out, link=False, dry_run=False)
+
+    assert part.ok, part.notes
+    assert part.files == 2
+    assert (out / 'tools' / 'train.py').is_file()
+    assert (out / 'README.md').is_file()
+    for unwanted in ('checkpoints', 'pkg.egg-info', 'old_layout', '.git'):
+        assert not (out / unwanted).exists(), unwanted
+    assert any('3 file(s) git does not track' in n for n in part.notes)
+
+
+@needs_git
+def test_the_commit_is_recorded(tmp_path):
+    source = checkout(tmp_path / 'code', 'README.md')
+
+    part = B.add_code('code', source, tmp_path / 'out', link=False,
+                      dry_run=False)
+
+    assert part.revision == {'commit': git(source, 'rev-parse', 'HEAD'),
+                             'uncommitted_changes': False}
+    assert any(n.startswith('commit ') for n in part.notes)
+    assert not any('uncommitted' in n for n in part.notes)
+
+
+@needs_git
+def test_uncommitted_changes_are_flagged(tmp_path):
+    """The commit alone would then misdescribe what was copied."""
+    source = checkout(tmp_path / 'code', 'README.md')
+    (source / 'README.md').write_text('edited after the commit')
+
+    part = B.add_code('code', source, tmp_path / 'out', link=False,
+                      dry_run=False)
+
+    assert part.revision['uncommitted_changes'] is True
+    assert any('uncommitted changes' in n for n in part.notes)
+    assert (tmp_path / 'out' / 'README.md').read_text() == 'edited after the commit'
+
+
+@needs_git
+def test_a_tracked_file_deleted_from_disk_is_not_copied(tmp_path):
+    source = checkout(tmp_path / 'code', 'README.md', 'gone.txt')
+    (source / 'gone.txt').unlink()
+
+    part = B.add_code('code', source, tmp_path / 'out', link=False,
+                      dry_run=False)
+
+    assert part.files == 1
+    assert not (tmp_path / 'out' / 'gone.txt').exists()
+
+
+@needs_git
+def test_a_dry_run_of_the_code_measures_without_writing(tmp_path):
+    source = checkout(tmp_path / 'code', 'README.md', 'tools/train.py')
+
+    part = B.add_code('code', source, tmp_path / 'out', link=False,
+                      dry_run=True)
+
+    assert part.files == 2 and part.bytes == 32
+    assert not (tmp_path / 'out').exists()
+
+
+@needs_git
+def test_the_code_can_be_linked(tmp_path):
+    source = checkout(tmp_path / 'code', 'README.md')
+    out = tmp_path / 'out'
+
+    B.add_code('code', source, out, link=True, dry_run=False)
+
+    assert (out / 'README.md').stat().st_ino == (source / 'README.md').stat().st_ino
+
+
+def test_a_folder_that_is_not_a_checkout_is_copied_whole_minus_caches(
+        tmp_path, monkeypatch):
+    """No git history to consult, so the fallback is the filtered copy."""
+    monkeypatch.setenv('GIT_CEILING_DIRECTORIES', str(tmp_path))
+    source = tree(tmp_path / 'code', 'tools/train.py', '.git/config',
+                  '__pycache__/x.pyc', 'pkg.egg-info/PKG-INFO')
+
+    part = B.add_code('code', source, tmp_path / 'out', link=False,
+                      dry_run=False)
+
+    assert part.ok, part.notes
+    assert part.revision is None
+    assert any('not a git checkout' in n for n in part.notes)
+    assert (tmp_path / 'out' / 'tools' / 'train.py').is_file()
+    for unwanted in ('.git', '__pycache__', 'pkg.egg-info'):
+        assert not (tmp_path / 'out' / unwanted).exists(), unwanted
+
+
+def test_code_that_was_not_given_is_reported_as_such(tmp_path):
+    part = B.add_code('code', None, tmp_path / 'out', link=False, dry_run=False)
+    assert part.status == 'not given'
+
+
+@needs_git
+def test_the_bundle_readme_and_manifest_name_the_commit(tmp_path):
+    source = checkout(tmp_path / 'code', 'README.md')
+    commit = git(source, 'rev-parse', 'HEAD')
+    bundle = tmp_path / 'bundle'
+
+    assert B.main(['--output', str(bundle), '--code', str(source)]) == 0
+
+    readme = (bundle / 'README.md').read_text(encoding='utf-8')
+    assert commit[:12] in readme
+    assert B.REPOSITORY_URL in readme
+    manifest = json.loads((bundle / 'MANIFEST.json').read_text())
+    code = next(p for p in manifest['parts'] if p['part'] == 'code')
+    assert code['revision']['commit'] == commit
 
 
 def test_a_dry_run_writes_nothing_but_still_measures(tmp_path):

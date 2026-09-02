@@ -9,7 +9,7 @@ layout the documented commands already expect::
     <output>/
       README.md            what this is and where to start
       MANIFEST.json        every part, its size, and what was verified
-      code/                the repository
+      code/                the repository, as git tracks it, at a named commit
       models/              the six trained checkpoints, one folder each
       init-weights/        ImageNet weights, so training needs no internet
       data/ghaf/           training, validation and test tiles
@@ -19,6 +19,13 @@ layout the documented commands already expect::
 Every part is optional: pass the ones you have. What is missing is reported
 rather than assumed, so a partial bundle is obvious at a glance instead of
 discovered later by whoever received it.
+
+``--code`` names a checkout of this repository, and only the files git tracks
+are taken from it: a working copy accumulates local checkpoints, scratch
+output and the remains of earlier layouts, none of which is the code. The
+commit is recorded in the manifest and the README, so a recipient can name
+exactly which version they have. Outside a git checkout the folder is copied
+whole, minus caches.
 
 ``--data`` names the root of a tile tree, and only the dataset's own splits
 are taken from it -- whatever else the working directory has accumulated over
@@ -43,11 +50,12 @@ import argparse
 import json
 import os
 import shutil
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -55,9 +63,13 @@ from ghaf import init_weights  # noqa: E402
 from ghaf.release import iter_models  # noqa: E402
 from ghaf.splits import directories  # noqa: E402
 
-#: Files never worth copying into a handover.
+#: Files never worth copying into a handover, for a folder git does not
+#: describe. A checkout is copied by what git tracks instead: see `add_code`.
 EXCLUDED = ('.git', '__pycache__', '.pytest_cache', '.ruff_cache', 'work_dirs',
-            '*.pyc', '.ipynb_checkpoints')
+            '*.pyc', '*.egg-info', '.ipynb_checkpoints')
+
+#: Where the tracked code is public, so the bundle can name the same commit.
+REPOSITORY_URL = 'https://github.com/brakuta/Ghaf-Tree-Crown-Mapping-from-UAV-Data'
 
 
 @dataclass
@@ -71,6 +83,8 @@ class Part:
     bytes: int = 0
     notes: List[str] = field(default_factory=list)
     ok: bool = True
+    revision: Optional[Dict[str, object]] = None
+    """For the code: the commit it was taken at, and whether the tree was clean."""
 
     @property
     def status(self) -> str:
@@ -81,12 +95,15 @@ class Part:
         return 'copied'
 
     def as_dict(self) -> dict:
-        return {
+        entry = {
             'part': self.name,
             'source': str(self.source) if self.source else None,
             'files': self.files, 'bytes': self.bytes,
             'ok': self.ok, 'notes': self.notes,
         }
+        if self.revision is not None:
+            entry['revision'] = self.revision
+        return entry
 
 
 def measure(root: Path) -> tuple:
@@ -145,6 +162,102 @@ def add_part(name: str, source: Optional[Path], destination: Path,
 
     copy_tree(source, destination, link, dry_run)
     return part
+
+
+def _git(source: Path, *args: str) -> Optional[str]:
+    """Run one git command in ``source``; ``None`` if git or the repo is absent."""
+    try:
+        done = subprocess.run(['git', '-C', str(source), *args],
+                              capture_output=True, text=True, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return done.stdout
+
+
+def tracked_files(source: Path) -> Optional[List[Path]]:
+    """The files git tracks under ``source``, or ``None`` outside a checkout.
+
+    Paths git lists but that are no longer on disk -- deleted and not yet
+    committed -- are left out, since there is nothing to copy.
+    """
+    listing = _git(source, 'ls-files', '-z')
+    if listing is None:
+        return None
+    paths = [source / name for name in listing.split('\0') if name]
+    return [path for path in paths if path.is_file()]
+
+
+def code_revision(source: Path) -> Optional[Dict[str, object]]:
+    """Which commit a checkout is at, and whether anything is uncommitted."""
+    commit = _git(source, 'rev-parse', 'HEAD')
+    status = _git(source, 'status', '--porcelain')
+    if commit is None or status is None:
+        return None
+    return {'commit': commit.strip(), 'uncommitted_changes': bool(status.strip())}
+
+
+def add_code(name: str, source: Optional[Path], destination: Path,
+             link: bool, dry_run: bool) -> Part:
+    """Copy the repository as git describes it, not as the folder has grown.
+
+    A working copy collects things that are not the code: checkpoints put
+    beside the configs for convenience, an editable-install egg-info, the
+    folders of a layout since abandoned, all ignored by git and invisible in
+    a diff. Copying the folder would hand those on as though they were part
+    of the repository. So inside a checkout only tracked files are taken, the
+    commit is recorded, and the number of files left behind is reported --
+    if any of them belong in the handover, commit them and run again.
+
+    Outside a checkout -- no git, or a folder that is only a copy of one --
+    the folder is copied whole minus caches, and the note says so.
+    """
+    if source is None or not source.exists():
+        return add_part(name, source, destination, link, dry_run)
+
+    files = tracked_files(source)
+    if files is None:
+        part = add_part(name, source, destination, link, dry_run)
+        part.notes.append('not a git checkout: copied whole, minus caches')
+        return part
+
+    part = Part(name, source, destination)
+    part.revision = code_revision(source)
+    if not files:
+        part.ok = False
+        part.notes.append(f'{source} is a git checkout that tracks no files')
+        return part
+
+    part.files = len(files)
+    part.bytes = sum(path.stat().st_size for path in files)
+    if not dry_run:
+        for path in files:
+            target = destination / path.relative_to(source)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            _copy_file(path, target, link)
+
+    if part.revision:
+        short = str(part.revision['commit'])[:12]
+        dirty = ' with uncommitted changes' if part.revision['uncommitted_changes'] else ''
+        part.notes.append(f'commit {short}{dirty}')
+
+    present = sum(1 for p in source.rglob('*')
+                  if p.is_file() and '.git' not in p.relative_to(source).parts)
+    untracked = present - part.files
+    if untracked > 0:
+        part.notes.append(
+            f'{untracked:,} file(s) git does not track were left behind')
+    return part
+
+
+def _copy_file(source: Path, destination: Path, link: bool) -> None:
+    """One file, linked where asked and possible, copied otherwise."""
+    if link:
+        try:
+            _hardlink(source, destination)
+            return
+        except OSError:
+            pass                    # different volumes, or no hard links here
+    shutil.copy2(source, destination)
 
 
 def add_dataset(name: str, source: Optional[Path], destination: Path,
@@ -206,6 +319,20 @@ def verify_models(models_dir: Path) -> List[str]:
     return problems
 
 
+def describe_code(parts: List[Part]) -> str:
+    """One sentence naming the commit in ``code/``, when it is known."""
+    code = next((p for p in parts if p.name == 'code'), None)
+    if code is None or not code.revision:
+        return ''
+    commit = str(code.revision['commit'])
+    text = (f'`code/` is the repository at commit `{commit[:12]}`, which is '
+            f'public at {REPOSITORY_URL}/tree/{commit}.')
+    if code.revision['uncommitted_changes']:
+        text += (' The checkout carried uncommitted changes when the bundle '
+                 'was assembled, so it may differ from that commit.')
+    return text
+
+
 def write_readme(output: Path, parts: List[Part]) -> Path:
     """A first page for whoever opens the folder."""
     rows = '\n'.join(
@@ -213,7 +340,7 @@ def write_readme(output: Path, parts: List[Part]) -> Path:
         f'{p.bytes / 1e9:.2f} GB |' for p in parts)
     text = f"""# Ghaf tree-crown mapping — project handover
 
-Assembled {date.today().isoformat()}.
+Assembled {date.today().isoformat()}. {describe_code(parts)}
 
 Everything needed to reproduce, apply and extend the models from
 **"Hybrid Vision–CNN Architecture for Mapping *Prosopis cineraria* from
@@ -248,7 +375,7 @@ python -m ghaf.inference.large_image ..\\models\\fastvit-ma36_mask2former\\fastv
 
 | Folder | Contents |
 |---|---|
-| `code/` | The repository, also public on GitHub. Start with its README |
+| `code/` | The repository, exactly the files git tracks at the commit named above. Start with its README |
 | `models/` | The six trained models. Each folder holds the weights, a self-contained config, and a metadata file with its digest and scores |
 | `init-weights/` | ImageNet weights the backbones start from. Needed only for training or fine-tuning, and only so that neither needs internet access: pass the folder as `--init-weights` |
 | `data/ghaf/` | The labelled training, validation and test tiles. Paired 1024 × 1024 PNGs, masks holding `0` for background and `1` for a crown. These splits alone -- other material from the working directory they were prepared in is not here. The test tiles carry world files, so their predictions open in GIS already placed |
@@ -297,7 +424,6 @@ def main(argv=None) -> int:
         output.mkdir(parents=True, exist_ok=True)
 
     wanted = [
-        ('code', args.code, output / 'code'),
         ('models', args.checkpoints, output / 'models'),
         ('init-weights', args.init_weights, output / 'init-weights'),
         ('samples', args.samples, output / 'samples'),
@@ -305,8 +431,10 @@ def main(argv=None) -> int:
     ]
     parts = [add_part(name, source, destination, args.link, args.dry_run)
              for name, source, destination in wanted]
-    # The dataset is not a folder to copy but a set of named splits: see
-    # add_dataset for why the difference matters.
+    # Two parts are not folders to copy: the code is what git tracks, and the
+    # dataset is a set of named splits. See add_code and add_dataset.
+    parts.insert(0, add_code('code', args.code, output / 'code',
+                             args.link, args.dry_run))
     parts.insert(3, add_dataset('data', args.data, output / 'data' / 'ghaf',
                                 args.link, args.dry_run))
 
