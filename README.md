@@ -249,13 +249,13 @@ carrying that tile's CRS and geotransform and encoded the same way as the
 ground truth (`0` background, `1` ghaf), so prediction and label can be
 differenced directly. `--save-probability` adds the float32 P(ghaf) map.
 
-**Predict every image in a folder**
+**Map every image in a folder to crowns**
 
 ```bash
 python tools/predict_folder.py \
     configs/ghaf/fastvit-ma36_mask2former.py \
     checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
-    images/ --out-dir predictions/plots --polygons
+    images/ --out-dir predictions/plots
 ```
 
 The two steps above assume a shape the data often does not have: a dataset
@@ -263,14 +263,21 @@ split of same-sized tiles, or one orthomosaic. This takes a folder as it comes
 -- a season's clips, a set of survey plots, the frames from one flight -- and
 maps every image in it in a single run. Each image goes through the same
 windowed inference as a full mosaic, so they need not share a size and none of
-them has to fit in memory. Outputs mirror the input's folder structure, so two
+them has to fit in memory.
+
+Crowns are the output; the rasters are opt-in. A crown layer is a few hundred
+kilobytes where the mask it came from is hundreds of megabytes, and counting,
+measuring or drawing crowns over the imagery is done from the polygons. The
+mask still exists for a moment -- polygons are traced from it -- but unless
+`--save-mask` asks for it, it is written to the scratch directory and deleted
+when the image is done. Outputs mirror the input's folder structure, so two
 images with the same name in different subfolders cannot overwrite each other:
 
 ```
 predictions/plots/
-├── masks/<subfolder>/<image>.tif          uint8, 0 background, 1 ghaf
+├── polygons/<subfolder>/<image>.gpkg      crowns, with area_m2 per polygon
+├── masks/<subfolder>/<image>.tif          with --save-mask
 ├── probability/<subfolder>/<image>.tif    with --save-probability
-├── polygons/<subfolder>/<image>.gpkg      with --polygons
 └── summary.json                           per image, and the totals
 ```
 
@@ -370,7 +377,7 @@ tools/
 ├── check_dataset.py       validate a tile tree before using it
 ├── train.py · test.py     thin wrappers over the mmengine runner
 ├── predict_split.py       per-tile predictions for a dataset split
-├── predict_folder.py      predictions for every image in a folder
+├── predict_folder.py      crowns for every image in a folder
 ├── make_sample.py         cut a small georeferenced sample from a mosaic
 ├── smoke_test.py          build every model, check parameter counts
 ├── export_release.py      assemble the shareable model bundle
