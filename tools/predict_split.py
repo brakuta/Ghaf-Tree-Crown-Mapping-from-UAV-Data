@@ -36,7 +36,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from ghaf.environment import require_stack  # noqa: E402
+from ghaf.environment import quiet_repeated_warnings, require_stack  # noqa: E402
 from ghaf.inference.large_image import _foreground_probability, _import  # noqa: E402
 from ghaf.inference.tiling import iter_batches  # noqa: E402
 
@@ -220,6 +220,7 @@ def main(argv=None) -> int:
 
     import ghaf
     ghaf.register_all()
+    quiet_repeated_warnings()
     from mmseg.apis import init_model
 
     tiles = list_tiles(args.data_root, args.split)

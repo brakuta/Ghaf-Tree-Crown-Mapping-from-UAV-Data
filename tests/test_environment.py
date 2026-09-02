@@ -5,6 +5,8 @@ is a command typed in a conda environment that does not have the stack
 installed. Pure import checking, so this runs anywhere.
 """
 
+import warnings
+
 import pytest
 
 from ghaf import environment
@@ -59,3 +61,40 @@ def test_several_missing_packages_read_as_several(monkeypatch):
 def test_the_default_is_the_frameworks_a_model_needs():
     assert set(environment.STACK) == {
         'mmengine', 'mmcv', 'mmseg', 'mmdet', 'mmpretrain'}
+
+
+# --------------------------------------------------------------------------
+# quieting the frameworks' repeated deprecation notices
+# --------------------------------------------------------------------------
+
+def _emit(message, times=3):
+    """Warn the same way a forward pass does, and count what got through."""
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')       # mmengine's setting, reproduced
+        environment.quiet_repeated_warnings()
+        for _ in range(times):
+            warnings.warn(message, UserWarning, stacklevel=2)
+    return len(caught)
+
+
+def test_a_repeated_framework_warning_is_shown_once():
+    assert _emit('__floordiv__ is deprecated, and its behavior will change') == 1
+
+
+def test_the_meshgrid_warning_is_shown_once():
+    assert _emit('torch.meshgrid: it will be required to pass the indexing '
+                 'argument') == 1
+
+
+def test_other_warnings_are_left_alone():
+    assert _emit('the dataset root does not exist') == 3
+
+
+def test_the_patterns_are_configurable():
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        environment.quiet_repeated_warnings([r'.*only once.*'])
+        for _ in range(3):
+            warnings.warn('this should appear only once', UserWarning,
+                          stacklevel=2)
+    assert len(caught) == 1

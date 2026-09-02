@@ -144,7 +144,7 @@ the message can be ignored.
 **Verify**:
 
 ```bash
-python -m pytest tests/ -q   # 271 tests
+python -m pytest tests/ -q   # 275 tests
 python tools/smoke_test.py   # builds all six models, checks parameter counts
 ```
 
@@ -326,7 +326,7 @@ tools/
 ├── export_release.py      assemble the shareable model bundle
 ├── fetch_init_weights.py  collect the ImageNet weights, once, while online
 └── build_handover.py      assemble the whole handover folder
-tests/                     271 tests; mmengine and NumPy, plus torch, timm,
+tests/                     275 tests; mmengine and NumPy, plus torch, timm,
                            rasterio and geopandas for the end-to-end ones
 docs/                      getting started, model zoo, area-wide inference,
                            release bundle
@@ -335,7 +335,7 @@ docs/                      getting started, model zoo, area-wide inference,
 ## Testing
 
 ```bash
-python -m pytest tests/ -q            # 271 tests: no GPU, mmcv or dataset required
+python -m pytest tests/ -q            # 275 tests: no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
 python tools/smoke_test.py --checkpoints DIR   # also loads and runs the weights
 ```
