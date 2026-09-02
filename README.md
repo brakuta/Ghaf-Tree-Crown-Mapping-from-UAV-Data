@@ -23,10 +23,10 @@ framework setup.
 [![python](https://img.shields.io/badge/python-3.9%20%7C%203.11-blue)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-**[Quick start](#quick-start)** · **[Results](#results)** ·
-**[Install](#installation)** · **[Data](#data)** · **[Training](#training)** ·
-**[Evaluation](#evaluation)** · **[Inference](#inference)** ·
-**[Models](#models-and-availability)** · **[Layout](#repository-layout)** ·
+**[Quick start](#quick-start)** · **[Install](#installation)** ·
+**[Data](#data)** · **[Training](#training)** ·
+**[Evaluation](#evaluation)** · **[Results](#results)** ·
+**[Inference](#inference)** · **[Layout](#repository-layout)** ·
 **[Testing](#testing)**
 
 [Getting started](docs/GETTING_STARTED.md) · [Model zoo](docs/MODEL_ZOO.md) ·
@@ -42,8 +42,8 @@ training and fine-tuning, one command at a time.
 ## Quick start
 
 The trained weights, the UAV imagery and the labelled tiles are **not
-distributed here** — see [Models and availability](#models-and-availability)
-for how to obtain and verify them. With a checkpoint in hand:
+distributed here**; they are available from the corresponding author on
+reasonable request. With a checkpoint in hand:
 
 **1. Install** — `conda env create -f environment.yml`, then the pip steps
 under [Installation](#installation). Ten minutes, once.
@@ -73,33 +73,6 @@ python tools/predict_folder.py \
 ```
 
 To train or score a model instead, start at [Data](#data).
-
----
-
-## Results
-
-Held-out test split (`testing/ghaf26`). All six models share one
-dataset, one augmentation pipeline, one schedule and one metric implementation,
-so the differences below are attributable to the encoder and decode head.
-
-| Backbone | Decode head | Params | mIoU | F1 |
-|---|---|---:|---:|---:|
-| **FastViT-MA36** | Mask2Former | 62.5 M | **79.32** | **87.22** |
-| PoolFormer-S36 | FPN | 34.6 M | 78.65 | 86.72 |
-| DPN-98 | FPN | 65.3 M | 78.19 | 86.35 |
-| ConvNeXt-S | UPerNet | 81.8 M | 78.02 | 86.20 |
-| ResNet-50 | Mask2Former | 44.1 M | 77.69 | 85.98 |
-| EfficientNet-B3 | FPN | 13.7 M | 70.77 | 80.29 |
-
-On the validation split, FastViT-MA36 reaches **80.14 mIoU / 87.87 F1**.
-
-Two comparisons are worth drawing out. FastViT-MA36 and ResNet-50 share an
-identical Mask2Former head, optimiser and schedule, so the 1.63-point mIoU gap
-between them isolates the backbone. And FastViT-MA36 outperforms ConvNeXt-S
-while using 24 % fewer parameters, so the gain is not simply capacity.
-
-Per-model details, checkpoint hashes and training settings are in
-[`docs/MODEL_ZOO.md`](docs/MODEL_ZOO.md).
 
 ---
 
@@ -187,8 +160,11 @@ Run `smoke_test.py` before training or evaluating: it constructs every model
 from its config and compares its tensor total -- summed over `state_dict`, as
 the published counts are -- against the published one, so a mismatch between
 the code and the weights surfaces immediately. It also reports each model's
-trainable parameter count. Pointed at a folder of checkpoints it goes further;
-see [Models and availability](#models-and-availability).
+trainable parameter count. Pointed at a folder of checkpoints --
+`python tools/smoke_test.py --checkpoints DIR` -- it goes further: it confirms
+each file is the released one by size and SHA-256, loads it into the model
+built from its config, names any tensor the two do not share, and runs one
+prediction through it.
 
 ---
 
@@ -256,6 +232,33 @@ python tools/test.py configs/ghaf/fastvit-ma36_mask2former.py \
 
 Reports mIoU, mDice and mFscore over the held-out test split — the numbers
 under [Results](#results), reproduced from the published weights.
+
+---
+
+## Results
+
+Held-out test split (`testing/ghaf26`). All six models share one
+dataset, one augmentation pipeline, one schedule and one metric implementation,
+so the differences below are attributable to the encoder and decode head.
+
+| Backbone | Decode head | Params | mIoU | F1 |
+|---|---|---:|---:|---:|
+| **FastViT-MA36** | Mask2Former | 62.5 M | **79.32** | **87.22** |
+| PoolFormer-S36 | FPN | 34.6 M | 78.65 | 86.72 |
+| DPN-98 | FPN | 65.3 M | 78.19 | 86.35 |
+| ConvNeXt-S | UPerNet | 81.8 M | 78.02 | 86.20 |
+| ResNet-50 | Mask2Former | 44.1 M | 77.69 | 85.98 |
+| EfficientNet-B3 | FPN | 13.7 M | 70.77 | 80.29 |
+
+On the validation split, FastViT-MA36 reaches **80.14 mIoU / 87.87 F1**.
+
+Two comparisons are worth drawing out. FastViT-MA36 and ResNet-50 share an
+identical Mask2Former head, optimiser and schedule, so the 1.63-point mIoU gap
+between them isolates the backbone. And FastViT-MA36 outperforms ConvNeXt-S
+while using 24 % fewer parameters, so the gain is not simply capacity.
+
+Per-model details, checkpoint hashes and training settings are in
+[`docs/MODEL_ZOO.md`](docs/MODEL_ZOO.md).
 
 ---
 
@@ -349,57 +352,6 @@ model is wrong rather than by how much. One predicted mask per tile, each
 carrying that tile's CRS and geotransform and encoded the same way as the
 ground truth (`0` background, `1` ghaf), so prediction and label can be
 differenced directly. `--save-probability` adds the float32 P(ghaf) map.
-
-### Cutting a sample to try first
-
-```bash
-python tools/make_sample.py mosaic.tif --output sample.tif --size 8192
-```
-
-A survey mosaic can be billions of pixels; the clip keeps the source CRS and
-pixel grid, so it runs in a minute or two and proves the pipeline before the
-full mosaic is attempted. The window is centred unless `--origin COL ROW`
-names its top-left corner, and the share of valid imagery in it is reported so
-a window that landed on the transparent border is obvious.
-
----
-
-## Models and availability
-
-This repository holds the code, the configurations and the documentation. The
-trained weights, the UAV imagery and the labelled tiles are **not distributed
-here**; they are available from the corresponding author on reasonable request.
-
-What is here is enough to check them. `ghaf/release.py` records every released
-checkpoint's SHA-256, byte size, parameter count and test scores, so a copy
-received by any route can be verified against what was published:
-
-```bash
-python tools/smoke_test.py --checkpoints /path/to/checkpoints
-```
-
-For each model this confirms the file is the released one (size and SHA-256),
-loads the weights into the model built from the config in this repository and
-reports any tensor the two do not share, then runs one real prediction through
-mmseg's inference path. A model that reaches the last column has been exercised
-end to end. It is the check to run on weights that have just arrived, and again
-before passing them on.
-
-**Packaging the weights for someone else:**
-
-```bash
-python tools/export_release.py --checkpoints /path/to/checkpoints \
-                               --output      /path/to/ghaf-release
-```
-
-This is the tool that assembles the folder a recipient receives: one
-self-contained folder per model — a resolved config beside its weights, in
-mmsegmentation's working-directory layout. It is published so that step is not
-a private one. Each checkpoint is verified against the SHA-256 recorded in
-`ghaf/release.py` before the copy and again after, which means the command
-accepts only the six released checkpoints and a bundle cannot carry a silently
-corrupted file. Anyone who has been sent the weights can re-run it and obtain
-the same folder. See [`docs/RELEASE_BUNDLE.md`](docs/RELEASE_BUNDLE.md).
 
 ---
 
