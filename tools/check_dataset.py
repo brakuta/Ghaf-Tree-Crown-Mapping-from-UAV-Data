@@ -35,10 +35,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from ghaf.splits import SPLITS  # noqa: E402
 
-#: Tile counts of the published dataset. A different count is not an error --
-#: it is reported so a substitution is noticed rather than assumed.
-PUBLISHED_COUNTS = {'training': 7005, 'validation': 869, 'testing': 767}
-
 #: The only pixel values a mask may contain.
 CLASS_VALUES = {0, 1}
 
@@ -212,12 +208,11 @@ def check_split(root: Path, name: str, image_rel: str, mask_rel: str,
 def render(reports: List[SplitReport]) -> bool:
     """Print a human-readable summary. Returns True when the tree is usable."""
     print(f'{"split":12s} {"images":>8s} {"masks":>8s} {"paired":>8s} '
-          f'{"checked":>8s} {"published":>10s}  status')
-    print('-' * 72)
+          f'{"checked":>8s}  status')
+    print('-' * 62)
 
     healthy = True
     for report in reports:
-        expected = PUBLISHED_COUNTS.get(report.name)
         note = ''
         if report.missing_directories:
             status, note = 'MISSING', ', '.join(report.missing_directories)
@@ -225,14 +220,11 @@ def render(reports: List[SplitReport]) -> bool:
             status, note = 'NO TILES', report.describe_contents()
         elif report.problems:
             status = f'{report.problems} PROBLEM(S)'
-        elif expected is not None and report.paired != expected:
-            status = 'ok (count differs)'
         else:
             status = 'ok'
         healthy &= report.usable
         print(f'{report.name:12s} {report.images:8d} {report.masks:8d} '
-              f'{report.paired:8d} {report.inspected:8d} '
-              f'{expected if expected else "-":>10}  {status} {note}')
+              f'{report.paired:8d} {report.inspected:8d}  {status} {note}')
 
     for report in reports:
         if report.problems == 0:

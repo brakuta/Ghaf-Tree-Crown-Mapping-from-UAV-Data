@@ -60,9 +60,9 @@ D:\ghaf-project\
 │   └── ...                                five more
 ├── init-weights\                      ImageNet weights, so training needs no internet
 ├── data\ghaf\
-│   ├── training\{images,masks}\           7 005 tiles
-│   ├── validation\{images,masks}\           869 tiles
-│   └── testing\ghaf26\{images,masks}\       767 tiles
+│   ├── training\{images,masks}\
+│   ├── validation\{images,masks}\
+│   └── testing\ghaf26\{images,masks}\
 ├── samples\
 │   ├── Kalba26_sample.tif                 a small clip: start here, minutes
 │   └── Kalba26.tif                        the full UAV orthomosaic, hours
@@ -282,7 +282,7 @@ ground truth, or to hand on as a result set.
 python tools\predict_split.py D:\ghaf-project\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py D:\ghaf-project\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth --data-root D:\ghaf-project\data\ghaf --split testing --out-dir D:\ghaf-project\output\predictions --save-probability
 ```
 
-About seven minutes for the 767 test tiles on a GPU. `--limit 20` does a quick
+A few minutes for the test split on a GPU. `--limit 20` does a quick
 partial run first, if you want to see the output before committing to all of
 them.
 

@@ -1,9 +1,8 @@
 # Model zoo
 
-Six models, one protocol. Every entry below was trained on the same 7 005
-training tiles, validated on the same 869-tile split for checkpoint selection,
-and scored on the same held-out 767-tile test split with the same metric
-implementation.
+Six models, one protocol. Every entry below was trained on the same training
+tiles, validated on the same split for checkpoint selection, and scored on the
+same held-out test split with the same metric implementation.
 
 ## Results
 

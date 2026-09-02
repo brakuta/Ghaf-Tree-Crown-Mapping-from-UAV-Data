@@ -118,10 +118,10 @@ not change. Alongside the bundle:
 ```
 ghaf-project/
 ├── ghaf-release/                      built by the command above, ~2.07 GB
-└── data/ghaf/                         ~60 GB
-    ├── training/{images,masks}/       7 005 tiles
-    ├── validation/{images,masks}/       869 tiles
-    └── testing/ghaf26/{images,masks}/   767 tiles
+└── data/ghaf/
+    ├── training/{images,masks}/
+    ├── validation/{images,masks}/
+    └── testing/ghaf26/{images,masks}/
 ```
 
 Point a config at the tiles with `--data-root /path/to/data/ghaf`, or place

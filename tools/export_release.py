@@ -129,7 +129,7 @@ def write_index(out_dir: Path, entries: List[dict]) -> None:
         'generated': date.today().isoformat(),
         'classes': ['background', 'ghaf'],
         'input_size': [1024, 1024],
-        'test_split': 'testing/ghaf26 (767 tiles)',
+        'test_split': 'testing/ghaf26',
         'models': entries,
     }, indent=2) + '\n', encoding='utf-8')
 
@@ -147,7 +147,7 @@ Six trained semantic-segmentation models for delineating Ghaf
 |---|---|---|---:|---:|---:|
 {rows}
 
-Results are on the held-out test split (767 tiles). All six models share one
+Results are on the held-out test split. All six models share one
 dataset, one augmentation pipeline, one schedule and one metric implementation.
 
 ## What each folder contains
