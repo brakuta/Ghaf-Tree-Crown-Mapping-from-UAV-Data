@@ -264,6 +264,7 @@ def predict_large_image(
     threshold: float = 0.5,
     bands: Sequence[int] = (1, 2, 3),
     batch_size: int = 1,
+    min_area: float = 0.0,
     scratch_dir: Optional[Path] = None,
     progress: bool = True,
 ) -> PredictionSummary:
@@ -285,6 +286,10 @@ def predict_large_image(
         batch_size: tiles per forward pass. Larger batches use the GPU better
             and amortise mmseg's per-call construction of the test pipeline,
             at the cost of VRAM. Raise it until memory becomes the limit.
+        min_area: drop crown polygons smaller than this many square metres.
+            At ``0`` the polygon layer matches the mask raster exactly; a
+            small value removes the single-pixel specks that any threshold
+            leaves behind, at the cost of that correspondence.
         scratch_dir: where to place the memory-mapped accumulators. Defaults to
             the system temporary directory, which on Windows is usually on the
             system drive and may be far smaller than a run needs.
@@ -383,7 +388,8 @@ def predict_large_image(
                 acc = valid_plane = None
 
     if out_polygons:
-        _write_polygons(out_polygons, out_mask, out_prob, transform, crs, threshold)
+        _write_polygons(out_polygons, out_mask, out_prob, transform, crs,
+                        threshold, min_area)
         summary = replace(summary, outputs=summary.outputs + (Path(out_polygons),))
 
     LOGGER.info('canopy: %d of %d valid px (%.2f%%)', summary.canopy_pixels,
@@ -460,14 +466,27 @@ def _open_raster(path: Optional[Path], profile: dict, crs, transform,
     return rasterio.open(path, 'w', **profile)
 
 
+def _in_square_metres(crs) -> bool:
+    """Whether polygon areas in this CRS are square metres."""
+    if crs is None or not crs.is_projected:
+        return False
+    units = (crs.linear_units or '').lower()
+    return units in ('metre', 'meter', 'm')
+
+
 def _write_polygons(path: Path, mask_path: Optional[Path],
                     prob_path: Optional[Path], transform, crs,
-                    threshold: float) -> None:
+                    threshold: float, min_area: float = 0.0) -> None:
     """Vectorise the crown mask.
 
     Reads a finished raster back rather than holding one during inference. The
     mask is preferred (one byte per pixel); if only a probability raster was
     written, it is thresholded on the way in.
+
+    Every polygon carries its area, so crowns can be counted, measured and
+    filtered in GIS without further work. ``min_area`` drops polygons smaller
+    than that many square metres before writing; at the default of ``0`` the
+    layer corresponds exactly to the mask raster, speck for speck.
     """
     rasterio = _import('rasterio', 'rasterio')
     gpd = _import('geopandas', 'geopandas')
@@ -489,10 +508,23 @@ def _write_polygons(path: Path, mask_path: Optional[Path],
         if value == 1
     ]
 
+    metric = _in_square_metres(crs)
+    if min_area > 0 and not metric:
+        LOGGER.warning(
+            'min-area needs a projected CRS in metres; %s is not one, so no '
+            'polygons were dropped', crs)
+    elif min_area > 0:
+        kept = [g for g in geoms if g.area >= min_area]
+        LOGGER.info('dropped %d polygon(s) under %g m2', len(geoms) - len(kept),
+                    min_area)
+        geoms = kept
+
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    frame = gpd.GeoDataFrame({'class': ['ghaf'] * len(geoms)},
-                             geometry=geoms, crs=crs)
+    column = 'area_m2' if metric else 'area_crs_units'
+    frame = gpd.GeoDataFrame(
+        {'class': ['ghaf'] * len(geoms), column: [g.area for g in geoms]},
+        geometry=geoms, crs=crs)
     if frame.empty:
         LOGGER.warning('no crowns at or above the threshold; writing an empty layer')
     frame.to_file(path)
@@ -520,6 +552,9 @@ def parse_args(argv=None) -> argparse.Namespace:
                         metavar=('R', 'G', 'B'))
     parser.add_argument('--batch-size', type=int, default=1,
                         help='tiles per forward pass; raise until VRAM limits it')
+    parser.add_argument('--min-area', type=float, default=0.0, metavar='M2',
+                        help='drop crown polygons smaller than this many '
+                             'square metres; 0 keeps every speck the mask has')
     parser.add_argument('--scratch-dir', type=Path,
                         help='where to put the temporary accumulators '
                              '(default: the system temporary directory)')
@@ -550,7 +585,8 @@ def main(argv=None) -> int:
         out_polygons=args.out_polygons,
         tile=args.tile, overlap=args.overlap, sigma=args.sigma,
         threshold=args.threshold, bands=tuple(args.bands),
-        batch_size=args.batch_size, scratch_dir=args.scratch_dir,
+        batch_size=args.batch_size, min_area=args.min_area,
+        scratch_dir=args.scratch_dir,
         progress=not args.no_progress,
     )
     return 0

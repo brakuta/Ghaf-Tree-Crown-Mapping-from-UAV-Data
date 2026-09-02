@@ -24,6 +24,7 @@ import argparse
 import json
 import random
 import sys
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -111,11 +112,19 @@ class SplitReport:
 
 
 def _read_raster(path: Path):
-    """Return ``(width, height, first_band)`` using whichever reader is present."""
+    """Return ``(width, height, first_band)`` using whichever reader is present.
+
+    The published tiles are PNG and carry no geotransform, which is correct and
+    expected here, so rasterio's warning about it is not shown: it would fire
+    once per tile and say nothing a reader of this report needs to act on.
+    """
     try:
         import rasterio
-        with rasterio.open(path) as src:
-            return src.width, src.height, src.read(1)
+        from rasterio.errors import NotGeoreferencedWarning
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', NotGeoreferencedWarning)
+            with rasterio.open(path) as src:
+                return src.width, src.height, src.read(1)
     except ImportError:
         pass
     try:
