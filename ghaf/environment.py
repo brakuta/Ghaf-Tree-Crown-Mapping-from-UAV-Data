@@ -15,6 +15,7 @@ from __future__ import annotations
 import importlib
 import os
 import sys
+import warnings
 from typing import Sequence
 
 #: The frameworks a tool needs before it can build a model.
@@ -56,3 +57,28 @@ def require_stack(packages: Sequence[str] = STACK) -> None:
         f'`conda activate ghaf` if you followed the guide -- and run the '
         f'command again. If this is a new machine, "Installation" in '
         f'README.md sets it up from scratch.')
+
+
+#: Deprecation notices from inside the frameworks, which the caller can do
+#: nothing about but which mmengine's warning settings repeat endlessly.
+NOISY_WARNINGS = (
+    '.*__floordiv__ is deprecated.*',
+    '.*torch.meshgrid.*indexing argument.*',
+)
+
+
+def quiet_repeated_warnings(patterns: Sequence[str] = NOISY_WARNINGS) -> None:
+    """Show each of these framework warnings once instead of once per batch.
+
+    mmdet and torch emit deprecation notices from deep inside the forward
+    pass, and mmengine puts the warning machinery in a mode that repeats them
+    every time. Over a split of hundreds of tiles that is thousands of lines
+    burying the progress bar and the result. Nothing here can act on them --
+    they belong to pinned dependencies -- so they are shown once and then
+    held back, rather than hidden altogether.
+
+    Call it after the frameworks are imported: mmengine resets the warning
+    filters as it loads, which would discard anything set before.
+    """
+    for pattern in patterns:
+        warnings.filterwarnings('once', message=pattern, category=UserWarning)

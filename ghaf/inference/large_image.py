@@ -575,7 +575,10 @@ def main(argv=None) -> int:
     args = parse_args(argv)
 
     import ghaf
+    from ghaf.environment import quiet_repeated_warnings
+
     ghaf.register_all()
+    quiet_repeated_warnings()
     from mmseg.apis import init_model
 
     model = init_model(str(args.config), str(args.checkpoint), device=args.device)
