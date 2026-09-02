@@ -56,7 +56,7 @@ and runs a prediction through it.
 
 ## Results
 
-Held-out test split (`testing/ghaf26`, 767 tiles). All six models share one
+Held-out test split (`testing/ghaf26`). All six models share one
 dataset, one augmentation pipeline, one schedule and one metric implementation,
 so the differences below are attributable to the encoder and decode head.
 
@@ -69,7 +69,7 @@ so the differences below are attributable to the encoder and decode head.
 | ResNet-50 | Mask2Former | 44.1 M | 77.69 | 85.98 |
 | EfficientNet-B3 | FPN | 13.7 M | 70.77 | 80.29 |
 
-On the 869-tile validation split, FastViT-MA36 reaches **80.14 mIoU / 87.87 F1**.
+On the validation split, FastViT-MA36 reaches **80.14 mIoU / 87.87 F1**.
 
 Two comparisons are worth drawing out. FastViT-MA36 and ResNet-50 share an
 identical Mask2Former head, optimiser and schedule, so the 1.63-point mIoU gap
@@ -144,7 +144,7 @@ the message can be ignored.
 **Verify**:
 
 ```bash
-python -m pytest tests/ -q   # 299 tests
+python -m pytest tests/ -q   # the full suite
 python tools/smoke_test.py   # builds all six models, checks parameter counts
 ```
 
@@ -181,9 +181,9 @@ path. A model that reaches the last column has been exercised end to end.
 
 ```
 data/ghaf/
-├── training/{images,masks}/         7 005 tiles
-├── validation/{images,masks}/         869 tiles
-└── testing/ghaf26/{images,masks}/     767 tiles
+├── training/{images,masks}/
+├── validation/{images,masks}/
+└── testing/ghaf26/{images,masks}/
 ```
 
 Paired 1024 × 1024 PNG tiles sharing a filename stem. Masks are single-band
@@ -327,7 +327,7 @@ tools/
 ├── export_release.py      assemble the shareable model bundle
 ├── fetch_init_weights.py  collect the ImageNet weights, once, while online
 └── build_handover.py      assemble the whole handover folder
-tests/                     299 tests; mmengine and NumPy, plus torch, timm,
+tests/                     the suite; mmengine and NumPy, plus torch, timm,
                            rasterio and geopandas for the end-to-end ones
 docs/                      getting started, model zoo, area-wide inference,
                            release bundle
@@ -336,7 +336,7 @@ docs/                      getting started, model zoo, area-wide inference,
 ## Testing
 
 ```bash
-python -m pytest tests/ -q            # 299 tests: no GPU, mmcv or dataset required
+python -m pytest tests/ -q            # no GPU, mmcv or dataset required
 python tools/smoke_test.py  # builds all six models and checks parameter counts
 python tools/smoke_test.py --checkpoints DIR   # also loads and runs the weights
 ```
