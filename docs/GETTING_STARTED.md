@@ -434,6 +434,7 @@ usually name the file and the line that stopped, which is enough to act on.
 
 | Document | Covers |
 |---|---|
+| [**Handbook (PDF)**](Ghaf-Crown-Mapping-Handbook.pdf) | The same ground as this page, printable, with a glossary, QGIS steps and a chapter on diagnosing errors |
 | [README](../README.md) | The project, the results, the repository layout |
 | [Model zoo](MODEL_ZOO.md) | All six models, per-class scores, training settings |
 | [Area-wide inference](AREA_WIDE_INFERENCE.md) | How the mosaic is tiled and blended, and how to tune it |
