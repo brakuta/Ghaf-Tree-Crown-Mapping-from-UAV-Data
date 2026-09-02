@@ -12,13 +12,14 @@ import textwrap
 from pathlib import Path
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
+    HRFlowable,
     KeepTogether,
     NextPageTemplate,
     PageBreak,
@@ -62,7 +63,7 @@ S = {
     'subtitle': ParagraphStyle('subtitle', fontName='Helvetica', fontSize=14,
                                leading=19, textColor=MUTED, alignment=TA_CENTER,
                                spaceAfter=26),
-    'cover': ParagraphStyle('cover', fontName='Helvetica', fontSize=10.5,
+    'cover': ParagraphStyle('cover', fontName='Times-Roman', fontSize=11,
                             leading=16, textColor=INK, alignment=TA_CENTER),
     'part': ParagraphStyle('part', fontName='Helvetica-Bold', fontSize=11,
                            leading=14, textColor=GREEN, spaceBefore=2,
@@ -79,26 +80,27 @@ S = {
     'h3': ParagraphStyle('h3', fontName='Helvetica-BoldOblique', fontSize=10.5,
                          leading=14, textColor=INK, spaceBefore=10,
                          spaceAfter=3),
-    'body': ParagraphStyle('body', fontName='Helvetica', fontSize=9.8,
-                           leading=14.2, textColor=INK, spaceAfter=7,
-                           alignment=TA_LEFT),
-    'bullet': ParagraphStyle('bullet', fontName='Helvetica', fontSize=9.8,
-                             leading=14.2, textColor=INK, spaceAfter=3,
-                             leftIndent=12, bulletIndent=2),
+    'body': ParagraphStyle('body', fontName='Times-Roman', fontSize=10.6,
+                           leading=15.2, textColor=INK, spaceAfter=8,
+                           alignment=TA_JUSTIFY),
+    'bullet': ParagraphStyle('bullet', fontName='Times-Roman', fontSize=10.6,
+                             leading=15.2, textColor=INK, spaceAfter=4,
+                             leftIndent=14, bulletIndent=3,
+                             alignment=TA_JUSTIFY),
     'code': ParagraphStyle('code', fontName='Courier', fontSize=8.2,
                            leading=11.2, textColor=INK),
     'out': ParagraphStyle('out', fontName='Courier', fontSize=7.6,
                           leading=10.2, textColor=colors.HexColor('#333333')),
-    'cell': ParagraphStyle('cell', fontName='Helvetica', fontSize=8.6,
-                           leading=11.6, textColor=INK),
-    'cellb': ParagraphStyle('cellb', fontName='Helvetica-Bold', fontSize=8.6,
-                            leading=11.6, textColor=INK),
+    'cell': ParagraphStyle('cell', fontName='Times-Roman', fontSize=9.3,
+                           leading=12.4, textColor=INK),
+    'cellb': ParagraphStyle('cellb', fontName='Helvetica-Bold', fontSize=8.4,
+                            leading=11.4, textColor=INK),
     'cellc': ParagraphStyle('cellc', fontName='Courier', fontSize=7.8,
                             leading=11, textColor=INK),
-    'caption': ParagraphStyle('caption', fontName='Helvetica-Oblique',
-                              fontSize=8.4, leading=11.5, textColor=MUTED,
-                              spaceAfter=8),
-    'toc1': ParagraphStyle('toc1', fontName='Helvetica', fontSize=10,
+    'caption': ParagraphStyle('caption', fontName='Times-Italic',
+                              fontSize=8.8, leading=12, textColor=MUTED,
+                              spaceBefore=2, spaceAfter=5),
+    'toc1': ParagraphStyle('toc1', fontName='Times-Roman', fontSize=10.6,
                            leading=18, textColor=INK),
 }
 
@@ -129,8 +131,19 @@ def P(text, style='body'):
     return Paragraph(md(text), S[style])
 
 
+COUNT = {'table': 0, 'listing': 0}
+
+
 def H1(text, story):
     story.append(Paragraph(md(text), S['h1']))
+    story.append(HRFlowable(width='100%', thickness=0.7, color=RULE,
+                            spaceBefore=0, spaceAfter=9))
+
+
+def numbered(kind, caption):
+    COUNT[kind] += 1
+    label = 'Table' if kind == 'table' else 'Listing'
+    return f'**{label} {COUNT[kind]}.** {caption}'
 
 
 def bullets(items, story, numbered=False):
@@ -179,7 +192,7 @@ def code(text, story, label=None):
     story.append(KeepTogether(block))
 
 
-def output(text, story, caption='What you should see', kind='output'):
+def output(text, story, caption='Expected output', kind='output'):
     if kind == 'tree':
         return tree(text, story, caption)
     body = Preformatted(_wrap(text, 100), S['out'])
@@ -193,7 +206,8 @@ def output(text, story, caption='What you should see', kind='output'):
         ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
-    block = [Paragraph(md(caption), S['caption']), t, Spacer(1, 9)]
+    block = [Paragraph(md(numbered('listing', caption)), S['caption']), t,
+             Spacer(1, 9)]
     story.append(KeepTogether(block))
 
 
@@ -212,7 +226,7 @@ def tree(text, story, caption=None):
     ]))
     block = [t, Spacer(1, 9)]
     if caption:
-        block.insert(0, Paragraph(md(caption), S['caption']))
+        block.insert(0, Paragraph(md(numbered('listing', caption)), S['caption']))
     story.append(KeepTogether(block))
 
 
@@ -222,9 +236,10 @@ def box(text, story, kind='note', title=None):
     inner = []
     if title:
         inner.append(Paragraph(md(title), ParagraphStyle(
-            'boxt', parent=S['body'], fontName='Helvetica-Bold', spaceAfter=3)))
+            'boxt', parent=S['body'], fontName='Helvetica-Bold', spaceAfter=3,
+            alignment=TA_LEFT)))
     inner.append(Paragraph(md(text), ParagraphStyle(
-        'boxb', parent=S['body'], spaceAfter=0)))
+        'boxb', parent=S['body'], spaceAfter=0, alignment=TA_LEFT)))
     t = Table([[inner]], colWidths=[CONTENT_W])
     t.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), bg),
@@ -237,7 +252,7 @@ def box(text, story, kind='note', title=None):
     story.append(KeepTogether([t, Spacer(1, 9)]))
 
 
-def table(header, rows, story, widths=None, mono_first=False):
+def table(header, rows, story, widths=None, mono_first=False, caption=None):
     def cell(text, style):
         return Paragraph(md(str(text)), S[style])
 
@@ -260,8 +275,13 @@ def table(header, rows, story, widths=None, mono_first=False):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fafbfc')]),
     ]))
-    story.append(t)
-    story.append(Spacer(1, 10))
+    block = [t, Spacer(1, 11)]
+    if caption:
+        block.insert(0, Paragraph(md(numbered('table', caption)), S['caption']))
+    if len(rows) <= 6:
+        story.append(KeepTogether(block))
+    else:
+        story.extend(block)
 
 
 # --------------------------------------------------------------------------
@@ -363,13 +383,39 @@ story += [
         'Operating instructions for the delivered software bundle.<br/>'
         'Each procedure states the command to run, its expected duration, '
         'and the output that indicates success.', S['cover']),
-    Spacer(1, 22 * mm),
-    Paragraph(
-        'Repository: github.com/brakuta/Ghaf-Tree-Crown-Mapping-from-UAV-Data'
-        '<br/>Accompanies the manuscript "Hybrid Vision-CNN Architecture for '
-        'Mapping <i>Prosopis cineraria</i><br/>from Area-wide UAV-based Images"'
-        '<br/><br/>First issue, September 2026',
-        ParagraphStyle('cv2', parent=S['cover'], fontSize=9, textColor=MUTED)),
+    Spacer(1, 20 * mm),
+]
+
+_info = ParagraphStyle('info', fontName='Times-Roman', fontSize=9.2,
+                       leading=12.6, textColor=INK)
+_infob = ParagraphStyle('infob', fontName='Helvetica-Bold', fontSize=8.2,
+                        leading=12.6, textColor=MUTED)
+_rows = [
+    ('Document', 'Operating handbook for the Ghaf crown-mapping software'),
+    ('Issue', 'First issue, September 2026'),
+    ('Applies to', 'The delivered bundle described in section 1, and the '
+                   'repository version recorded in MANIFEST.json'),
+    ('Repository', 'github.com/brakuta/Ghaf-Tree-Crown-Mapping-from-UAV-Data'),
+    ('Related work', 'Hybrid Vision-CNN Architecture for Mapping '
+                     '<i>Prosopis cineraria</i> from Area-wide UAV-based Images'),
+    ('Distribution', 'Issued with the software bundle. The trained weights, '
+                     'the UAV imagery and the labelled tiles are not '
+                     'distributed with the public repository'),
+]
+_info_table = Table(
+    [[Paragraph(k.upper(), _infob), Paragraph(v, _info)] for k, v in _rows],
+    colWidths=[28 * mm, 112 * mm])
+_info_table.setStyle(TableStyle([
+    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ('LINEABOVE', (0, 0), (-1, 0), 0.6, RULE),
+    ('LINEBELOW', (0, 0), (-1, -1), 0.6, RULE),
+    ('LEFTPADDING', (0, 0), (0, -1), 0),
+    ('TOPPADDING', (0, 0), (-1, -1), 5),
+    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+]))
+story += [
+    Table([[_info_table]], colWidths=[CONTENT_W],
+          style=TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER')])),
     NextPageTemplate('main'),
     PageBreak(),
 ]
@@ -383,10 +429,11 @@ story += [Paragraph('Contents', S['h1x']), toc, PageBreak()]
 # =========================================================================
 H1('1. Folder structure', story)
 story.append(P("""
-The delivered folder contains six directories and two files. Paths in this handbook are written as
-`D:\\ghaf-project`. Substitute the location of your own copy; no other change
-is required. Commands are written for the Windows Command Prompt. On macOS and
-Linux they are identical except that paths use `/` in place of `\\`.
+The delivered folder holds six directories and two files. Paths in this
+handbook are written as `D:\\ghaf-project`. Substitute the location of your own
+copy. Nothing else changes. Commands are written for the Windows Command
+Prompt; on macOS and Linux they are identical except that paths use `/` in
+place of `\\`.
 """))
 
 story.append(Paragraph('1.1 The delivered folder', S['h2']))
@@ -425,14 +472,15 @@ table(['Part', 'Size', 'Contents and purpose'],
         'the code used. This file identifies which software version produced '
         'any given result'],
        ['README.md', '4 KB', 'A one-page summary of the bundle and its origin']],
-      story, widths=[CONTENT_W * 0.20, CONTENT_W * 0.09, CONTENT_W * 0.71],
-      mono_first=True)
+      story, widths=[CONTENT_W * 0.24, CONTENT_W * 0.09, CONTENT_W * 0.67],
+      mono_first=True,
+      caption='Contents of the delivered folder')
 
 story.append(Paragraph('1.2 The models folder', S['h2']))
 story.append(P("""
-Each model occupies one folder holding three files. The configuration is
-complete in itself and does not depend on any other file, so a single model
-folder can be copied elsewhere and used on its own.
+Each model occupies one folder of three files. Its configuration is complete
+in itself and depends on no other file, so a single model folder can be copied
+elsewhere and used alone.
 """))
 output(r"""
 models\
@@ -458,7 +506,8 @@ table(['Folder', 'Checkpoint file', 'mIoU', 'F1'],
        ['resnet-50_mask2former', 'best_mIoU_iter_38500.pth', '77.69', '85.98'],
        ['efficientnet-b3_fpn', 'iter_6800.pth', '70.77', '80.29']],
       story, widths=[CONTENT_W * 0.36, CONTENT_W * 0.34, CONTENT_W * 0.15,
-                     CONTENT_W * 0.15], mono_first=True)
+                     CONTENT_W * 0.15], mono_first=True,
+      caption='The six delivered models and their scores on the test split')
 story.append(P("""
 Scores are on the held-out test split. Use `fastvit-ma36_mask2former` unless
 there is a specific reason to prefer another. The remaining five are provided
@@ -487,7 +536,8 @@ table(['Split', 'Pairs', 'Purpose'],
        ['testing/ghaf26', '767', 'Final scoring. Held out from training '
         'entirely, and the source of the published numbers']],
       story, widths=[CONTENT_W * 0.22, CONTENT_W * 0.12, CONTENT_W * 0.66],
-      mono_first=True)
+      mono_first=True,
+      caption='The three data splits')
 
 story.append(P("""
 An image and its mask share a filename. In a mask, the pixel value is the class
@@ -559,7 +609,8 @@ table(['Program in tools\\', 'What it does'],
         'weights. Needed once, and only when training'],
        ['build_handover.py', 'Assembles a complete bundle of the kind '
         'described in section 1.1']],
-      story, widths=[CONTENT_W * 0.26, CONTENT_W * 0.74], mono_first=True)
+      story, widths=[CONTENT_W * 0.26, CONTENT_W * 0.74], mono_first=True,
+      caption='The command-line programs in tools\\')
 
 story.append(P("""
 Area-wide inference is invoked as `python -m ghaf.inference.large_image` rather
@@ -597,20 +648,21 @@ table(['Item', 'Requirement', 'Notes'],
         'commands in section 3'],
        ['Optional', 'QGIS 3.x',
         'For viewing the results. Section 7']],
-      story, widths=[CONTENT_W * 0.21, CONTENT_W * 0.26, CONTENT_W * 0.53])
+      story, widths=[CONTENT_W * 0.21, CONTENT_W * 0.26, CONTENT_W * 0.53],
+      caption='System requirements')
 
 story.append(Paragraph('Conventions used in this handbook', S['h2']))
 story.append(P("""
 A shaded box contains a command. Type or paste it, press Enter, and wait for
 the prompt to return before entering the next one. A box with a green rule
-shows the output of a correct run; times and paths will differ, the structure
+shows the output of a correct run. Times and paths will differ. The structure
 and the reported figures should not.
 """))
 box("""
 **Enter one command at a time.** Some terminals join a multi-line paste into a
-single line and execute something unintended. Where a command in this handbook
-wraps onto a second line, it remains one command. Join the parts with a single
-space.
+single line and execute something unintended. A command that wraps onto a
+second line in this handbook is still one command. Join the parts with a single
+space when entering it.
 """, story, kind='warn')
 
 story.append(PageBreak())
@@ -618,7 +670,7 @@ story.append(PageBreak())
 H1('3. Installation', story)
 story.append(P("""
 Installation takes about twenty minutes and is performed once on each machine.
-All commands are entered in the same window.
+Enter every command in the same window.
 """))
 
 story.append(Paragraph('Step 1. Open the Anaconda Prompt', S['h2']))
@@ -695,9 +747,9 @@ story.append(PageBreak())
 # =========================================================================
 H1('4. Verifying the installation', story)
 story.append(P("""
-Three checks, five minutes in total. Run them after installation, and again
-whenever a result is unexpected. Together they establish that the software, the
-weights and the tiles are intact and consistent with each other.
+Three checks take five minutes between them. Run them after installation, and
+again whenever a result looks wrong. Together they establish that the software,
+the weights and the tiles are intact and agree with one another.
 """))
 
 story.append(Paragraph('Check 1. The software', S['h2']))
@@ -745,7 +797,8 @@ table(['Column', 'What it establishes'],
        ['`0.00% ghaf`', 'The expected result. This check predicts on a blank '
         'synthetic tile rather than on imagery, so an absence of trees is '
         'correct. Real imagery yields a few percent']],
-      story, widths=[CONTENT_W * 0.28, CONTENT_W * 0.72])
+      story, widths=[CONTENT_W * 0.28, CONTENT_W * 0.72],
+      caption='How to read the verification table')
 
 box("""
 **Every command that loads a model prints numerous `UserWarning` lines**
@@ -774,15 +827,17 @@ table(['Variant', 'Effect'],
         'network drive'],
        ['--sample 25', 'Opens 25 tiles per split. A reasonable check after '
         'copying the data to a new location']],
-      story, widths=[CONTENT_W * 0.20, CONTENT_W * 0.80], mono_first=True)
+      story, widths=[CONTENT_W * 0.20, CONTENT_W * 0.80], mono_first=True,
+      caption='Options for check_dataset.py')
 
 story.append(PageBreak())
 # =========================================================================
 H1('5. Mapping one orthomosaic', story)
 story.append(P("""
-This procedure takes a UAV orthomosaic and produces a canopy map. The image may
-be far larger than the memory of the computer, since it is read in overlapping
-windows and the predictions are blended, leaving no visible seams.
+This procedure takes a UAV orthomosaic and returns a canopy map. The image may
+be far larger than the memory of the computer. It is read in overlapping
+windows, and the predictions are blended where the windows meet, so the result
+carries no visible seams.
 """))
 
 box("""
@@ -829,7 +884,8 @@ table(['File', 'Content', 'Typical use'],
         'Applying a stricter or looser cut-off after the run, and identifying '
         'where the model was uncertain']],
       story, widths=[CONTENT_W * 0.19, CONTENT_W * 0.36, CONTENT_W * 0.45],
-      mono_first=True)
+      mono_first=True,
+      caption='The three outputs of an inference run')
 story.append(P("""
 All three carry the coordinate reference system of the input, so they align
 with other layers without manual positioning.
@@ -849,7 +905,8 @@ table(['Quantity', 'Expected on the sample clip', 'If the value is far from it']
         'Areas in the hundreds of square metres indicate that neighbouring '
         'crowns have merged, or that the imagery is not at the resolution the '
         'model expects']],
-      story, widths=[CONTENT_W * 0.18, CONTENT_W * 0.34, CONTENT_W * 0.48])
+      story, widths=[CONTENT_W * 0.18, CONTENT_W * 0.34, CONTENT_W * 0.48],
+      caption='Values obtained on the sample clip, for comparison')
 
 story.append(Paragraph('5.4 Options', S['h2']))
 table(['Option', 'Effect'],
@@ -867,7 +924,8 @@ table(['Option', 'Effect'],
         'larger or faster drive'],
        ['--bands 1 2 3', 'Identifies which bands of the input are red, green '
         'and blue. Required only for imagery in an unusual band order']],
-      story, widths=[CONTENT_W * 0.24, CONTENT_W * 0.76], mono_first=True)
+      story, widths=[CONTENT_W * 0.24, CONTENT_W * 0.76], mono_first=True,
+      caption='Options for area-wide inference')
 
 story.append(Paragraph('5.5 The full survey mosaic', S['h2']))
 story.append(P("""
@@ -887,19 +945,19 @@ code(r'python tools\make_sample.py ..\samples\Kalba26.tif --output ..\samples\my
      story)
 story.append(P("""
 `--size` gives the clip in pixels and `--origin` its top-left corner. Omitting
-`--origin` takes the clip from the centre. The program reports the proportion
-of the clip that is imagery rather than the transparent border surrounding a
-survey, which identifies a poorly placed window immediately.
+`--origin` takes the clip from the centre. The program also reports how much of
+the clip is imagery rather than the transparent border that surrounds a survey,
+so a badly placed window is obvious at once.
 """))
 
 story.append(PageBreak())
 # =========================================================================
 H1('6. Mapping every image in a folder', story)
 story.append(P("""
-Where a survey consists of many images rather than one, this procedure maps all
-of them in a single run. Each image is processed in windows exactly as a full
-mosaic is, so the images need not share a size and none of them has to fit in
-memory.
+A survey often arrives as a set of images rather than a single mosaic. This
+procedure maps all of them in one run. Each image is processed in windows,
+exactly as a full mosaic is, so the images need not share a size and none of
+them has to fit in memory.
 """))
 code(r'cd /d D:\ghaf-project\code', story)
 code(r"""python tools\predict_folder.py ..\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py ..\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth D:\my-images --out-dir ..\output\folder --batch-size 4 --min-area 1""",
@@ -925,16 +983,15 @@ folder\
 """, story, kind='tree', caption='Layout of the output')
 story.append(P("""
 The output of a batch run is the crowns. A GeoPackage occupies a few hundred
-kilobytes where the mask it was derived from occupies hundreds of megabytes,
-and the crowns are what is counted, measured and displayed over the imagery.
-The mask is still produced, since the polygons are traced from it, but it is
-written to temporary space and deleted once that image is complete. Add
-`--save-mask` where the raster is required.
+kilobytes; the mask it was traced from occupies hundreds of megabytes. Counting,
+measurement and display all work from the crowns. The mask is still produced,
+because the polygons are traced from it, but it goes to temporary space and is
+deleted once that image is complete. Add `--save-mask` to keep it.
 """))
 story.append(P("""
-Where the input folder contains subfolders, the output reproduces the same
-structure, so two images of the same name in different subfolders cannot
-overwrite one another.
+If the input folder contains subfolders, the output reproduces that structure.
+Two images of the same name in different subfolders cannot overwrite one
+another.
 """))
 
 story.append(Paragraph('6.2 Options for a long run', S['h2']))
@@ -950,7 +1007,8 @@ table(['Option', 'Effect'],
        ['--save-mask', 'Retains the 0/1 raster for each image'],
        ['--save-probability', 'Retains the confidence raster for each image'],
        ['--min-area 1', 'Discards crowns below one square metre']],
-      story, widths=[CONTENT_W * 0.24, CONTENT_W * 0.76], mono_first=True)
+      story, widths=[CONTENT_W * 0.24, CONTENT_W * 0.76], mono_first=True,
+      caption='Options for a folder run')
 
 box("""
 **A single unreadable file does not halt the run.** The image is reported, the
@@ -962,8 +1020,8 @@ story.append(PageBreak())
 # =========================================================================
 H1('7. Reviewing the results', story)
 story.append(P("""
-Every file written by these programs carries the coordinate reference system of
-the image it was derived from, and therefore requires no manual positioning.
+Every file these programs write carries the coordinate reference system of the
+image it came from. No manual positioning is needed.
 """))
 
 story.append(Paragraph('7.1 Opening the crowns in QGIS', S['h2']))
@@ -1013,15 +1071,16 @@ table(['Quantity', 'Value'],
        ['Ground sampling distance', '2.68 cm per pixel'],
        ['Total crown area, sample clip', '469 square metres from the polygons, '
         'against 467 square metres computed from the mask pixels']],
-      story, widths=[CONTENT_W * 0.34, CONTENT_W * 0.66])
+      story, widths=[CONTENT_W * 0.34, CONTENT_W * 0.66],
+      caption='Reference figures from the delivered models and sample data')
 
 story.append(PageBreak())
 # =========================================================================
 H1('8. Evaluating a model', story)
 story.append(P("""
-This procedure reproduces the published scores from the delivered weights and
-provides the strongest single confirmation that the installation is correct.
-About three minutes on a GPU.
+Scoring a delivered model against the labelled test split reproduces the
+published figures, and is the strongest single confirmation that an
+installation is correct. About three minutes on a GPU.
 """))
 code(r'cd /d D:\ghaf-project\code', story)
 code(r"""python tools\test.py ..\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py ..\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth --data-root ..\data\ghaf""",
@@ -1036,9 +1095,10 @@ one it is taken to be, and check 2 in section 4 settles the second case.
 
 story.append(Paragraph('8.1 Predictions for every tile in a split', S['h2']))
 story.append(P("""
-Scoring reduces a split to a small number of figures. Where the underlying maps
-are required, for illustration or to establish where the model errs rather than
-by how much, predict the split tile by tile. A few minutes for the test split.
+Scoring reduces a split to a small number of figures. The maps behind those
+figures are sometimes wanted, for illustration or to locate the model's errors
+rather than measure them. Predicting the split tile by tile produces one map
+per tile, and takes a few minutes for the test split.
 """))
 code(r"""python tools\predict_split.py ..\models\fastvit-ma36_mask2former\fastvit-ma36_mask2former.py ..\models\fastvit-ma36_mask2former\best_mIoU_iter_3500.pth --data-root ..\data\ghaf --split testing --out-dir ..\output\predictions --save-probability""",
      story)
@@ -1054,9 +1114,9 @@ story.append(PageBreak())
 # =========================================================================
 H1('9. Training and fine-tuning', story)
 story.append(P("""
-Training is required only where something is to be changed, since six trained
-models are supplied. A full training run of the published configuration takes
-many hours on one GPU.
+Six trained models are supplied, so training is needed only when something is
+to be changed. A full run of the published configuration takes many hours on
+one GPU.
 """))
 
 story.append(Paragraph('9.1 Training from scratch', S['h2']))
@@ -1078,10 +1138,10 @@ reconstructed afterwards and are the material a reviewer requests.
 
 story.append(Paragraph('9.2 Fine-tuning on labels from a new site', S['h2']))
 story.append(P("""
-Starting from a released checkpoint costs far less than training from scratch
-and generally gives a better result. Prepare the new tiles in the layout
-described in section 1.3, with 1024 by 1024 PNG pairs and masks containing only
-the values 0 and 1, then verify them.
+Starting from a released checkpoint costs far less than training from scratch,
+and usually gives a better result. Prepare the new tiles in the layout of
+section 1.3, as 1024 by 1024 PNG pairs whose masks contain only the values 0
+and 1. Verify them before starting.
 """))
 code(r'python tools\check_dataset.py D:\ghaf-project\data\new-site --full', story)
 story.append(P('Fine-tune with a shorter schedule and a smaller learning rate.'))
@@ -1092,12 +1152,12 @@ table(['Argument', 'Effect'],
         'what fine-tuning requires'],
        ['--resume', 'Continues an interrupted run of your own, retaining the '
         'optimiser state and iteration count. Distinct from `--load-from`'],
-       ['--cfg-options train_cfg.max_iters=4000', 'Shortens the schedule to '
-        '4000 iterations'],
-       ['--cfg-options optim_wrapper.optimizer.lr=1e-5', 'Reduces the learning '
+       ['--cfg-options train_cfg.max_iters=4000 optim_wrapper.optimizer.lr=1e-5',
+        'Shortens the schedule to 4000 iterations and lowers the learning '
         'rate, so that the model adapts to the new site without discarding '
         'what it has already learned']],
-      story, widths=[CONTENT_W * 0.36, CONTENT_W * 0.64], mono_first=True)
+      story, widths=[CONTENT_W * 0.36, CONTENT_W * 0.64], mono_first=True,
+      caption='Arguments used when fine-tuning')
 story.append(P("""
 Score the result as described in section 8, with `--data-root` directed at the
 new site and the checkpoint at the new `work_dirs\\...\\best_mIoU_iter_*.pth`.
@@ -1107,9 +1167,9 @@ story.append(PageBreak())
 # =========================================================================
 H1('10. Diagnosing errors', story)
 story.append(P("""
-No command in this handbook deletes data, and an interrupted run can always be
-started again. Almost every failure announces itself in the last few lines of
-output, and this section sets out how to read them.
+No command in this handbook deletes data, and an interrupted run can be started
+again. Nearly every failure announces itself in the last few lines of output.
+This section explains how to read them.
 """))
 
 story.append(Paragraph('10.1 Procedure', S['h2']))
@@ -1149,7 +1209,8 @@ table(['Question', 'How to check', 'Why it matters'],
         'folder, and `dir` to list its contents',
         'The commands in this handbook assume the `code` folder. A relative '
         'path entered elsewhere will not resolve']],
-      story, widths=[CONTENT_W * 0.26, CONTENT_W * 0.40, CONTENT_W * 0.34])
+      story, widths=[CONTENT_W * 0.26, CONTENT_W * 0.40, CONTENT_W * 0.34],
+      caption='Checks to make before investigating further')
 
 story.append(Paragraph('10.3 Reported errors and their remedies', S['h2']))
 table(['Message', 'Cause', 'Remedy'],
@@ -1222,20 +1283,21 @@ table(['Message', 'Cause', 'Remedy'],
        ['Unexpected behaviour after pasting several lines',
         'The terminal joined them into a single line',
         'Enter one command at a time']],
-      story, widths=[CONTENT_W * 0.30, CONTENT_W * 0.32, CONTENT_W * 0.38])
+      story, widths=[CONTENT_W * 0.30, CONTENT_W * 0.32, CONTENT_W * 0.38],
+      caption='Reported errors and their remedies')
 
 story.append(Paragraph('10.4 Searching for a solution', S['h2']))
 story.append(P("""
-An error absent from the table above has almost certainly been encountered by
-someone else. What follows is a reliable procedure for finding their answer.
+An error absent from the table above has been met by someone else already. The
+procedure below finds their answer.
 """))
 
 story.append(Paragraph('Preparing the query', S['h3']))
 story.append(P("""
-Take the final line of the error and remove everything specific to your
-computer, which includes your user name, drive letters, file names and any long
-numbers, since none of these appear in anyone else's error. Add the name of the
-library that raised it.
+Take the final line of the error. Strip out everything specific to your
+computer, meaning the user name, drive letters, file names and long numbers.
+None of it appears in anyone else's error. Add the name of the library that
+raised the failure.
 """))
 output(r"""
   File "D:\ghaf-project\code\ghaf\inference\large_image.py", line 322, in predict_large_image
@@ -1270,7 +1332,8 @@ table(['Source', 'Method', 'Best suited to'],
         r'Append `--help` to any command, for example '
         r'`python tools\predict_folder.py --help`',
         'The name and effect of an option']],
-      story, widths=[CONTENT_W * 0.22, CONTENT_W * 0.44, CONTENT_W * 0.34])
+      story, widths=[CONTENT_W * 0.22, CONTENT_W * 0.44, CONTENT_W * 0.34],
+      caption='Where to search, in order of preference')
 
 story.append(Paragraph('Assessing what you find', S['h3']))
 bullets([
@@ -1280,19 +1343,19 @@ bullets([
     '**Prefer answers that explain the cause.** An answer offering a command '
     'without stating what it corrects is as likely to cause damage as to help.',
     '**Do not upgrade packages on the strength of general advice.** '
-    'Instructions to upgrade mmcv, PyTorch or NumPy will normally break this '
-    'installation, since the versions given in section 3 were selected to work '
-    'together and to match the trained weights. Where a version genuinely must '
-    'change, record the existing version first.',
+    'Instructions to upgrade mmcv, PyTorch or NumPy will break this '
+    'installation. The versions given in section 3 were chosen to work '
+    'together and to match the trained weights. If a version must be changed, '
+    'record the existing one first.',
     '**Change one thing at a time**, and repeat the checks in section 4 after '
     'each change. Two simultaneous changes leave the cause of any improvement '
     'unknown.',
 ], story)
 
 box("""
-**Reinstalling.** Where an installation reaches a state that cannot be
-explained, delete the environment and rebuild it from section 3. This takes
-about twenty minutes and affects no data. Run `conda deactivate`, then
+**Reinstalling.** If an installation reaches a state that cannot be explained,
+delete the environment and rebuild it from section 3. This takes about twenty
+minutes and affects no data. Run `conda deactivate`, then
 `conda env remove -n ghaf`, then begin at step 2.
 """, story)
 
@@ -1317,7 +1380,8 @@ story.append(PageBreak())
 # =========================================================================
 H1('11. Command reference', story)
 story.append(P("""
-Every routine command, collected. Each assumes that `conda activate ghaf` and
+Every routine command, collected in one place. Each assumes that
+`conda activate ghaf` and
 `cd /d D:\\ghaf-project\\code` have been run in the same window, that `MODEL`
 stands for
 `..\\models\\fastvit-ma36_mask2former\\fastvit-ma36_mask2former.py`, and that
@@ -1368,7 +1432,8 @@ table(['Document', 'Subject'],
         'and verified'],
        ['MANIFEST.json', 'The contents of the bundle, its sizes, and the '
         'version of the code that produced it']],
-      story, widths=[CONTENT_W * 0.36, CONTENT_W * 0.64], mono_first=True)
+      story, widths=[CONTENT_W * 0.36, CONTENT_W * 0.64], mono_first=True,
+      caption='Further documentation')
 
 story.append(Spacer(1, 10))
 story.append(Paragraph(md(
