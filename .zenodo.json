@@ -1,0 +1,29 @@
+{
+  "title": "Ghaf Tree-Crown Mapping from Area-Wide UAV Imagery",
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "Apache-2.0",
+  "description": "<p>Code, configurations and documentation for delineating Ghaf (<i>Prosopis cineraria</i>) tree crowns in area-wide UAV orthomosaics. Six semantic-segmentation models are trained and compared on one dataset, one augmentation pipeline, one schedule and one metric implementation; the proposed model pairs a FastViT-MA36 backbone with a Mask2Former decode head and reaches 79.32 mIoU and 87.22 F1 on the held-out test split.</p><p>The repository is an overlay on stock mmsegmentation: it adds a two-class tile dataset, two backbones, six configurations, and an area-wide inference pipeline that maps a complete orthomosaic in overlapping Gaussian-blended windows and writes georeferenced probability, mask and crown-polygon outputs.</p><p><b>What this archive does not contain.</b> The trained weights, the UAV imagery and the labelled tiles are not distributed with the code; they are available from the corresponding author on reasonable request. <code>ghaf/release.py</code> records every released checkpoint's SHA-256, byte size, parameter count and test scores, so a copy obtained by any route can be verified against what was published.</p><p>Accompanies the manuscript &quot;Hybrid Vision-CNN Architecture for Mapping <i>Prosopis cineraria</i> from Area-wide UAV-based Images&quot;.</p>",
+  "creators": [
+    {
+      "name": "Gibril, Mohamed Barakat A.",
+      "affiliation": "AFFILIATION NOT ESTABLISHED",
+      "orcid": "ORCID NOT ESTABLISHED"
+    }
+  ],
+  "keywords": [
+    "remote sensing",
+    "semantic segmentation",
+    "UAV",
+    "tree crown delineation",
+    "Prosopis cineraria",
+    "Ghaf",
+    "arid ecosystems",
+    "deep learning",
+    "FastViT",
+    "Mask2Former",
+    "mmsegmentation"
+  ],
+  "language": "eng",
+  "notes": "The trained weights, the UAV imagery and the labelled tiles are not included in this archive. Every value quoted in the documentation is traceable to docs/handover/FACTS.yml, which records the provenance of each figure and marks the values that were never established."
+}
