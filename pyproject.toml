@@ -59,3 +59,7 @@ ignore = [
 # Vendored from Apple's FastViT; kept close to upstream so it stays diffable.
 "ghaf/models/fastvit.py" = ["ALL"]
 "ghaf/models/modules/*.py" = ["ALL"]
+# The manual's typesetting engine is supplied and used as it stands. Its
+# import order and its `l` loop variable are not ours to change; a lint fix
+# here would be a silent edit to a file the manual's layout depends on.
+"docs/manual/typeset.py" = ["ALL"]

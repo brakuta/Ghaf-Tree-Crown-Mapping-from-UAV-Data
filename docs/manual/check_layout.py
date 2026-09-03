@@ -18,8 +18,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-import typeset as T          # noqa: E402
-import build                 # noqa: E402
+import build  # noqa: E402
+import typeset as T  # noqa: E402
 
 THRESHOLD = 0.70
 
