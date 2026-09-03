@@ -659,6 +659,14 @@ class Manual(BaseDocTemplate):
         self.addPageTemplates([
             PageTemplate(id='body', frames=[frame], onPage=self._furniture)])
         self._chapter_now = ''
+        # Page furniture is drawn by onPage, before any flowable on that page
+        # has run, so afterFlowable cannot have seen a chapter that STARTS on
+        # this page -- the head would name the previous one. multiBuild lays
+        # the document out more than once, so the map built on one pass is
+        # complete by the next, and the head is looked up rather than
+        # remembered. Layout, style and geometry are untouched.
+        self._chapter_on_page = {}
+        self._chapter_seen = {}
 
     @staticmethod
     def _tracked(canv, x, y, text, space=0.9, right=False):
@@ -679,10 +687,12 @@ class Manual(BaseDocTemplate):
         canv.setFont('Head-Bold', 6.4)
         canv.setFillColor(SOFT)
         self._tracked(canv, MARGIN_L, y, self.running_title.upper())
-        if self._chapter_now:
+        current = self._chapter_on_page.get(canv.getPageNumber(),
+                                            self._chapter_now)
+        if current:
             canv.setFont('Head', 6.9)
             canv.setFillColor(colors.HexColor('#7b8087'))
-            canv.drawRightString(PAGE_W - MARGIN_R, y, self._chapter_now)
+            canv.drawRightString(PAGE_W - MARGIN_R, y, current)
         canv.setStrokeColor(colors.HexColor('#d5d7da'))
         canv.setLineWidth(0.5)
         canv.line(MARGIN_L, y - 4, PAGE_W - MARGIN_R, y - 4)
@@ -705,6 +715,8 @@ class Manual(BaseDocTemplate):
         # chapter of the first still in the running head, so the contents page
         # is headed "13 Appendix -- command index".
         self._chapter_now = ''
+        self._chapter_on_page = self._chapter_seen
+        self._chapter_seen = {}
 
     def handle_pageEnd(self):
         # Record how much of the text frame this page actually used. Text
@@ -730,6 +742,9 @@ class Manual(BaseDocTemplate):
                      self.page, flowable._key))
         if flowable._level == 0:
             self._chapter_now = flowable._plain
+            self._chapter_seen[self.page] = flowable._plain
+        elif self.page not in self._chapter_seen and self._chapter_now:
+            self._chapter_seen[self.page] = self._chapter_now
 
 
 def toc():

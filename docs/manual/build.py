@@ -20,8 +20,14 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-import typeset as T                                             # noqa: E402
-from reportlab.platypus import PageBreak, Paragraph, Spacer     # noqa: E402
+import typeset as T  # noqa: E402
+from reportlab.platypus import (  # noqa: E402
+    KeepTogether,
+    PageBreak,
+    Paragraph,
+    Spacer,
+    Table,
+)
 
 TITLE = 'Ghaf tree-crown mapping from UAV imagery'
 SUBTITLE = 'Technical manual'
@@ -33,10 +39,10 @@ def front_matter():
 
     The signpost matters more than the rest of it. A reader who needs one map
     made should not have to decide for themselves which of thirteen chapters
-    they can skip, and a manual that does not say so will be read from the
-    front until the reader gives up.
+    they can skip, and a manual that does not say so is read from the front
+    until the reader gives up.
     """
-    from typeset import para, HRule
+    from typeset import HRule, para
 
     s = [
         Spacer(1, 62),
@@ -71,22 +77,23 @@ def front_matter():
         Spacer(1, 16),
         Paragraph('You can stop reading here', T.SS['Section']),
         para(
-            'Chapters 3 and 5 are the whole job if what you need is a canopy '
-            'map from an orthomosaic: install the environment, prove it, run '
-            'the model. Chapter 12 is the error catalogue, and it is the only '
-            'other chapter worth reading before something goes wrong. '
-            'Everything between them exists for the reader who has to change '
-            'something — retrain on new labels, adapt to a second site, or '
-            'work out why a number moved.'),
+            'Chapters 3, 4 and 6 are the whole job if what you need is a '
+            'canopy map from an orthomosaic: install the environment, prove '
+            'it, run the model. Chapter 13 is the error catalogue and the '
+            'only other chapter worth reading before something goes wrong. '
+            'Everything between exists for the reader who has to change '
+            'something.'),
         para(
-            'Read chapter 2 if you have to find a file. Read chapter 4 before '
-            'you build a dataset of your own; the two-class mask encoding is '
-            'the part that goes wrong silently. Skip 9 and 10 entirely unless '
-            'you are training, since six trained models are supplied and '
-            'training one takes a day of GPU time to reproduce what is '
-            'already in the bundle.'),
-        PageBreak(),
+            'Read chapter 2 when you have to find a file, and chapter 5 '
+            'before building a dataset of your own — the mask encoding is the '
+            'part that fails silently. Skip 10 and 11 unless you are '
+            'training: six trained models are supplied, and reproducing one '
+            'of them costs a day of GPU time. Chapter 12 is for whoever has '
+            'to hand the system on again.'),
     ]
+    # No PageBreak here on purpose. Chapter 1 carries CondPageBreak(200): it
+    # opens a new page only if too little room is left, and otherwise starts
+    # under the signpost. An unconditional break left this page 19.7% full.
     return s
 
 
@@ -120,6 +127,50 @@ def _fact_commit():
     return _facts()['commit']
 
 
+def glue_headings(story):
+    """Keep every section heading with the block that follows it.
+
+    The content modules append a heading and its first block as separate
+    statements, which is readable but leaves the heading unattached: the
+    engine's `glue(section(...), None)` idiom returns the heading alone, and
+    ReportLab will then happily set it as the last line on a page. Section 6.4
+    of the first build landed exactly there. Pairing them here rather than at
+    every call site means a heading cannot be stranded by an edit that adds a
+    paragraph above it.
+
+    A heading is paired with a paragraph unconditionally, and with a table
+    only when the table is short enough that carrying it over cannot leave a
+    half-empty page behind — the same trade the engine makes for code blocks.
+    """
+    def heading_of(flowable):
+        if isinstance(flowable, T._Anchored):
+            return flowable
+        if isinstance(flowable, KeepTogether):
+            parts = getattr(flowable, '_content', [])
+            if len(parts) == 1 and isinstance(parts[0], T._Anchored):
+                return parts[0]
+        return None
+
+    out, i = [], 0
+    while i < len(story):
+        head = heading_of(story[i])
+        rest = story[i + 1:i + 4]
+        if head is not None and rest:
+            if isinstance(rest[0], Paragraph):
+                out.append(KeepTogether([head, rest[0]]))
+                i += 2
+                continue
+            if (len(rest) >= 2 and isinstance(rest[0], Spacer)
+                    and isinstance(rest[1], Table)
+                    and len(rest[1]._cellvalues) <= 6):
+                out.append(KeepTogether([head, rest[0], rest[1]]))
+                i += 3
+                continue
+        out.append(story[i])
+        i += 1
+    return out
+
+
 def main():
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else (
         HERE / 'Ghaf-Crown-Mapping-Technical-Manual.pdf')
@@ -144,7 +195,7 @@ def main():
         print(f'[WARN] code line of {n} chars needs {size} pt: {line}')
 
     doc = T.Manual(str(out), title=TITLE, running=RUNNING)
-    doc.multiBuild(story)
+    doc.multiBuild(glue_headings(story))
 
     pages = len(T.QA_FILL)
     print(f'wrote {out}  ({out.stat().st_size / 1024:.0f} KB, {pages} pages)')
