@@ -8,6 +8,7 @@ here are the ones the reader will see.
 
 from __future__ import annotations
 
+import contextlib
 import textwrap
 from pathlib import Path
 
@@ -16,6 +17,8 @@ from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
@@ -32,6 +35,84 @@ from reportlab.platypus import (
 )
 from reportlab.platypus.tableofcontents import TableOfContents
 
+# --------------------------------------------------------------------------
+# fonts
+#
+# The standard PDF fonts are not embedded in the file; a reader without them
+# substitutes, and the document reflows. A published document embeds its
+# faces. Liberation is metric-compatible with Times, Arial and Courier, so the
+# fallback below changes no measurement if the files are absent.
+# --------------------------------------------------------------------------
+
+FONT_DIRS = [
+    Path('/usr/share/fonts/truetype/liberation'),
+    Path('/usr/share/fonts/liberation'),
+    Path('/usr/share/fonts/truetype/liberation2'),
+    Path('C:/Windows/Fonts'),
+    Path('/Library/Fonts'),
+]
+
+FONT_FILES = {
+    'Body': 'LiberationSerif-Regular.ttf',
+    'Body-Bold': 'LiberationSerif-Bold.ttf',
+    'Body-Italic': 'LiberationSerif-Italic.ttf',
+    'Body-BoldItalic': 'LiberationSerif-BoldItalic.ttf',
+    'Head': 'LiberationSans-Regular.ttf',
+    'Head-Bold': 'LiberationSans-Bold.ttf',
+    'Mono': 'LiberationMono-Regular.ttf',
+    'Mono-Bold': 'LiberationMono-Bold.ttf',
+}
+
+FALLBACK = {
+    'Body': 'Times-Roman', 'Body-Bold': 'Times-Bold',
+    'Body-Italic': 'Times-Italic', 'Body-BoldItalic': 'Times-BoldItalic',
+    'Head': 'Helvetica', 'Head-Bold': 'Helvetica-Bold',
+    'Mono': 'Courier', 'Mono-Bold': 'Courier-Bold',
+}
+
+
+def register_fonts():
+    """Embed the text faces, or fall back to the standard PDF fonts."""
+    for directory in FONT_DIRS:
+        if not all((directory / name).is_file() for name in FONT_FILES.values()):
+            continue
+        for name, filename in FONT_FILES.items():
+            pdfmetrics.registerFont(TTFont(name, str(directory / filename)))
+        pdfmetrics.registerFontFamily(
+            'Body', normal='Body', bold='Body-Bold', italic='Body-Italic',
+            boldItalic='Body-BoldItalic')
+        pdfmetrics.registerFontFamily(
+            'Head', normal='Head', bold='Head-Bold', italic='Head',
+            boldItalic='Head-Bold')
+        pdfmetrics.registerFontFamily(
+            'Mono', normal='Mono', bold='Mono-Bold', italic='Mono',
+            boldItalic='Mono-Bold')
+        # ReportLab declares Helvetica in every page's resources whether or not
+        # anything prints in it. Pointing that name at the embedded, metrically
+        # compatible face leaves no unembedded font in the file for a preflight
+        # check to object to.
+        for alias, filename in (('Helvetica', 'LiberationSans-Regular.ttf'),
+                                ('Helvetica-Bold', 'LiberationSans-Bold.ttf')):
+            pdfmetrics.registerFont(TTFont(alias, str(directory / filename)))
+        return {name: name for name in FONT_FILES}, True
+    return dict(FALLBACK), False
+
+
+F, EMBEDDED = register_fonts()
+
+if EMBEDDED:
+    # ReportLab opens every page in its default base font, which would put an
+    # unembedded Helvetica in the file even though nothing prints in it.
+    from reportlab import rl_config
+    rl_config.canvas_basefontname = F['Body']
+
+# Hyphenation closes the loose lines that justified setting otherwise leaves.
+try:
+    import pyphen  # noqa: F401
+    HYPHEN = 'en_GB'
+except ImportError:
+    HYPHEN = None
+
 # The PDF belongs beside the other documents, one level up.
 OUT = Path(__file__).resolve().parent.parent / 'Ghaf-Crown-Mapping-Handbook.pdf'
 
@@ -46,6 +127,7 @@ CODE_BG = colors.HexColor('#f4f6f8')
 NOTE_BG = colors.HexColor('#eef4fb')
 WARN_BG = colors.HexColor('#fdf3e7')
 HEAD_BG = colors.HexColor('#eaeef2')
+HAIR = colors.HexColor('#d7dce1')
 
 TITLE = 'Mapping Ghaf Tree Crowns from UAV Imagery'
 SUBTITLE = 'A step-by-step operating handbook'
@@ -57,50 +139,56 @@ SUBTITLE = 'A step-by-step operating handbook'
 ss = getSampleStyleSheet()
 
 S = {
-    'title': ParagraphStyle('title', fontName='Helvetica-Bold', fontSize=26,
+    'title': ParagraphStyle('title', fontName=F['Head-Bold'], fontSize=26,
                             leading=31, textColor=INK, alignment=TA_CENTER,
                             spaceAfter=8),
-    'subtitle': ParagraphStyle('subtitle', fontName='Helvetica', fontSize=14,
+    'subtitle': ParagraphStyle('subtitle', fontName=F['Head'], fontSize=14,
                                leading=19, textColor=MUTED, alignment=TA_CENTER,
                                spaceAfter=26),
-    'cover': ParagraphStyle('cover', fontName='Times-Roman', fontSize=11,
+    'cover': ParagraphStyle('cover', fontName=F['Body'], fontSize=11,
                             leading=16, textColor=INK, alignment=TA_CENTER),
-    'part': ParagraphStyle('part', fontName='Helvetica-Bold', fontSize=11,
+    'part': ParagraphStyle('part', fontName=F['Head-Bold'], fontSize=11,
                            leading=14, textColor=GREEN, spaceBefore=2,
                            spaceAfter=2),
-    'h1x': ParagraphStyle('h1x', fontName='Helvetica-Bold', fontSize=17,
+    'h1x': ParagraphStyle('h1x', fontName=F['Head-Bold'], fontSize=17,
                           leading=21, textColor=INK, spaceBefore=4,
                           spaceAfter=10),
-    'h1': ParagraphStyle('h1', fontName='Helvetica-Bold', fontSize=17,
+    'h1': ParagraphStyle('h1', fontName=F['Head-Bold'], fontSize=17,
                          leading=21, textColor=INK, spaceBefore=4,
-                         spaceAfter=10),
-    'h2': ParagraphStyle('h2', fontName='Helvetica-Bold', fontSize=12.5,
+                         spaceAfter=10, keepWithNext=1),
+    'h2': ParagraphStyle('h2', fontName=F['Head-Bold'], fontSize=12.5,
                          leading=16, textColor=INK, spaceBefore=14,
-                         spaceAfter=5),
-    'h3': ParagraphStyle('h3', fontName='Helvetica-BoldOblique', fontSize=10.5,
+                         spaceAfter=5, keepWithNext=1),
+    'h3': ParagraphStyle('h3', fontName=F['Head-Bold'], fontSize=10.5,
                          leading=14, textColor=INK, spaceBefore=10,
-                         spaceAfter=3),
-    'body': ParagraphStyle('body', fontName='Times-Roman', fontSize=10.6,
+                         spaceAfter=3, keepWithNext=1),
+    'body': ParagraphStyle('body', fontName=F['Body'], fontSize=10.6,
                            leading=15.2, textColor=INK, spaceAfter=8,
-                           alignment=TA_JUSTIFY),
-    'bullet': ParagraphStyle('bullet', fontName='Times-Roman', fontSize=10.6,
+                           alignment=TA_JUSTIFY, hyphenationLang=HYPHEN,
+                           allowWidows=0, allowOrphans=0),
+    'bullet': ParagraphStyle('bullet', fontName=F['Body'], fontSize=10.6,
                              leading=15.2, textColor=INK, spaceAfter=4,
                              leftIndent=14, bulletIndent=3,
-                             alignment=TA_JUSTIFY),
-    'code': ParagraphStyle('code', fontName='Courier', fontSize=8.2,
+                             bulletFontName=F['Body'], bulletFontSize=10.6,
+                             alignment=TA_JUSTIFY, hyphenationLang=HYPHEN,
+                             allowWidows=0, allowOrphans=0),
+    'code': ParagraphStyle('code', fontName=F['Mono'], fontSize=8.2,
                            leading=11.2, textColor=INK),
-    'out': ParagraphStyle('out', fontName='Courier', fontSize=7.6,
+    'out': ParagraphStyle('out', fontName=F['Mono'], fontSize=7.6,
                           leading=10.2, textColor=colors.HexColor('#333333')),
-    'cell': ParagraphStyle('cell', fontName='Times-Roman', fontSize=9.3,
+    'cell': ParagraphStyle('cell', fontName=F['Body'], fontSize=9.3,
                            leading=12.4, textColor=INK),
-    'cellb': ParagraphStyle('cellb', fontName='Helvetica-Bold', fontSize=8.4,
+    'cellb': ParagraphStyle('cellb', fontName=F['Head-Bold'], fontSize=8.4,
                             leading=11.4, textColor=INK),
-    'cellc': ParagraphStyle('cellc', fontName='Courier', fontSize=7.8,
+    'cellc': ParagraphStyle('cellc', fontName=F['Mono'], fontSize=7.8,
                             leading=11, textColor=INK),
-    'caption': ParagraphStyle('caption', fontName='Times-Italic',
+    'captiont': ParagraphStyle('captiont', fontName=F['Body-Italic'],
+                               fontSize=8.8, leading=12, textColor=MUTED,
+                               spaceBefore=2, spaceAfter=5, keepWithNext=1),
+    'caption': ParagraphStyle('caption', fontName=F['Body-Italic'],
                               fontSize=8.8, leading=12, textColor=MUTED,
                               spaceBefore=2, spaceAfter=5),
-    'toc1': ParagraphStyle('toc1', fontName='Times-Roman', fontSize=10.6,
+    'toc1': ParagraphStyle('toc1', fontName=F['Body'], fontSize=10.6,
                            leading=18, textColor=INK),
 }
 
@@ -122,7 +210,7 @@ def md(text: str) -> str:
     while '**' in out:
         out = out.replace('**', '<b>', 1).replace('**', '</b>', 1)
     while '`' in out:
-        out = out.replace('`', '<font face="Courier" size="9">', 1)
+        out = out.replace('`', f'<font face="{F["Mono"]}" size="9">', 1)
         out = out.replace('`', '</font>', 1)
     return out
 
@@ -236,7 +324,7 @@ def box(text, story, kind='note', title=None):
     inner = []
     if title:
         inner.append(Paragraph(md(title), ParagraphStyle(
-            'boxt', parent=S['body'], fontName='Helvetica-Bold', spaceAfter=3,
+            'boxt', parent=S['body'], fontName=F['Head-Bold'], spaceAfter=3,
             alignment=TA_LEFT)))
     inner.append(Paragraph(md(text), ParagraphStyle(
         'boxb', parent=S['body'], spaceAfter=0, alignment=TA_LEFT)))
@@ -264,21 +352,24 @@ def table(header, rows, story, widths=None, mono_first=False, caption=None):
     if widths is None:
         widths = [CONTENT_W / len(header)] * len(header)
     t = Table(data, colWidths=widths, repeatRows=1)
+    # Booktabs setting: rules above and below the table, one under the head,
+    # hairlines between rows, and no vertical rules at all.
     t.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), HEAD_BG),
-        ('LINEBELOW', (0, 0), (-1, 0), 0.6, RULE),
-        ('GRID', (0, 0), (-1, -1), 0.35, RULE),
+        ('LINEABOVE', (0, 0), (-1, 0), 0.9, INK),
+        ('LINEBELOW', (0, 0), (-1, 0), 0.5, INK),
+        ('LINEBELOW', (0, 1), (-1, -2), 0.25, HAIR),
+        ('LINEBELOW', (0, -1), (-1, -1), 0.9, INK),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fafbfc')]),
+        ('LEFTPADDING', (0, 0), (0, -1), 0),
+        ('LEFTPADDING', (1, 0), (-1, -1), 7),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 7),
+        ('TOPPADDING', (0, 0), (-1, -1), 5.5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5.5),
     ]))
     block = [t, Spacer(1, 11)]
     if caption:
-        block.insert(0, Paragraph(md(numbered('table', caption)), S['caption']))
-    if len(rows) <= 6:
+        block.insert(0, Paragraph(md(numbered('table', caption)), S['captiont']))
+    if len(rows) <= 4:
         story.append(KeepTogether(block))
     else:
         story.extend(block)
@@ -304,12 +395,42 @@ class Handbook(BaseDocTemplate):
         self.chapter = ''
         self.chapter_by_page = {}     # from the previous layout pass
         self._pending = {}            # being collected this pass
+        self.body_start = None        # first numbered section, previous pass
+        self._body_start = None
+        self._headings = 0
 
     def beforeDocument(self):
         # Each pass starts fresh: entries from an earlier pass name pages that
         # have since moved, and a stale one would caption the wrong page.
         self.chapter_by_page = self._pending
         self._pending = {}
+        self.body_start = self._body_start
+        self._body_start = None
+        self._headings = 0
+        canvas = self.canv
+        canvas.setKeywords('Prosopis cineraria, Ghaf, UAV, orthomosaic, '
+                           'semantic segmentation, tree crown delineation, '
+                           'FastViT, Mask2Former, operating handbook')
+        canvas.setCreator('make_handbook.py, ReportLab')
+        # Older ReportLab lacks these; the title bar then shows the file name
+        # and the language is unset, both cosmetic.
+        with contextlib.suppress(Exception):
+            canvas.setViewerPreference('DisplayDocTitle', 'true')
+        with contextlib.suppress(Exception):
+            from reportlab.pdfbase.pdfdoc import PDFString
+            canvas._doc.Catalog.Lang = PDFString('en-GB')
+
+    def page_number(self, page):
+        """The arabic number a body page carries, counting from section 1."""
+        if self.body_start is None:
+            return page
+        return page - self.body_start + 1
+
+    def page_label(self, page):
+        """Roman for the front matter, arabic from section 1, as in print."""
+        if self.body_start is not None and page < self.body_start:
+            return _roman(page)
+        return str(self.page_number(page))
 
     def running_head(self, page):
         """The chapter this page belongs to, from the previous layout pass.
@@ -323,7 +444,7 @@ class Handbook(BaseDocTemplate):
 
     def decorate(self, canvas, doc):
         canvas.saveState()
-        canvas.setFont('Helvetica', 7.6)
+        canvas.setFont(F['Head'], 7.6)
         canvas.setFillColor(MUTED)
         canvas.drawString(MARGIN, PAGE_H - MARGIN + 4, TITLE)
         canvas.drawRightString(PAGE_W - MARGIN, PAGE_H - MARGIN + 4,
@@ -333,18 +454,49 @@ class Handbook(BaseDocTemplate):
         canvas.line(MARGIN, PAGE_H - MARGIN, PAGE_W - MARGIN, PAGE_H - MARGIN)
         canvas.line(MARGIN, 14 * mm, PAGE_W - MARGIN, 14 * mm)
         canvas.drawString(MARGIN, 11 * mm, 'Ghaf crown mapping - operating handbook')
-        canvas.drawRightString(PAGE_W - MARGIN, 11 * mm, f'page {doc.page}')
+        canvas.drawRightString(PAGE_W - MARGIN, 11 * mm,
+                               self.page_label(doc.page))
         canvas.restoreState()
 
     def afterFlowable(self, flowable):
         if not isinstance(flowable, Paragraph):
             return
         style = flowable.style.name
-        if style == 'h1':
+        if style in ('h1', 'h2', 'captiont'):
             text = flowable.getPlainText()
+            self._headings += 1
+            key = f'sec{self._headings}'
+            self.canv.bookmarkPage(key)
+        if style == 'h1':
             self.chapter = text
             self._pending[self.page] = text
-            self.notify('TOCEntry', (0, text, self.page))
+            if self._body_start is None and text[:1].isdigit():
+                self._body_start = self.page
+            self.canv.addOutlineEntry(text, key, level=0, closed=True)
+            self.notify('TOCEntry', (0, text, self.page_number(self.page), key))
+        elif style == 'h2':
+            self.canv.addOutlineEntry(text, key, level=1)
+        elif style == 'captiont':
+            self.notify('LOTEntry',
+                        (0, text, self.page_number(self.page), key))
+
+
+def _roman(n: int) -> str:
+    numerals = (('x', 10), ('ix', 9), ('v', 5), ('iv', 4), ('i', 1))
+    out = ''
+    for glyph, value in numerals:
+        while n >= value:
+            out += glyph
+            n -= value
+    return out
+
+
+class ListOfTables(TableOfContents):
+    """The same machinery as the contents, fed by table captions."""
+
+    def notify(self, kind, stuff):
+        if kind == 'LOTEntry':
+            self.addEntry(*stuff)
 
 
 def build(story):
@@ -386,9 +538,9 @@ story += [
     Spacer(1, 20 * mm),
 ]
 
-_info = ParagraphStyle('info', fontName='Times-Roman', fontSize=9.2,
+_info = ParagraphStyle('info', fontName=F['Body'], fontSize=9.2,
                        leading=12.6, textColor=INK)
-_infob = ParagraphStyle('infob', fontName='Helvetica-Bold', fontSize=8.2,
+_infob = ParagraphStyle('infob', fontName=F['Head-Bold'], fontSize=8.2,
                         leading=12.6, textColor=MUTED)
 _rows = [
     ('Document', 'Operating handbook for the Ghaf crown-mapping software'),
@@ -425,6 +577,11 @@ toc = TableOfContents()
 toc.levelStyles = [S['toc1']]
 toc.dotsMinLevel = 99            # page numbers alone, without leader dots
 story += [Paragraph('Contents', S['h1x']), toc, PageBreak()]
+
+lot = ListOfTables()
+lot.levelStyles = [S['toc1']]
+lot.dotsMinLevel = 99
+story += [Paragraph('Tables', S['h1x']), lot, PageBreak()]
 
 # =========================================================================
 H1('1. Folder structure', story)
@@ -472,7 +629,7 @@ table(['Part', 'Size', 'Contents and purpose'],
         'the code used. This file identifies which software version produced '
         'any given result'],
        ['README.md', '4 KB', 'A one-page summary of the bundle and its origin']],
-      story, widths=[CONTENT_W * 0.24, CONTENT_W * 0.09, CONTENT_W * 0.67],
+      story, widths=[CONTENT_W * 0.24, CONTENT_W * 0.11, CONTENT_W * 0.65],
       mono_first=True,
       caption='Contents of the delivered folder')
 
@@ -638,7 +795,7 @@ table(['Item', 'Requirement', 'Notes'],
        ['Disk for the bundle', '20 GB',
         'Code, models, initialisation weights, tiles and samples'],
        ['Disk for one inference run', '9 bytes per pixel of the image',
-        'An 8192 x 8192 clip requires 0.6 GB. The full 84 072 x 103 691 mosaic '
+        'An 8192 \u00d7 8192 clip requires 0.6 GB. The full 84 072 \u00d7 103 691 mosaic '
         'requires 79 GB. The space is released when the run ends, and is '
         'checked before the run starts'],
        ['Python', '3.9',
@@ -1435,7 +1592,17 @@ table(['Document', 'Subject'],
       story, widths=[CONTENT_W * 0.36, CONTENT_W * 0.64], mono_first=True,
       caption='Further documentation')
 
-story.append(Spacer(1, 10))
+story.append(Spacer(1, 14))
+story.append(HRFlowable(width='100%', thickness=0.7, color=RULE,
+                        spaceBefore=0, spaceAfter=8))
+story.append(Paragraph(md(
+    '**Colophon.** Set in Liberation Serif, Liberation Sans and Liberation '
+    'Mono, embedded in this file. Produced with ReportLab from '
+    '`docs/handbook/make_handbook.py` in the project repository, where the '
+    'source of this document is kept under version control alongside the '
+    'software it describes. Durations and canopy figures quoted throughout '
+    'were measured on an NVIDIA RTX A5000.'), S['caption']))
+story.append(Spacer(1, 6))
 story.append(Paragraph(md(
     'This handbook describes the repository at '
     'github.com/brakuta/Ghaf-Tree-Crown-Mapping-from-UAV-Data. The trained '
