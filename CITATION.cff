@@ -6,9 +6,22 @@ abstract: >-
   delineating Ghaf (Prosopis cineraria) tree crowns in UAV orthomosaics.
 type: software
 license: Apache-2.0
+repository-code: https://github.com/brakuta/Ghaf-Tree-Crown-Mapping-from-UAV-Data
+version: 1.0.0
+date-released: 2026-09-03
 authors:
   - family-names: Gibril
     given-names: Mohamed Barakat A.
+    # orcid: https://orcid.org/0000-0000-0000-0000
+    # affiliation: not established
+# The archive DOI goes here once Zenodo has minted it. Use the CONCEPT DOI --
+# the one Zenodo labels "all versions" -- because it resolves to the newest
+# release and so does not go stale. The manuscript cites the version DOI of
+# the exact release instead.
+# identifiers:
+#   - type: doi
+#     value: 10.5281/zenodo.XXXXXXX
+#     description: Concept DOI, all versions
 keywords:
   - remote sensing
   - semantic segmentation
