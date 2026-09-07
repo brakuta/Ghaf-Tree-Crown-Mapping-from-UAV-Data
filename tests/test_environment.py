@@ -41,9 +41,28 @@ def test_the_conda_environment_is_named_when_there_is_one(monkeypatch):
 
 
 def test_a_plain_interpreter_is_described_without_inventing_one(monkeypatch):
+    """No environment set means none is named -- but the path may say "conda".
+
+    An interpreter installed by ArcGIS Pro lives under
+    ...\\AppData\\Local\\ESRI\\conda\\envs\\ghaf\\python.exe, so a test for the
+    bare word would fail there on the path alone. What matters is the
+    phrasing this function chooses, not what the path happens to contain.
+    """
     monkeypatch.delenv('CONDA_DEFAULT_ENV', raising=False)
     description = environment.describe_interpreter()
-    assert 'conda' not in description
+    assert description.startswith('this Python:')
+    assert 'conda environment' not in description
+
+
+def test_the_interpreter_path_is_not_mistaken_for_an_environment(monkeypatch):
+    """Reproduces the ArcGIS Pro case above with a path of that shape."""
+    monkeypatch.delenv('CONDA_DEFAULT_ENV', raising=False)
+    monkeypatch.setattr(
+        environment.sys, 'executable',
+        r'C:\Users\S\AppData\Local\ESRI\conda\envs\ghaf\python.exe')
+    description = environment.describe_interpreter()
+    assert 'conda environment' not in description
+    assert description.endswith('python.exe'), 'the path is still reported'
 
 
 def test_one_missing_package_reads_as_one(monkeypatch):

@@ -84,6 +84,7 @@ ghaf/
 ├── init_weights.py        keep the ImageNet weights with the project
 ├── datasets.py            GhafDataset — the two-class tile dataset
 ├── splits.py              where each split lives, declared once and shared
+├── paths.py               one folder-listing order on every OS
 ├── release.py             the published models: digests, params, scores
 ├── models/
 │   ├── fastvit.py         FastViT-MA36 backbone

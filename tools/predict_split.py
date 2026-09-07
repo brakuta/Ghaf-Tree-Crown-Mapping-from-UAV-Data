@@ -44,6 +44,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from ghaf.environment import quiet_repeated_warnings, require_stack  # noqa: E402
 from ghaf.inference.large_image import _foreground_probability, _import  # noqa: E402
 from ghaf.inference.tiling import iter_batches  # noqa: E402
+from ghaf.paths import in_stable_order  # noqa: E402
 from ghaf.splits import SPLITS  # noqa: E402
 
 LOGGER = logging.getLogger('predict_split')
@@ -56,12 +57,16 @@ SUFFIXES = ('.png', '.tif', '.tiff')
 
 
 def list_tiles(root: Path, split: str) -> List[Path]:
-    """Every image tile in a split, in a stable order."""
+    """Every image tile in a split, in one order on every operating system.
+
+    ``--limit`` keeps the first few of them, so the order has to be the same
+    on every machine; ``ghaf/paths.py`` says why sorting paths is not.
+    """
     directory = root / SPLIT_IMAGES[split]
     if not directory.is_dir():
         raise FileNotFoundError(f'no such split directory: {directory}')
-    tiles = sorted(p for p in directory.iterdir()
-                   if p.is_file() and p.suffix.lower() in SUFFIXES)
+    tiles = in_stable_order(p for p in directory.iterdir()
+                            if p.is_file() and p.suffix.lower() in SUFFIXES)
     if not tiles:
         raise FileNotFoundError(f'no {"/".join(SUFFIXES)} tiles in {directory}')
     return tiles

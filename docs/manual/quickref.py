@@ -46,7 +46,8 @@ def main():
                   table([
         ['Command', 'Passes when', 'Ch.'],
         ['`python -m pytest tests\\ -q`',
-         '`325 passed, 1 skipped` — the code is intact', '4'],
+         '`336 passed` and no `F` — the code is intact. The number '
+         'skipped varies with the machine', '4'],
         ['`python tools\\smoke_test.py --checkpoints ..\\models`',
          'six rows of `ok`, every tensor matched', '4'],
         ['`python tools\\check_dataset.py ..\\data\\ghaf --sample 0`',
@@ -116,6 +117,8 @@ def main():
         ['`--out-polygons needs --out-mask or --out-prob`',
          'polygons are traced from a written raster', '13'],
         ['`path specified` printed twice', 'an `&` in the path; quote it', '13'],
+        ['`no such folder ... D:\\ghaf-project`',
+         'the manual\'s example path; use your own', '13'],
         ['`SHA-256 mismatch`', 'that checkpoint is not the released file', '13'],
         ['`0.00% ghaf` from `smoke_test.py`', 'correct; a blank tile', '4'],
         ['`0.00%` canopy on real imagery',

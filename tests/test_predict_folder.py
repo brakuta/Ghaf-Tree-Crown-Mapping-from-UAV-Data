@@ -74,7 +74,22 @@ def test_a_pattern_selects_by_name(tmp_path):
     touch(tmp_path, 'PLOT2_RGB.tif')
 
     found = [p.name for p in F.list_images(tmp_path, pattern='*_rgb.tif')]
-    assert found == ['PLOT2_RGB.tif', 'plot1_rgb.tif']
+    assert found == ['plot1_rgb.tif', 'PLOT2_RGB.tif']
+
+
+def test_the_order_is_the_same_on_every_operating_system(tmp_path):
+    """The listing must not be sorted the way the platform sorts paths.
+
+    Windows compares paths without regard to case and Linux compares by code
+    point, so plain sorting puts PLOT2 before plot1 on one machine and after
+    it on the other. --limit keeps the first few entries, which would then be
+    a different few images depending on where the command was typed.
+    """
+    for name in ('b.tif', 'A.tif', 'a.tif', 'B.tif'):
+        touch(tmp_path, name)
+
+    assert [p.name for p in F.list_images(tmp_path)] == [
+        'A.tif', 'a.tif', 'B.tif', 'b.tif']
 
 
 def test_the_output_folder_is_not_read_back_in(tmp_path):

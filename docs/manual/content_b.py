@@ -584,6 +584,11 @@ def chapter_13():
         ['`opencv-python ... requires numpy>=2` while installing',
          'Not an error. The wheel is built against the NumPy 2 headers and '
          'works with either'],
+        ['`Attempting uninstall: opencv-python`, replacing it with 4.11.0.86',
+         'Correct, and required. `numpy<2` is pinned for PyTorch 1.12.1, and '
+         '4.11.0.86 is the newest OpenCV built against NumPy 1.x. Nothing '
+         'here imports OpenCV directly; mmengine, which does, accepts any '
+         'version from 3 upwards'],
         ['`CUDA out of memory`',
          'Lower `--batch-size` to 2 or 1, close other GPU programs, or use '
          '`--device cpu`. Do not lower `--overlap` to save memory; it changes '
@@ -598,6 +603,18 @@ def chapter_13():
          'Polygons are traced from a written raster. Add `--out-mask`'],
         ['`FileNotFoundError` naming a path',
          'A typo, a missing `..\\`, or a path with spaces that needs quotes'],
+        ['`no such folder`, or `no ...pth under ...`, naming '
+         '`D:\\ghaf-project`',
+         'The example path from this manual, run as typed. `D:\\ghaf-project` '
+         'stands for wherever the bundle was unpacked on this machine '
+         '(chapter 3); no program looks for that name'],
+        ['`not a directory: ...` from `check_dataset.py`',
+         'Same cause, or the dataset root given one level out. The argument '
+         'is the folder that holds `training\\`, `validation\\` and '
+         '`testing\\`'],
+        ["`'ls' is not recognized as an internal or external command`",
+         'A Unix command in the Command Prompt. `dir` lists a folder, '
+         '`type` prints a file, `cd /d` changes drive and folder together'],
         ['`The system cannot find the path specified`, printed twice',
          'The path contains `&`, which the Command Prompt read as two '
          'commands. Quote the whole path'],
@@ -611,6 +628,12 @@ def chapter_13():
         ['`SHA-256 mismatch` from `smoke_test.py`',
          'That checkpoint is not the released file. The copy is damaged; copy '
          'it again from the original'],
+        ['A failing test on a machine where the imports all work',
+         'Send the failure on; do not work around it. A test can assert '
+         'something that is true only on the operating system it was written '
+         'on — a sort order, a path separator — and that is a fault in the '
+         'test, not in this installation. Copy the `assert` line, the '
+         'expected value and the actual one'],
         ['`0.00% ghaf` from `smoke_test.py`',
          'Correct. That forward pass runs on a blank synthetic tile'],
         ['`KeyboardInterrupt`',

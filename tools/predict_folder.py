@@ -60,6 +60,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from ghaf.environment import quiet_repeated_warnings, require_stack  # noqa: E402
 from ghaf.inference.large_image import predict_large_image  # noqa: E402
+from ghaf.paths import in_stable_order  # noqa: E402
 
 LOGGER = logging.getLogger('predict_folder')
 
@@ -72,7 +73,11 @@ SUFFIXES = ('.tif', '.tiff', '.png', '.jpg', '.jpeg', '.jp2', '.vrt')
 def list_images(directory: Path, pattern: Optional[str] = None,
                 recursive: bool = False,
                 exclude: Optional[Path] = None) -> List[Path]:
-    """Every image in a folder, in a stable order.
+    """Every image in a folder, in one order on every operating system.
+
+    The order is case-insensitive and does not depend on the platform, which
+    matters because ``--limit`` keeps the first few entries of it
+    (``ghaf/paths.py`` says why).
 
     Args:
         directory: the folder to read.
@@ -107,7 +112,7 @@ def list_images(directory: Path, pattern: Optional[str] = None,
         where = f'{directory} (recursively)' if recursive else str(directory)
         what = f' matching {pattern}' if pattern else ''
         raise FileNotFoundError(f'no image{what} in {where}')
-    return sorted(images)
+    return in_stable_order(images)
 
 
 def _resolve(path: Path) -> Path:

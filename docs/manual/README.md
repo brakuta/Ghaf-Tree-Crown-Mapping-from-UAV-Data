@@ -60,7 +60,7 @@ Every build is checked five ways. The first four are automatic:
 | Check | Last result |
 |---|---|
 | `build.py` prints no `[WARN]` | no over-long code lines |
-| `check_layout.py` | 22 pages, zero under 70% full, body mean 95.6% |
+| `check_layout.py` | 22 pages, zero under 70% full, body mean 96.9% |
 | spans crossing the right margin | 0, in both documents |
 | extracted text scanned for `&nbsp`, `**`, NUL | 0 of each |
 

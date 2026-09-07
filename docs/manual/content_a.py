@@ -165,9 +165,10 @@ def chapter_1():
 def chapter_2():
     s = chapter(
         'The repository, folder by folder',
-        'Sixty-seven tracked files in four directories. This chapter is the '
-        'map: what each file is for, and which of them you will ever open. '
-        'Read it when you need to find something, not before.')
+        'Fifty-three files in four directories — '
+        '`git ls-files ghaf configs tools tests` counts them. This chapter '
+        'is the map: what each file is for, and which of them you will ever '
+        'open. Read it when you need to find something, not before.')
 
     s.append(glue(section('`ghaf/` — the library'), None))
     s.append(para(
@@ -191,6 +192,11 @@ def chapter_2():
          'running, and quietens the repeated framework warnings'],
         ['`init_weights.py`',
          'Finds the ImageNet initialisation weights that ship with the bundle'],
+        ['`paths.py`',
+         'One order for a folder listing on every operating system. Windows '
+         'sorts file names without regard to case and Linux does not, so '
+         'sorting the platform\'s way would give `--limit` a different set '
+         'of images on each machine'],
         ['`release.py`',
          'The published models: digests, byte sizes, parameter counts and '
          'scores. The single source of truth that `smoke_test` and '
@@ -250,7 +256,7 @@ def chapter_2():
 
     s.append(glue(section('`tests/` and `docs/`'), None))
     s.append(para(
-        'Seventeen test files, 325 tests, one skipped. They run without a '
+        'Eighteen test files and 336 tests. They run without a '
         'GPU, without mmcv and without the dataset, which is what makes them '
         'worth running on a machine that has just been set up: a pass proves '
         'the code is intact even before the weights arrive. `docs/` holds '
@@ -313,6 +319,13 @@ def chapter_3():
         'starts hard against the left margin on purpose, because leading '
         'spaces would otherwise be carried into the argument. On macOS or '
         'Linux the continuation character is a backslash instead.'))
+    s.append(para(
+        'The paths are the ones on the machine this was written on. '
+        '`D:\\ghaf-project\\` is where the bundle was unpacked there; '
+        'substitute wherever it was unpacked here, and every command works '
+        'unchanged. No program looks for that name, so `no such folder` or '
+        '`no checkpoint under` naming `D:\\ghaf-project` is the example path '
+        'being run as though it were real, not a broken installation.'))
     s.extend(callout('Paste one command at a time', [
         'Several terminals join a multi-line paste into a single line and run '
         'something nobody typed. It usually fails loudly. It does not always: '
@@ -365,11 +378,15 @@ def chapter_3():
         'import at all — its own metadata does not say so. NumPy is held '
         'below 2.0 because PyTorch 1.12.1 is built against the NumPy 1.x '
         'binary interface.'))
-    s.extend(callout('Two messages during installation are not errors', [
-        'pip may report that `opencv-python` requires `numpy>=2`. Ignore it: '
-        'the wheel is built against the NumPy 2 headers, which stay '
-        'compatible with 1.x at the binary level. pip may also list conflicts '
-        'among packages this project does not import. Only a line beginning '
+    s.extend(callout('What the last step prints, and what none of it means', [
+        'pip may report that `opencv-python` requires `numpy>=2`, and may '
+        'then replace a newer OpenCV with 4.11.0.86 — a line reading '
+        '`Attempting uninstall: opencv-python`. Both are the NumPy pin doing '
+        'its work: 4.11.0.86 is the newest OpenCV built against NumPy 1.x, '
+        'and it is the only kind this project can use. Nothing here imports '
+        'OpenCV directly; mmengine reads images with it and is content with '
+        'any version from 3 upwards. pip may also list conflicts among '
+        'packages this project does not import. Only a line beginning '
         '`ERROR:` that stops the install matters.',
     ]))
 
@@ -410,11 +427,15 @@ def chapter_4():
     s.extend(code('python -m pytest tests\\ -q'))
     s.extend(code(
         '.........................................................\n'
-        '325 passed, 1 skipped in 74.19s'))
+        '336 passed, 1 skipped in 26.79s'))
     s.append(para(
         'Any tally of passes with no `F` in the progress output is a pass. '
-        '`No module named mmengine` here means a different Python is running '
-        'than the one the packages went into; chapter 13 has the remedy.'))
+        'The number skipped is not fixed and does not need to match: a test '
+        'that needs `geopandas`, `torch` or `git` skips itself where they are '
+        'absent, so a machine without them reports more skips than this '
+        'one, and is not failing. `No module named mmengine` here means a different Python is '
+        'running than the one the packages went into; chapter 13 has the '
+        'remedy.'))
 
     s.append(glue(section('Check 2 — the weights'), None))
     s.append(para(
