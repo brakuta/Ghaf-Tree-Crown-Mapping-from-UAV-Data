@@ -18,7 +18,7 @@
 meta:
   repository: brakuta/Ghaf-Tree-Crown-Mapping-from-UAV-Data
   commit_of_record:
-    value: 11f022f
+    value: 54ccf74
     src: measured:container    # git rev-parse --short HEAD, 2026-09-07
   compiled: 2026-09-07
   compiled_by: manual build, this session
@@ -373,7 +373,7 @@ training:
 # ---------------------------------------------------------------------------
 bundle:
   src: measured:WS_1   # python tools\build_handover.py
-  built_from_commit: fe081a7
+  built_from_commit: 71a07db
   total: 18.93 GB
   parts:
     code:

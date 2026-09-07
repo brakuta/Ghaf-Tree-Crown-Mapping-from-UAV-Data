@@ -94,7 +94,7 @@ def chapter_1():
         'The code is public. The weights, the imagery and the labelled tiles '
         'are not: they travel separately, and the bundle below is what a '
         'recipient is sent. Sizes are those of the bundle as it was built, '
-        'from commit `fe081a7`.'))
+        'from commit `71a07db`.'))
     s.extend(table([
         ['Part', 'Size', 'Contents'],
         ['`code/`', '63 files',
