@@ -40,8 +40,18 @@ class _Sample:
 
 
 def _stub_inference(probability, classes=2, tile=64):
-    """An ``inference_model`` that always predicts ``probability`` for ghaf."""
-    import torch
+    """An ``inference_model`` that always predicts ``probability`` for ghaf.
+
+    torch is asked for here rather than imported, because this stub is the
+    only thing in this file and in test_predict_split.py that needs it. A
+    plain import turns every test that builds the stub into an error where
+    torch is absent -- and rasterio without torch is a real combination: it
+    is what the Windows CI job installs, and it is what a GIS machine that
+    has not had the model stack put on it looks like. Asked for this way,
+    those tests skip and the tile listing and path tests around them still
+    run.
+    """
+    torch = pytest.importorskip('torch')
 
     p = float(probability)
     logits = torch.zeros(classes, tile, tile)
