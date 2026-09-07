@@ -18,7 +18,7 @@
 meta:
   repository: brakuta/Ghaf-Tree-Crown-Mapping-from-UAV-Data
   commit_of_record:
-    value: a7e3966
+    value: 11f022f
     src: measured:container    # git rev-parse --short HEAD, 2026-09-07
   compiled: 2026-09-07
   compiled_by: manual build, this session
