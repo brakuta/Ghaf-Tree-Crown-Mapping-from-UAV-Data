@@ -603,15 +603,18 @@ def chapter_13():
          'Polygons are traced from a written raster. Add `--out-mask`'],
         ['`FileNotFoundError` naming a path',
          'A typo, a missing `..\\`, or a path with spaces that needs quotes'],
-        ['`no such folder`, or `no ...pth under ...`, naming '
-         '`D:\\ghaf-project`',
+        ['`not a directory: ...` naming `D:\\ghaf-project`',
          'The example path from this manual, run as typed. `D:\\ghaf-project` '
          'stands for wherever the bundle was unpacked on this machine '
-         '(chapter 3); no program looks for that name'],
-        ['`not a directory: ...` from `check_dataset.py`',
-         'Same cause, or the dataset root given one level out. The argument '
-         'is the folder that holds `training\\`, `validation\\` and '
-         '`testing\\`'],
+         '(chapter 3); no program looks for that name. Both '
+         '`smoke_test.py` and `check_dataset.py` refuse a folder that is not '
+         'there before doing any work'],
+        ['`not a directory` from `check_dataset.py` on a path that exists',
+         'The dataset root given one level out. The argument is the folder '
+         'that holds `training\\`, `validation\\` and `testing\\`'],
+        ['`no ...pth under ...` from `smoke_test.py`',
+         'The folder is there and the checkpoints are not. Usually the '
+         'models folder one level out, or a partial copy'],
         ["`'ls' is not recognized as an internal or external command`",
          'A Unix command in the Command Prompt. `dir` lists a folder, '
          '`type` prints a file, `cd /d` changes drive and folder together'],

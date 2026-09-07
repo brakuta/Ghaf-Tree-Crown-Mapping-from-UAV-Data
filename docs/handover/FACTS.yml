@@ -309,9 +309,9 @@ runs:
   test_suite:
     src: measured:container
     command: python -m pytest tests/ -q
-    result: 336 passed, 1 skipped
+    result: 339 passed, 1 skipped
     files: 18
-    tracked_code_files: 53      # git ls-files ghaf configs tools tests
+    tracked_code_files: 54      # git ls-files ghaf configs tools tests
     note: the skip count is machine-dependent and is not a figure to match.
           Tests needing geopandas, torch or git skip themselves where those
           are absent, so a machine without them reports more.

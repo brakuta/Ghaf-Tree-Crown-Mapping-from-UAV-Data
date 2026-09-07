@@ -168,6 +168,13 @@ def main(argv=None) -> int:
                              'digest, load the weights and predict once')
     args = parser.parse_args(argv)
 
+    # Before building anything. Six models take about ninety seconds to
+    # construct, and a folder that does not exist used to be reported only
+    # afterwards, as six separate "no <file>.pth under <folder>" lines --
+    # which reads like six missing checkpoints rather than one wrong path.
+    if args.checkpoints is not None and not args.checkpoints.is_dir():
+        parser.error(f'not a directory: {args.checkpoints}')
+
     try:
         require_stack()
     except ModuleNotFoundError as exc:

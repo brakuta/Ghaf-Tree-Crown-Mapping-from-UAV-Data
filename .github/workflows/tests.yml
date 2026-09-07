@@ -39,6 +39,32 @@ jobs:
       - name: Test
         run: pytest tests/ -q
 
+  windows:
+    # The suite is written on Linux and read on Windows, and the two disagree
+    # about the filesystem in ways no Linux runner can show:
+    #   * NTFS folds case, so a.tif and A.tif are one file, not two;
+    #   * Windows compares paths without regard to case, so a plain sort puts
+    #     an upper-case name in a different place;
+    #   * the separator is a backslash, and a drive letter is a path part.
+    # Both defects that reached a colleague's machine were of exactly this
+    # kind and passed everywhere else, so the suite runs here too. torch is
+    # left out deliberately -- the tests it enables are not the ones that can
+    # tell the platforms apart, and the wheel is slow on this runner.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install "mmengine==0.10.7" "numpy>=1.24" "pytest>=7.0" `
+                      "rasterio>=1.3" "geopandas>=0.13"
+      - name: Test
+        run: pytest tests/ -q
+
   full:
     # Adds the optional stacks so the backbone, inference and prediction tests
     # actually run. Two ordering rules matter here:

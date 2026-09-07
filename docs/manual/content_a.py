@@ -165,7 +165,7 @@ def chapter_1():
 def chapter_2():
     s = chapter(
         'The repository, folder by folder',
-        'Fifty-three files in four directories — '
+        'Fifty-four files in four directories — '
         '`git ls-files ghaf configs tools tests` counts them. This chapter '
         'is the map: what each file is for, and which of them you will ever '
         'open. Read it when you need to find something, not before.')
@@ -256,7 +256,7 @@ def chapter_2():
 
     s.append(glue(section('`tests/` and `docs/`'), None))
     s.append(para(
-        'Eighteen test files and 336 tests. They run without a '
+        'Eighteen test files and 339 tests. They run without a '
         'GPU, without mmcv and without the dataset, which is what makes them '
         'worth running on a machine that has just been set up: a pass proves '
         'the code is intact even before the weights arrive. `docs/` holds '
@@ -427,7 +427,7 @@ def chapter_4():
     s.extend(code('python -m pytest tests\\ -q'))
     s.extend(code(
         '.........................................................\n'
-        '336 passed, 1 skipped in 26.79s'))
+        '339 passed, 1 skipped in 35.06s'))
     s.append(para(
         'Any tally of passes with no `F` in the progress output is a pass. '
         'The number skipped is not fixed and does not need to match: a test '
