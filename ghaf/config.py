@@ -14,7 +14,8 @@ dataset -- so ``--data-root`` moves every split together.
 from __future__ import annotations
 
 import inspect
-from typing import Iterable, List
+from pathlib import Path
+from typing import Iterable, List, Tuple
 
 #: The dataloaders a config may define, in the order they are reported.
 DATALOADERS = ('train_dataloader', 'val_dataloader', 'test_dataloader')
@@ -96,3 +97,69 @@ def skip_imagenet_weights(backbone: dict, cls) -> List[str]:
         changed.append('pretrained')
 
     return changed
+
+
+def _innermost(dataset):
+    """The dataset a wrapper holds, however deeply it is wrapped."""
+    while dataset is not None and dataset.get('dataset') is not None:
+        dataset = dataset['dataset']
+    return dataset
+
+
+def dataset_directories(cfg, loaders: Iterable[str] = DATALOADERS
+                        ) -> List[Tuple[str, Path]]:
+    """Every folder the given dataloaders will read from.
+
+    Args:
+        cfg: a parsed ``mmengine`` config.
+        loaders: which dataloaders to look at.
+
+    Returns:
+        ``(dataloader name, folder)`` pairs, in the order the loaders were
+        given -- images before masks for each. A dataloader the config does
+        not define contributes nothing.
+    """
+    found = []
+    for name in loaders:
+        loader = cfg.get(name)
+        if loader is None:
+            continue
+        dataset = _innermost(loader.get('dataset'))
+        if dataset is None:
+            continue
+        root = Path(str(dataset.get('data_root', '')))
+        prefix = dataset.get('data_prefix') or {}
+        for key in ('img_path', 'seg_map_path'):
+            value = prefix.get(key)
+            if value:
+                found.append((name, root / str(value)))
+    return found
+
+
+def missing_dataset_directories(cfg, loaders: Iterable[str] = DATALOADERS
+                                ) -> List[Tuple[str, Path]]:
+    """The folders from :func:`dataset_directories` that do not exist."""
+    return [(name, path) for name, path in dataset_directories(cfg, loaders)
+            if not path.is_dir()]
+
+
+def missing_dataset_message(missing: Iterable[Tuple[str, Path]],
+                            flag: str = '--data-root') -> str:
+    """Say that the dataset is not there, and what to do about it.
+
+    Without this the run reaches mmengine, which scans the folder and raises
+    ``FileNotFoundError`` from six frames down -- naming the joined path but
+    not where it came from. The path is nearly always the config's own
+    relative default, resolved against whatever directory the command was
+    typed in, and the remedy is always the same flag.
+    """
+    lines = ['the dataset is not where this run was told to look:']
+    lines += [f'  {name}: no such folder: {path}' for name, path in missing]
+    lines += [
+        '',
+        'A relative path is resolved against the current directory,',
+        f'  {Path.cwd()}',
+        f'and the config file carries a relative default. Pass {flag} at the',
+        'folder that holds training, validation and testing.',
+    ]
+    return '\n'.join(lines)

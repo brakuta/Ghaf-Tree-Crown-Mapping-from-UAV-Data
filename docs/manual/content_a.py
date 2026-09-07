@@ -256,7 +256,7 @@ def chapter_2():
 
     s.append(glue(section('`tests/` and `docs/`'), None))
     s.append(para(
-        'Eighteen test files and 339 tests. They run without a '
+        'Eighteen test files and 345 tests. They run without a '
         'GPU, without mmcv and without the dataset, which is what makes them '
         'worth running on a machine that has just been set up: a pass proves '
         'the code is intact even before the weights arrive. `docs/` holds '
@@ -427,7 +427,7 @@ def chapter_4():
     s.extend(code('python -m pytest tests\\ -q'))
     s.extend(code(
         '.........................................................\n'
-        '339 passed, 1 skipped in 35.06s'))
+        '345 passed, 1 skipped in 28.69s'))
     s.append(para(
         'Any tally of passes with no `F` in the progress output is a pass. '
         'The number skipped is not fixed and does not need to match: a test '

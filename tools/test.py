@@ -23,7 +23,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from mmengine.config import Config, DictAction  # noqa: E402
 
 import ghaf  # noqa: E402
-from ghaf.config import set_data_root, skip_imagenet_weights  # noqa: E402
+from ghaf.config import (  # noqa: E402
+    missing_dataset_directories,
+    missing_dataset_message,
+    set_data_root,
+    skip_imagenet_weights,
+)
 from ghaf.environment import require_stack  # noqa: E402
 
 
@@ -79,6 +84,12 @@ def main(argv=None) -> int:
     if args.cfg_options:
         cfg.merge_from_dict(args.cfg_options)
     _skip_backbone_download(cfg)
+
+    missing = missing_dataset_directories(cfg, ['test_dataloader'])
+    if missing:
+        print(missing_dataset_message(missing))
+        return 1
+
     cfg.load_from = args.checkpoint
     cfg.work_dir = args.work_dir or str(
         Path('work_dirs') / Path(args.config).stem)

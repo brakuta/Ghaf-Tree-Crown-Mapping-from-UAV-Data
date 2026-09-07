@@ -612,6 +612,11 @@ def chapter_13():
         ['`not a directory` from `check_dataset.py` on a path that exists',
          'The dataset root given one level out. The argument is the folder '
          'that holds `training\\`, `validation\\` and `testing\\`'],
+        ['`the dataset is not where this run was told to look`',
+         '`train.py` or `test.py` without `--data-root`. The config carries '
+         '`data/ghaf`, which is read relative to `code\\` and is not where '
+         'the data is. The message names the folder it wanted and the '
+         'directory it resolved against'],
         ['`no ...pth under ...` from `smoke_test.py`',
          'The folder is there and the checkpoints are not. Usually the '
          'models folder one level out, or a partial copy'],

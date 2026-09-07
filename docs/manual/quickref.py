@@ -46,7 +46,7 @@ def main():
                   table([
         ['Command', 'Passes when', 'Ch.'],
         ['`python -m pytest tests\\ -q`',
-         '`339 passed` and no `F` — the code is intact. The number '
+         '`345 passed` and no `F` — the code is intact. The number '
          'skipped varies with the machine', '4'],
         ['`python tools\\smoke_test.py --checkpoints ..\\models`',
          'six rows of `ok`, every tensor matched', '4'],

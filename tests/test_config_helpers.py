@@ -3,14 +3,17 @@
 Two traps, both quiet. mmengine accepts `--cfg-options data_root=...` and
 reports nothing, while the dataloaders keep the path the config file was
 parsed with. And switching off a backbone's ImageNet weights means a different
-argument depending on where those weights would come from. Only mmengine is
-needed here.
+argument depending on where those weights would come from. A third is louder
+but no more helpful: a dataset that is not where the config says produces a
+FileNotFoundError from six frames inside mmengine, so the folder is checked
+here instead. Only mmengine is needed for any of it.
 """
 
 from pathlib import Path
 
 from mmengine.config import Config
 
+from ghaf import config as C
 from ghaf.config import DATALOADERS, set_data_root, skip_imagenet_weights
 
 CONFIG = (Path(__file__).parent.parent / 'configs' / 'ghaf' /
@@ -126,3 +129,62 @@ def test_a_backbone_taking_kwargs_is_given_both():
     skip_imagenet_weights(backbone, CatchAll)
     assert backbone['init_cfg'] is None
     assert backbone['pretrained'] is None
+
+
+# --------------------------------------------------------------------------
+# saying where the dataset was expected, before anything is built
+# --------------------------------------------------------------------------
+
+def dataloader(root='data/ghaf', split='testing/ghaf26'):
+    return Config(dict(test_dataloader=dict(dataset=dict(
+        type='GhafDataset', data_root=root,
+        data_prefix=dict(img_path=f'{split}/images',
+                         seg_map_path=f'{split}/masks')))))
+
+
+def test_both_folders_of_a_split_are_reported():
+    found = C.dataset_directories(dataloader(), ['test_dataloader'])
+    assert [str(p) for _, p in found] == [
+        str(Path('data/ghaf/testing/ghaf26/images')),
+        str(Path('data/ghaf/testing/ghaf26/masks'))]
+
+
+def test_a_dataloader_the_config_does_not_define_is_skipped():
+    assert C.dataset_directories(dataloader(), ['train_dataloader']) == []
+
+
+def test_a_wrapped_dataset_is_looked_through():
+    cfg = Config(dict(train_dataloader=dict(dataset=dict(
+        type='RepeatDataset', times=2, dataset=dict(
+            type='GhafDataset', data_root='data/ghaf',
+            data_prefix=dict(img_path='training/images'))))))
+    found = C.dataset_directories(cfg, ['train_dataloader'])
+    assert [str(p) for _, p in found] == [str(Path('data/ghaf/training/images'))]
+
+
+def test_a_dataset_that_is_there_is_not_reported_missing(tmp_path):
+    (tmp_path / 'testing/ghaf26/images').mkdir(parents=True)
+    (tmp_path / 'testing/ghaf26/masks').mkdir(parents=True)
+    cfg = dataloader(root=str(tmp_path))
+
+    assert C.missing_dataset_directories(cfg, ['test_dataloader']) == []
+
+
+def test_a_dataset_that_is_not_there_is_reported_once_per_folder(tmp_path):
+    cfg = dataloader(root=str(tmp_path / 'nowhere'))
+    missing = C.missing_dataset_directories(cfg, ['test_dataloader'])
+
+    assert len(missing) == 2
+    assert all(name == 'test_dataloader' for name, _ in missing)
+
+
+def test_the_message_names_the_folder_and_the_remedy(tmp_path):
+    """The default data_root is relative, so the message has to say to what."""
+    cfg = dataloader(root='data/ghaf')
+    message = C.missing_dataset_message(
+        C.missing_dataset_directories(cfg, ['test_dataloader']))
+
+    assert 'no such folder' in message
+    assert str(Path('data/ghaf/testing/ghaf26/images')) in message
+    assert '--data-root' in message
+    assert str(Path.cwd()) in message, 'say what a relative path is read against'

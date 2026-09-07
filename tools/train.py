@@ -34,7 +34,11 @@ from mmengine.config import Config, DictAction  # noqa: E402
 
 import ghaf  # noqa: E402
 from ghaf import init_weights
-from ghaf.config import set_data_root
+from ghaf.config import (
+    missing_dataset_directories,
+    missing_dataset_message,
+    set_data_root,
+)
 from ghaf.environment import require_stack
 
 
@@ -113,6 +117,15 @@ def main(argv=None) -> int:
     from mmengine.runner import Runner
 
     cfg = apply_args(Config.fromfile(args.config), args)
+
+    # Before the runner, which would otherwise spend a minute building a
+    # model and then fail on a folder that could have been checked at once.
+    missing = missing_dataset_directories(
+        cfg, ['train_dataloader', 'val_dataloader'])
+    if missing:
+        print(missing_dataset_message(missing))
+        return 1
+
     Runner.from_cfg(cfg).train()
     return 0
 
