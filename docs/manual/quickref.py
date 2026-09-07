@@ -15,6 +15,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 import typeset as T  # noqa: E402
+from order import Ch  # noqa: E402
+from order import n as chapter_number  # noqa: E402
 from reportlab.lib.styles import ParagraphStyle  # noqa: E402
 from reportlab.platypus import Paragraph, Spacer  # noqa: E402
 
@@ -47,11 +49,11 @@ def main():
         ['Command', 'Passes when', 'Ch.'],
         ['`python -m pytest tests\\ -q`',
          '`345 passed` and no `F` — the code is intact. The number '
-         'skipped varies with the machine', '4'],
+         'skipped varies with the machine', Ch('verifying')],
         ['`python tools\\smoke_test.py --checkpoints ..\\models`',
-         'six rows of `ok`, every tensor matched', '4'],
+         'six rows of `ok`, every tensor matched', Ch('verifying')],
         ['`python tools\\check_dataset.py ..\\data\\ghaf --sample 0`',
-         '7005 / 869 / 767 paired', '4'],
+         '7005 / 869 / 767 paired', Ch('verifying')],
     ], widths=[228, 160, None], size=8.4)))
     s.append(para(
         '`0.00% ghaf` in the prediction column of the second command is '
@@ -73,7 +75,8 @@ def main():
         'clip from 16 to 27. `--out-polygons` will not run without '
         '`--out-mask` or `--out-prob`, and **`--tile` must stay 1024**: change '
         'it and the run still succeeds, still writes all three outputs, and '
-        'reports a canopy figure produced at the wrong scale. *(Manual §6.5)*',
+        'reports a canopy figure produced at the wrong scale. '
+        f'*(Manual §{chapter_number("orthomosaic")}.5)*',
     ]))
 
     s.append(Paragraph('Map a folder of images', T.SS['Section']))
@@ -87,7 +90,8 @@ def main():
         'Drop `--limit 3` once three images have come out right. One '
         'unreadable file does not stop the run: it is recorded in '
         '`summary.json` and the exit status is non-zero, neither of which is '
-        'visible to somebody watching the progress bar. *(Manual §7.2)*'))
+        'visible to somebody watching the progress bar. '
+        f'*(Manual §{chapter_number("folder")}.2)*'))
 
     s.append(glue(Paragraph('The numbers', T.SS['Section']), table([
         ['', 'Value', '', 'Value'],
@@ -106,25 +110,25 @@ def main():
 
     s.append(glue(Paragraph('Error → cause', T.SS['Section']), table([
         ['What you see', 'Actually means', 'Ch.'],
-        ['`No module named mmengine`', 'wrong Python; `conda activate ghaf`', '13'],
+        ['`No module named mmengine`', 'wrong Python; `conda activate ghaf`', Ch('errors')],
         ['`mmseg ... is not installed in conda environment`',
-         'wrong environment; the message names the interpreter', '13'],
-        ['`No module named ftfy`', '`pip install ftfy regex`', '13'],
-        ['`Numpy is not available`', 'NumPy 2 beside torch 1.12; pin `<2`', '13'],
+         'wrong environment; the message names the interpreter', Ch('errors')],
+        ['`No module named ftfy`', '`pip install ftfy regex`', Ch('errors')],
+        ['`Numpy is not available`', 'NumPy 2 beside torch 1.12; pin `<2`', Ch('errors')],
         ['`CUDA out of memory`',
-         'lower `--batch-size`; **never** `--overlap`', '13'],
-        ['`not enough scratch space`', '`--scratch-dir` at a bigger disk', '13'],
+         'lower `--batch-size`; **never** `--overlap`', Ch('errors')],
+        ['`not enough scratch space`', '`--scratch-dir` at a bigger disk', Ch('errors')],
         ['`--out-polygons needs --out-mask or --out-prob`',
-         'polygons are traced from a written raster', '13'],
-        ['`path specified` printed twice', 'an `&` in the path; quote it', '13'],
+         'polygons are traced from a written raster', Ch('errors')],
+        ['`path specified` printed twice', 'an `&` in the path; quote it', Ch('errors')],
         ['`no such folder ... D:\\ghaf-project`',
-         'the manual\'s example path; use your own', '13'],
-        ['`SHA-256 mismatch`', 'that checkpoint is not the released file', '13'],
-        ['`0.00% ghaf` from `smoke_test.py`', 'correct; a blank tile', '4'],
+         'the manual\'s example path; use your own', Ch('errors')],
+        ['`SHA-256 mismatch`', 'that checkpoint is not the released file', Ch('errors')],
+        ['`0.00% ghaf` from `smoke_test.py`', 'correct; a blank tile', Ch('verifying')],
         ['`0.00%` canopy on real imagery',
-         'wrong checkpoint, or bands not RGB', '13'],
-        ['a crown count far too high', 'fragments; use `--min-area 1`', '13'],
-        ['high mIoU, predicts nothing', 'masks encoded 0 and 255, not 0 and 1', '13'],
+         'wrong checkpoint, or bands not RGB', Ch('errors')],
+        ['a crown count far too high', 'fragments; use `--min-area 1`', Ch('errors')],
+        ['high mIoU, predicts nothing', 'masks encoded 0 and 255, not 0 and 1', Ch('errors')],
     ], widths=[196, 250, None], size=8.4)))
 
     s.append(glue(Paragraph('Rules that are not negotiable', T.SS['Section']),
@@ -153,7 +157,8 @@ def main():
         'end, and its 78.5 GB of scratch and 33,128 windows are arithmetic. '
         'Also unmeasured: training time, validation scores for the five '
         'models other than FastViT-MA36, and how often touching crowns merge '
-        'into one polygon. *(Manual §14.3)*'))
+        'into one polygon. '
+        f'*(Manual §{chapter_number("reference")}.3)*'))
 
     for size, n, line in T.CODE_OVERLONG:
         print(f'[WARN] code line of {n} chars needs {size} pt: {line}')

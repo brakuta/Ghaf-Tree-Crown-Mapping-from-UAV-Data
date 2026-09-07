@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Chapters 1 and 2 of the technical manual.
+"""The first half of the technical manual: what to read before running anything.
 
 Every value quoted here is traceable to docs/handover/FACTS.yml, to a file in
 the repository, or to a command run while the manual was written. Where a
@@ -7,21 +7,26 @@ value was never established the text says so; it does not supply a plausible
 one.
 """
 
+import typeset as T
+from order import Ch, ch, emitted
 from typeset import bullets, callout, chapter, code, glue, para, section, sub, table
 
 
 def story():
     s = []
-    s += chapter_1()
-    s += chapter_2()
-    s += chapter_3()
-    s += chapter_4()
-    s += chapter_5()
+    for key, build in (('what', what),
+                       ('repository', repository),
+                       ('installing', installing),
+                       ('verifying', verifying),
+                       ('data', data),
+                       ('configuration', configuration)):
+        s += build()
+        emitted(T, key)
     return s
 
 
 # ==========================================================================
-def chapter_1():
+def what():
     s = chapter(
         'What this system does, and what you were given',
         'The system takes a UAV orthomosaic and returns the Ghaf crowns in '
@@ -144,7 +149,7 @@ def chapter_1():
         'Every timing in this manual for area-wide inference comes from the '
         '8192 × 8192 clip. The full `Kalba26.tif` is 84,072 × 103,691 pixels, '
         'which is 8.7 billion; the 78.5 GB of scratch space and the 33,128 '
-        'windows quoted in chapter 5 are arithmetic on that size, not a '
+        f'windows quoted in {ch("data")} are arithmetic on that size, not a '
         'measurement. Nobody has watched it finish, and nothing in the '
         'pipeline reports a partial result — a run that dies at window 30,000 '
         'leaves scratch files and no output.',
@@ -162,7 +167,7 @@ def chapter_1():
 
 
 # ==========================================================================
-def chapter_2():
+def repository():
     s = chapter(
         'The repository, folder by folder',
         'Fifty-four files in four directories — '
@@ -219,7 +224,7 @@ def chapter_2():
         '`_base_/ghaf.py` holds the dataset, the augmentation pipeline, the '
         'schedule and the runtime. The six files in `configs/ghaf/` inherit '
         'it and differ only in backbone, neck and decode head. That is what '
-        'makes the comparison in chapter 1 a comparison of architectures '
+        f'makes the comparison in {ch("what")} a comparison of architectures '
         'rather than of training budgets.'))
     s.extend(callout('Editing a base config changes results already published', [
         'Every one of the six models inherits `configs/_base_/ghaf.py`. A '
@@ -232,27 +237,36 @@ def chapter_2():
     s.extend(table([
         ['Program', 'What it does', 'Chapter'],
         ['`check_dataset.py`',
-         'Verifies pairing, sizes and mask values before a tree is used', '4'],
+         'Verifies pairing, sizes and mask values before a tree is used',
+         Ch('verifying')],
         ['`smoke_test.py`',
          'Builds all six models, verifies each checkpoint against its '
-         'published digest, runs one prediction through each', '3'],
+         'published digest, runs one prediction through each',
+         Ch('verifying')],
+        ['`train.py`', 'Trains a model, or fine-tunes one',
+         f'{Ch("training")}, {Ch("adapting")}'],
+        ['`test.py`', 'Scores a model against a labelled split',
+         Ch('evaluating')],
+        ['`predict_split.py`',
+         'One predicted mask per tile for a labelled split', Ch('tiles')],
         ['`predict_folder.py`',
          'Maps every image in a folder, one GeoPackage of crowns per image',
-         '6'],
-        ['`predict_split.py`',
-         'One predicted mask per tile for a labelled split', '8'],
-        ['`test.py`', 'Scores a model against a labelled split', '8'],
-        ['`train.py`', 'Trains a model, or fine-tunes one', '9, 10'],
+         Ch('folder')],
         ['`make_sample.py`',
-         'Cuts a small georeferenced clip out of a large mosaic', '5'],
+         'Cuts a small georeferenced clip out of a large mosaic', Ch('data')],
+        ['`fetch_init_weights.py`',
+         'Collects the ImageNet weights once, while online', Ch('training')],
         ['`export_release.py`',
          'Assembles the models folder for sharing, verifying every checkpoint '
-         'before and after the copy', '11'],
-        ['`fetch_init_weights.py`',
-         'Collects the ImageNet weights once, while online', '9'],
+         'before and after the copy', Ch('handover')],
         ['`build_handover.py`',
-         'Assembles the whole bundle described in chapter 1', '11'],
-    ], widths=[112, None, 44], size=8.5))
+         f'Assembles the whole bundle described in {ch("what")}',
+         Ch('handover')],
+    ], widths=[112, None, 44], size=8.5,
+        caption='Listed in the order the manual runs them. '
+                '`ghaf.inference.large_image` is the one that maps a whole '
+                f'orthomosaic ({ch("orthomosaic")}); it is a module rather '
+                'than a script here.'))
 
     s.append(glue(section('`tests/` and `docs/`'), None))
     s.append(para(
@@ -283,12 +297,12 @@ def chapter_2():
 
 
 # ==========================================================================
-def chapter_3():
+def installing():
     s = chapter(
         'Installing the environment',
         'Twenty minutes, once per machine, and the version numbers are not '
         'suggestions. This chapter installs the stack the six models were '
-        'trained against; chapter 4 proves the installation before anything '
+        f'trained against; {ch("verifying")} proves the installation before anything '
         'depends on it.')
 
     s.append(glue(section('What the machine needs'), None))
@@ -406,13 +420,13 @@ def chapter_3():
         '`python -c "import sys; print(sys.executable)"` prints a path '
         'containing `envs\\ghaf`.',
         'No line beginning `ERROR:` stopped any install step.',
-        'You are in `code\\`, and chapter 4 is next.',
+        f'You are in `code\\`, and {ch("verifying")} is next.',
     ]))
     return s
 
 
 # ==========================================================================
-def chapter_4():
+def verifying():
     s = chapter(
         'Verifying the installation',
         'Three checks, five minutes. They establish that the code, the '
@@ -434,7 +448,7 @@ def chapter_4():
         'that needs `geopandas`, `torch` or `git` skips itself where they are '
         'absent, so a machine without them reports more skips than this '
         'one, and is not failing. `No module named mmengine` here means a different Python is '
-        'running than the one the packages went into; chapter 13 has the '
+        f'running than the one the packages went into; {ch("errors")} has the '
         'remedy.'))
 
     s.append(glue(section('Check 2 — the weights'), None))
@@ -517,7 +531,7 @@ def chapter_4():
 
 
 # ==========================================================================
-def chapter_5():
+def data():
     s = chapter(
         'The data',
         'What the tiles are, how they are laid out, and the two properties '
@@ -549,6 +563,10 @@ def chapter_5():
         caption='8,641 pairs in total, counted by `check_dataset.py`.'))
 
     s.append(glue(section('The two things that fail silently'), None))
+    s.append(para(
+        'Neither raises anything. Both produce a model that trains to a '
+        'respectable number and predicts nothing, which is why they are the '
+        'first thing to check when a result looks impossible.'))
     s.extend(callout('A mask with the wrong values trains without complaint', [
         'The mask pixel value **is** the class index: 0 for background, 1 for '
         'ghaf. A mask exported as 0 and 255, which is what most annotation '
@@ -594,5 +612,300 @@ def chapter_5():
         'Masks contain only 0 and 1, verified rather than assumed.',
         'Companion files travelled with the tiles they belong to.',
         '`check_dataset.py` reports `dataset looks usable`.',
+    ]))
+    return s
+
+
+# ==========================================================================
+def configuration():
+    s = chapter(
+        'The configuration files',
+        'Every number the training and scoring commands obey lives in two '
+        'files: one shared by all six models, and one per model. This '
+        'chapter reads the shared file field by field, says which fields are '
+        'safe to change and which invalidate the published scores, and gives '
+        'the rule that keeps a change from reaching the six models at once.')
+
+    s.append(glue(section('Two files, and what each one owns'), None))
+    s.append(para(
+        'A model configuration is assembled from `configs/_base_/ghaf.py` '
+        'and the file that names it. The model file begins '
+        '`_base_ = [\'../_base_/ghaf.py\']`, which reads the shared file '
+        'first; anything the model file then defines replaces what it found. '
+        f'That division is what makes the comparison in {ch("what")} a '
+        'comparison of architectures: the six models differ only in the half '
+        'they own.'))
+    s.extend(table([
+        ['File', 'Owns', 'Fields'],
+        ['`configs/_base_/ghaf.py`',
+         'Everything the six models share',
+         'dataset, pipelines, preprocessor, the three dataloaders, the '
+         'evaluator, the schedule, the hooks, the runtime'],
+        ['`configs/ghaf/<model>.py`',
+         'The architecture, and how it is optimised',
+         '`model` (backbone, neck, decode head, losses) and `optim_wrapper` '
+         '(the optimiser, its learning rate, and the per-parameter '
+         'multipliers)'],
+    ], widths=[112, 96, None], size=8.5,
+        caption='The optimiser sits with the model, not in the shared file: '
+                'a Mask2Former head and an FPN head do not want the same '
+                'learning rate.'))
+    s.extend(callout('Never edit the shared file in place', [
+        'All six configurations inherit it. A change to the crop size, the '
+        'evaluator or the schedule there silently redefines what every '
+        'published score means, and nothing in the pipeline warns you. To '
+        'try something different, copy the file, change the copy, and point '
+        'a new model config at it. Section 6.8 does exactly that.',
+    ]))
+
+    s.append(glue(section('The dataset block'), None))
+    s.extend(code(
+        "dataset_type = 'GhafDataset'\n"
+        "data_root    = 'data/ghaf'\n"
+        "crop_size    = (1024, 1024)"))
+    s.extend(table([
+        ['Field', 'Value', 'What it decides'],
+        ['`dataset_type`', '`GhafDataset`',
+         'The two-class reader in `ghaf/datasets.py`. It is what refuses '
+         '`reduce_zero_label=True`'],
+        ['`data_root`', '`data/ghaf`',
+         '**Relative**, and read while the file is parsed. Resolved against '
+         'the directory the command is typed in, which is `code\\`. Override '
+         'it with `--data-root`, never with `--cfg-options`'],
+        ['`crop_size`', '1024 × 1024',
+         'The size the preprocessor pads to, and the size the models were '
+         'trained at. Changing it invalidates every published score'],
+    ], widths=[74, 74, None], size=8.5))
+    s.append(para(
+        '`--cfg-options data_root=...` is accepted and does nothing useful: '
+        '`data_root` is a plain module-level variable, copied into each '
+        'dataloader as the file is read, so setting the key afterwards '
+        'changes something nothing looks at. `ghaf/config.py` makes the '
+        'substitution the way it has to be made, once per dataset, which is '
+        'what `--data-root` calls.'))
+
+    s.append(glue(section('The two pipelines'), None))
+    s.append(para(
+        'A pipeline is the list of transforms applied to a tile between the '
+        'file and the model. There are two, and the whole difference between '
+        'them is one line.'))
+    s.extend(code(
+        "train_pipeline = [\n"
+        "    dict(type='LoadImageFromFile'),\n"
+        "    dict(type='LoadAnnotations', reduce_zero_label=False),\n"
+        "    dict(type='RandomFlip', prob=0.5),\n"
+        "    dict(type='PackSegInputs'),\n"
+        "]\n"
+        "\n"
+        "test_pipeline = [                       # the same, without the flip\n"
+        "    dict(type='LoadImageFromFile'),\n"
+        "    dict(type='LoadAnnotations', reduce_zero_label=False),\n"
+        "    dict(type='PackSegInputs'),\n"
+        "]"))
+    s.extend(table([
+        ['Transform', 'What it does'],
+        ['`LoadImageFromFile`', 'Reads the tile as 8-bit BGR'],
+        ['`LoadAnnotations`',
+         'Reads the mask as class indices. `reduce_zero_label=False` keeps '
+         'background as a supervised class rather than an ignored one — the '
+         f'setting {ch("data")} says must not change'],
+        ['`RandomFlip`',
+         'Horizontal flip, half the time. **The only augmentation in the '
+         'study**: no scale jitter, no random crop, no colour distortion. '
+         'Tiles are fed at native resolution'],
+        ['`PackSegInputs`',
+         'Packs the image and mask into the structure the model expects'],
+    ], widths=[104, None], size=8.5))
+    s.append(para(
+        'Adding augmentation is a legitimate experiment and a change to what '
+        'the numbers mean. Do it in a copy of the file, and score the result '
+        'against the same test split before believing it.'))
+
+    s.append(glue(section('The preprocessor'), None))
+    s.append(para(
+        'What happens to a tile between the pipeline and the model: '
+        'normalisation, channel order, and the padding that makes an '
+        'awkward size fit.'))
+    s.extend(code(
+        "data_preprocessor = dict(\n"
+        "    type='SegDataPreProcessor',\n"
+        "    mean=[123.675, 116.28, 103.53],     # ImageNet statistics\n"
+        "    std=[58.395, 57.12, 57.375],\n"
+        "    bgr_to_rgb=True,\n"
+        "    pad_val=0, seg_pad_val=255,\n"
+        "    size=crop_size,\n"
+        "    test_cfg=dict(size_divisor=32))"))
+    s.append(para(
+        'Normalisation uses ImageNet statistics because every backbone was '
+        'pre-trained on ImageNet; `bgr_to_rgb` undoes the channel order the '
+        'loader produced. `seg_pad_val=255` matters: padding in the mask is '
+        'labelled 255, which the loss ignores, so a padded edge contributes '
+        'nothing to the gradient. `size_divisor=32` rounds an odd-sized test '
+        'image up to something the strides divide.'))
+
+    s.append(glue(section('The three dataloaders'), None))
+    s.append(para(
+        'One per split, identical but for the folder, the sampler and the '
+        'batch size. Each names its folders relative to `data_root`, which '
+        'is why `--data-root` moves all three together.'))
+    s.extend(table([
+        ['', '`train_dataloader`', '`val_dataloader`', '`test_dataloader`'],
+        ['`img_path`', '`training/images`', '`validation/images`',
+         '`testing/ghaf26/images`'],
+        ['`seg_map_path`', '`training/masks`', '`validation/masks`',
+         '`testing/ghaf26/masks`'],
+        ['`pipeline`', '`train_pipeline`', '`test_pipeline`',
+         '`test_pipeline`'],
+        ['`batch_size`', '2', '1', '1'],
+        ['`num_workers`', '2', '2', '2'],
+        ['`sampler`', '`InfiniteSampler`, shuffled',
+         '`DefaultSampler`', '`DefaultSampler`'],
+    ], widths=[70, 96, 88, None], size=8.3,
+        caption='`InfiniteSampler` is what an iteration-based schedule '
+                'needs: it never runs out, so training stops at an iteration '
+                'count rather than at the end of an epoch.'))
+    s.append(para(
+        f'`batch_size=2` is what the workstation in {ch("installing")} fitted at 1024 '
+        'pixels; it is a memory limit, not a tuned value. Raising it changes '
+        'the effective batch and therefore the result. Scoring uses 1 so '
+        'that no tile is padded to match another. `num_workers=2` is the '
+        'number of loader processes, and is safe to change: it affects '
+        'speed only.'))
+
+    s.append(glue(section('The schedule'), None))
+    s.extend(code(
+        "train_cfg = dict(type='IterBasedTrainLoop',\n"
+        "                 max_iters=160000, val_interval=3500)\n"
+        "param_scheduler = [dict(type='PolyLR', eta_min=0, power=0.9,\n"
+        "                        begin=0, end=160000, by_epoch=False)]"))
+    s.extend(table([
+        ['Field', 'Value', 'Meaning'],
+        ['`max_iters`', '160,000',
+         'The length of the schedule. Not the length of a run: the released '
+         'checkpoints stopped far earlier, at 3,500 to 38,500 iterations'],
+        ['`val_interval`', '3,500',
+         'Score the validation split this often. The checkpoint hook uses '
+         'the same interval, which is why the released filenames carry those '
+         'numbers'],
+        ['`PolyLR`, `power=0.9`', '—',
+         'Polynomial decay of the learning rate from its initial value to '
+         '`eta_min`'],
+        ['`end=160000`', '—',
+         '**Must match `max_iters`.** The decay is computed against `end`, '
+         'so shortening the schedule without changing both leaves the rate '
+         'decaying on the old curve'],
+    ], widths=[86, 54, None], size=8.5))
+    s.append(para(
+        'The optimiser is in the model file, not here. For FastViT-MA36 it '
+        'is AdamW at a learning rate of 1e-4 with weight decay 0.05, '
+        'gradients clipped at a norm of 0.01, and a `paramwise_cfg` that '
+        'gives the backbone a tenth of the learning rate and exempts every '
+        'normalisation layer from decay.'))
+
+    s.append(glue(section('The hooks, and what each leaves on disk'), None))
+    s.append(para(
+        'A hook is a callback the runner fires at a fixed point — every '
+        'iteration, every validation, the end of a run. These six are on by '
+        'default, and between them they account for everything a training '
+        'run writes.'))
+    s.extend(table([
+        ['Hook', 'Setting', 'What you see'],
+        ['`LoggerHook`', '`interval=50`',
+         'A line every 50 iterations, with loss and learning rate, to the '
+         'console and to `work_dirs/<config>/<timestamp>/`'],
+        ['`CheckpointHook`', '`interval=3500`, `save_best=\'mIoU\'`',
+         '`iter_3500.pth` and so on, plus `best_mIoU_iter_N.pth`, which is '
+         'rewritten whenever the validation mIoU improves'],
+        ['`ParamSchedulerHook`', '—', 'Steps `PolyLR`. Nothing on disk'],
+        ['`IterTimerHook`', '—', 'The `time:` and `eta:` fields in the log'],
+        ['`DistSamplerSeedHook`', '—',
+         'Reseeds the sampler each epoch under distributed training'],
+        ['`SegVisualizationHook`', '`draw=False`',
+         'Nothing, until `--show-dir` turns it on. It says so at startup, '
+         'and that warning is not a fault'],
+    ], widths=[92, 92, None], size=8.4))
+    s.append(para(
+        '`best_mIoU_iter_N.pth` is the file the released models are: the '
+        'checkpoint that scored best on the validation split, not the last '
+        'one written. Two hooks together decide which iterations can be '
+        'chosen — `val_interval` and the checkpoint interval — and both are '
+        '3,500.'))
+
+    s.append(glue(section('The runtime block'), None))
+    s.extend(table([
+        ['Field', 'Value', 'Why it is there'],
+        ['`custom_imports`', '`ghaf.datasets`, `ghaf.models`',
+         '**Load-bearing.** Without it `GhafDataset`, `FastViTMA36` and '
+         '`DPN98` are not in the registry and the config fails to build'],
+        ['`default_scope`', '`mmseg`',
+         'Which registry a bare type name is looked up in. Types written '
+         '`mmdet.DiceLoss` reach across to mmdet'],
+        ['`cudnn_benchmark`', '`True`',
+         'Lets cuDNN pick algorithms for a fixed input size. Fine here — '
+         'every tile is 1024 × 1024'],
+        ['`mp_start_method`', '`fork`',
+         'Ignored on Windows: mmengine applies it only on other systems, so '
+         'it is inert on the machine most readers use'],
+        ['`dist_cfg`', '`nccl`', 'Multi-GPU only. Unused in a single-GPU run'],
+        ['`load_from` / `resume`', '`None` / `False`',
+         'Set by `--load-from` and `--resume` on the command line. '
+         'Chapter 13 explains why the two are not interchangeable'],
+        ['`randomness`', 'commented out',
+         'So no seed is set, and two runs of one config do not agree exactly '
+         f'({ch("what")}). Uncommenting it costs throughput and changes results '
+         'slightly'],
+    ], widths=[80, 74, None], size=8.4))
+
+    s.append(glue(section('What to change first, and how'), None))
+    s.append(para(
+        'After the folders are in place, these are the fields worth setting '
+        'before a first run of your own. Everything in the last column is '
+        'preferred: a command-line flag leaves the file — and therefore the '
+        'published scores — untouched.'))
+    s.extend(table([
+        ['Want to', 'Field', 'Do it with'],
+        ['Point at your tiles', '`data_root`',
+         '`--data-root ..\\data\\ghaf` on `train.py` and `test.py`'],
+        ['Train for less than 160,000 iterations',
+         '`max_iters`, and `end` in `param_scheduler`',
+         'A copied config. Both, or the decay curve is wrong'],
+        ['Validate and checkpoint more often',
+         '`val_interval`, and the checkpoint hook\'s `interval`',
+         '`--cfg-options train_cfg.val_interval=1000` — these are read at '
+         'run time, so the flag works'],
+        ['Fit a smaller GPU', '`batch_size`, in `train_dataloader`',
+         '`--cfg-options train_dataloader.batch_size=1`. It changes the '
+         'result; say so when reporting'],
+        ['Start from a released checkpoint', '`load_from`',
+         f'`--load-from`, never `--resume` ({ch("errors")})'],
+        ['Make a run repeatable', '`randomness`',
+         'Uncomment it in a copied config'],
+        ['Put logs elsewhere', '`work_dir`', '`--work-dir`'],
+    ], widths=[96, 104, None], size=8.4))
+
+    s.append(glue(sub('Making a variant properly'), None))
+    s.append(para(
+        'Copy the shared file, change the copy, and point a new model config '
+        'at it. The six delivered configs go on meaning what they meant.'))
+    s.extend(code(
+        'copy configs\\_base_\\ghaf.py configs\\_base_\\ghaf-new-site.py\n'
+        'copy configs\\ghaf\\fastvit-ma36_mask2former.py ^\n'
+        'configs\\ghaf\\fastvit-ma36_new-site.py'))
+    s.append(para(
+        'Then edit one line at the top of the new model config, so it reads '
+        '`_base_ = [\'../_base_/ghaf-new-site.py\']`, and make your changes '
+        'in `ghaf-new-site.py`. Confirm the result before training with it: '
+        '`python -c "from mmengine.config import Config; '
+        'print(Config.fromfile(r\'configs\\ghaf\\fastvit-ma36_new-site.py\')'
+        '.train_dataloader.batch_size)"` prints what the runner will '
+        'actually use, which is not always what the file appears to say.'))
+
+    s.append(glue(sub('Checklist'), None))
+    s.extend(bullets([
+        'You know which of the two files owns the field you want to change.',
+        'You have not edited anything under `configs/_base_/` in place.',
+        '`max_iters` and `param_scheduler[0].end` still agree.',
+        'A changed batch size or crop size is recorded wherever the results '
+        'are reported.',
     ]))
     return s

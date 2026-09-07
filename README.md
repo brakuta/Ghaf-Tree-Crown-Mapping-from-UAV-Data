@@ -245,10 +245,46 @@ pairing alone — quick even over a network share.
 
 ---
 
+## Configuration
+
+Two files decide everything a run does. `configs/_base_/ghaf.py` holds what all
+six models share; `configs/ghaf/<model>.py` holds the architecture and its
+optimiser, and inherits the rest with `_base_ = ['../_base_/ghaf.py']`.
+
+| Block | Fields | Notes |
+|---|---|---|
+| dataset | `dataset_type`, `data_root`, `crop_size` | `data_root` is relative and read while the file is parsed — override with `--data-root`, never `--cfg-options` |
+| pipelines | `train_pipeline`, `test_pipeline` | Identical but for `RandomFlip(prob=0.5)`. That flip is the only augmentation in the study |
+| preprocessor | `data_preprocessor` | ImageNet mean/std, `bgr_to_rgb`, `seg_pad_val=255` so padding is ignored by the loss |
+| dataloaders | `train_`/`val_`/`test_dataloader` | Batch 2 for training, 1 for scoring. `InfiniteSampler` for training, because the schedule counts iterations |
+| evaluator | `val_evaluator`, `test_evaluator` | `IoUMetric` with mIoU, mDice and mFscore |
+| schedule | `train_cfg`, `param_scheduler` | 160 000 iterations, validation every 3 500, `PolyLR` with `power=0.9`. **`param_scheduler[0].end` must match `max_iters`** |
+| hooks | `default_hooks` | Log every 50 iterations; checkpoint every 3 500 and keep the best by mIoU |
+| runtime | `custom_imports`, `default_scope`, `env_cfg` | `custom_imports` is load-bearing: without it `GhafDataset`, `FastViTMA36` and `DPN98` are not in the registry |
+
+**Do not edit `configs/_base_/ghaf.py` in place.** All six configurations
+inherit it, so a change there silently redefines what every published score
+means. To vary something, copy the file, edit the copy, and point a new model
+config at it.
+
+Prefer a command-line flag to an edit — `--data-root`, `--work-dir`,
+`--load-from`, or `--cfg-options` for values read at run time:
+
+```bash
+python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py \
+    --data-root /path/to/ghaf \
+    --cfg-options train_cfg.val_interval=1000 train_dataloader.batch_size=1
+```
+
+Every field is described in chapter 6 of the technical manual.
+
+---
+
 ## Training
 
 ```bash
-python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py
+python tools/train.py configs/ghaf/fastvit-ma36_mask2former.py \
+    --data-root /path/to/ghaf
 ```
 
 Checkpoints and logs are written to `work_dirs/<config-name>/`. Validation runs
@@ -267,7 +303,8 @@ labels is covered in [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
 
 ```bash
 python tools/test.py configs/ghaf/fastvit-ma36_mask2former.py \
-    checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth
+    checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
+    --data-root /path/to/ghaf
 ```
 
 Reports mIoU, mDice and mFscore over the held-out test split — the numbers
@@ -303,6 +340,26 @@ Per-model details, checkpoint hashes and training settings are in
 ---
 
 ## Inference
+
+Three scales, smallest first. Run them in this order the first time: a split of
+labelled tiles has a known answer, one image proves the whole chain, and a
+folder repeats it.
+
+### A labelled split, tile by tile
+
+```bash
+python tools/predict_split.py \
+    configs/ghaf/fastvit-ma36_mask2former.py \
+    checkpoints/fastvit-ma36_mask2former/best_mIoU_iter_3500.pth \
+    --data-root /path/to/ghaf --split testing \
+    --out-dir predictions/testing --save-probability
+```
+
+One predicted mask per tile, encoded exactly as the ground truth is, so a
+prediction and its label can be subtracted directly. This is where error
+analysis and figures come from: scoring reduces a split to three numbers, and
+these are the maps behind them. `--limit 20` runs a partial pass first. The
+canopy fraction over the test split is 3.44 %.
 
 ### One orthomosaic
 

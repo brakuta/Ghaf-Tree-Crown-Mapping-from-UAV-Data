@@ -1,30 +1,39 @@
 #!/usr/bin/env python3
-"""Chapters 6 to 14 of the technical manual.
+"""The second half of the technical manual: training onward.
 
 Commands were checked against the argument parsers they invoke before being
 written here: a flag that appears in this file exists in the code that reads
 it. Values are traceable to docs/handover/FACTS.yml.
+
+Chapter numbers are never written down. order.py holds the running order and
+resolves every reference, so moving a chapter cannot leave a sentence
+pointing at the wrong one.
 """
 
+import typeset as T
+from order import ch, emitted
 from typeset import bullets, callout, chapter, code, glue, para, section, sub, table
 
 
 def story():
     s = []
-    s += chapter_6()
-    s += chapter_7()
-    s += chapter_8()
-    s += chapter_9()
-    s += chapter_10()
-    s += chapter_11()
-    s += chapter_12()
-    s += chapter_13()
-    s += chapter_14()
+    for key, build in (('training', training),
+                       ('evaluating', evaluating),
+                       ('tiles', tiles),
+                       ('orthomosaic', orthomosaic),
+                       ('folder', folder),
+                       ('reviewing', reviewing),
+                       ('adapting', adapting),
+                       ('handover', handover),
+                       ('errors', errors),
+                       ('reference', reference)):
+        s += build()
+        emitted(T, key)
     return s
 
 
 # ==========================================================================
-def chapter_6():
+def orthomosaic():
     s = chapter(
         'Mapping one orthomosaic',
         'The main job. An orthomosaic goes in, crown polygons come out, and '
@@ -171,7 +180,7 @@ def chapter_6():
 
 
 # ==========================================================================
-def chapter_7():
+def folder():
     s = chapter(
         'Mapping every image in a folder',
         'A survey usually arrives as many images rather than one mosaic. This '
@@ -236,13 +245,13 @@ def chapter_7():
     s.extend(bullets([
         '`--limit 3` was run first, and the crowns looked right in QGIS.',
         '`summary.json` reports `0 failed`, or you have read the failures.',
-        'The canopy share per image is in the range chapter 6 gives.',
+        f'The canopy share per image is in the range {ch("orthomosaic")} gives.',
     ]))
     return s
 
 
 # ==========================================================================
-def chapter_8():
+def reviewing():
     s = chapter(
         'Reviewing the results',
         'Opening the outputs, and the numbers to check them against. Every '
@@ -303,7 +312,7 @@ def chapter_8():
 
 
 # ==========================================================================
-def chapter_9():
+def evaluating():
     s = chapter(
         'Evaluating a model',
         'Scoring a model against the labelled test split reproduces the '
@@ -321,20 +330,37 @@ def chapter_9():
     s.append(para(
         'The last line reports mIoU, mDice and mFscore, with a per-class '
         'table above it. For FastViT-MA36 expect **79.32** and **87.22**; the '
-        'other five are in chapter 1. A departure larger than a rounding '
-        'difference has two usual causes, and chapter 4 settles the second: '
+        f'other five are in {ch("what")}. A departure larger than a rounding '
+        f'difference has two usual causes, and {ch("verifying")} settles the second: '
         'a data root pointing somewhere unintended, or a checkpoint that is '
         'not the one it is taken for.'))
     s.append(para(
         '`--show-dir` writes prediction visualisations, and `--work-dir` '
         'places the log somewhere other than the default.'))
 
-    s.append(glue(section('Per-tile predictions over a split'), None))
-    s.append(para(
-        'Scoring reduces a split to three numbers. The maps behind them are '
-        'what error analysis and figures are made from, and they show where '
-        'the model is wrong rather than by how much.'))
+    s.append(glue(sub('Checklist'), None))
+    s.extend(bullets([
+        'The reported mIoU matches the published figure for that model.',
+        '`--data-root` pointed where you thought it did.',
+        f'If it did not match, {ch("verifying")} check 2 was run before '
+        'anything else.',
+    ]))
+    return s
+
+
+# ==========================================================================
+def tiles():
+    s = chapter(
+        'Predicting a labelled split, tile by tile',
+        f'Scoring reduces a split to three numbers ({ch("evaluating")}). The '
+        'maps behind those numbers are what error analysis and figures are '
+        'made from: they show where a model is wrong rather than by how '
+        'much. This is also the smallest prediction the pipeline does, and '
+        'the one to run first.')
+
     s.extend(code(
+        'cd /d D:\\ghaf-project\\code\n'
+        'set MODEL=..\\models\\fastvit-ma36_mask2former\n'
         'python tools\\predict_split.py ^\n'
         '%MODEL%\\fastvit-ma36_mask2former.py ^\n'
         '%MODEL%\\best_mIoU_iter_3500.pth ^\n'
@@ -342,22 +368,51 @@ def chapter_9():
         '--out-dir ..\\output\\predictions --save-probability'))
     s.append(para(
         'One mask per tile, encoded exactly as the ground truth is, so a '
-        'prediction and its label can be subtracted directly. `--limit 20` '
-        'runs a partial pass first. The canopy fraction over the test split '
-        'is 3.44 per cent; the bundle already contains these 767 predictions, '
-        'so this only needs running for a model other than FastViT-MA36.'))
+        'prediction and its label can be subtracted directly. Run `--limit '
+        '20` first and open the result before committing to 767 tiles.'))
+
+    s.append(glue(section('What it writes'), None))
+    s.extend(code(
+        'predictions\\\n'
+        '  masks\\           one .tif per tile, 0 and 1\n'
+        '  probability\\     float32 P(ghaf), with --save-probability\n'
+        '  summary.json    every tile, its canopy share, and the totals'))
+    s.append(para(
+        'A test tile carries a `.pgw` world file, so its prediction opens in '
+        f'QGIS in the right place ({ch("data")}). A training or validation '
+        'tile carries none, and its prediction is an image without a '
+        'position — correct, and not a fault.'))
+
+    s.extend(table([
+        ['Option', 'Effect'],
+        ['`--split`', '`training`, `validation` or `testing`'],
+        ['`--limit 20`', 'Stop after twenty tiles'],
+        ['`--save-probability`',
+         'Keep the float32 confidence raster as well as the 0/1 mask'],
+        ['`--threshold`',
+         'The confidence at which a pixel becomes a crown. 0.5 by default, '
+         'as everywhere else in the pipeline'],
+        ['`--batch-size`',
+         f'Tiles per forward pass. 4 fits the workstation in {ch("installing")}'],
+    ], widths=[112, None], size=8.5))
+
+    s.append(para(
+        'The canopy fraction over the test split is 3.44 per cent. The '
+        'delivered bundle already contains these 767 predictions, so this '
+        'needs running only for a model other than FastViT-MA36, or after '
+        'training one of your own.'))
 
     s.append(glue(sub('Checklist'), None))
     s.extend(bullets([
-        'The reported mIoU matches the published figure for that model.',
-        '`--data-root` pointed where you thought it did.',
-        'If it did not match, chapter 4 check 2 was run before anything else.',
+        '`--limit 20` was run and looked at before the full split.',
+        '`summary.json` reports the tile count the split holds.',
+        'The canopy share is near 3.44 per cent for the test split.',
     ]))
     return s
 
 
 # ==========================================================================
-def chapter_10():
+def training():
     s = chapter(
         'Training',
         'Only worth doing if something is to be changed: six trained models '
@@ -412,7 +467,7 @@ def chapter_10():
 
 
 # ==========================================================================
-def chapter_11():
+def adapting():
     s = chapter(
         'Adapting to a new site',
         'Fine-tuning from a released checkpoint costs far less than training '
@@ -422,7 +477,7 @@ def chapter_11():
 
     s.append(glue(section('Prepare and check the new tiles'), None))
     s.append(para(
-        'Same layout as chapter 5: 1024 × 1024 PNG pairs, masks containing '
+        f'Same layout as {ch("data")}: 1024 × 1024 PNG pairs, masks containing '
         'only 0 and 1, `training` and `validation` folders. Check them before '
         'the run, not after.'))
     s.extend(code(
@@ -463,7 +518,7 @@ def chapter_11():
         'far it drifts.',
     ]))
     s.append(para(
-        'Score the result exactly as in chapter 9, with `--data-root` at the '
+        f'Score the result exactly as in {ch("evaluating")}, with `--data-root` at the '
         'new site and the checkpoint at the new '
         '`work_dirs\\...\\best_mIoU_iter_*.pth`, then again with '
         '`--data-root ..\\data\\ghaf` to see what it cost.'))
@@ -480,10 +535,10 @@ def chapter_11():
 
 
 # ==========================================================================
-def chapter_12():
+def handover():
     s = chapter(
         'Handing the system on',
-        'How the bundle in chapter 1 is assembled, and how a recipient checks '
+        f'How the bundle in {ch("what")} is assembled, and how a recipient checks '
         'what they were sent. Two programs, both of which verify rather than '
         'trust.')
 
@@ -520,7 +575,7 @@ def chapter_12():
 
     s.append(glue(section('What a recipient runs'), None))
     s.append(para(
-        'The check that matters is chapter 4 check 2, pointed at the models '
+        f'The check that matters is {ch("verifying")} check 2, pointed at the models '
         'folder they were sent. It confirms every digest, loads every '
         'checkpoint into the model built from the configuration, and runs a '
         'prediction through each.'))
@@ -545,7 +600,7 @@ def chapter_12():
 
 
 # ==========================================================================
-def chapter_13():
+def errors():
     s = chapter(
         'Error catalogue',
         'Keyed on what appears on screen. Find the message, read across. '
@@ -606,7 +661,7 @@ def chapter_13():
         ['`not a directory: ...` naming `D:\\ghaf-project`',
          'The example path from this manual, run as typed. `D:\\ghaf-project` '
          'stands for wherever the bundle was unpacked on this machine '
-         '(chapter 3); no program looks for that name. Both '
+         f'({ch("installing")}); no program looks for that name. Both '
          '`smoke_test.py` and `check_dataset.py` refuse a folder that is not '
          'there before doing any work'],
         ['`not a directory` from `check_dataset.py` on a path that exists',
@@ -665,7 +720,7 @@ def chapter_13():
          'then try `--bands`'],
         ['Canopy above 50 per cent',
          'The opposite failure, same causes'],
-        ['A crown count far above the range in chapter 6',
+        [f'A crown count far above the range in {ch("orthomosaic")}',
          'Single-pixel fragments counted as trees. `--min-area 1` removed 11 '
          'of 27 on the sample clip'],
         ['A model that trains to a high mIoU and predicts nothing',
@@ -673,7 +728,7 @@ def chapter_13():
          'about 96 per cent of the pixels, so predicting nothing scores well. '
          '`check_dataset.py` is the only thing that catches it'],
         ['Numbers that differ from a previous run of the same command',
-         'No seed is set (chapter 10). Also check the tile size, which '
+         f'No seed is set ({ch("training")}). Also check the tile size, which '
          'nothing records in the output'],
         ['A folder run that produced fewer files than there were images',
          'One or more images failed and the batch continued. `summary.json` '
@@ -687,17 +742,17 @@ def chapter_13():
         'of it appears in anyone else\'s error. Add the library that raised '
         'it. Search that. Errors raised inside the framework belong on the '
         'mmsegmentation issue tracker, closed issues included, since a closed '
-        'issue usually holds the fix; the address is in chapter 14.'))
+        f'issue usually holds the fix; the address is in {ch("reference")}.'))
     s.append(para(
         'Two rules when judging what you find. Check the versions: an answer '
         'written for mmsegmentation 0.x does not apply to 1.2.2. And do not '
-        'upgrade a package on general advice — the versions in chapter 3 were '
+        f'upgrade a package on general advice — the versions in {ch("installing")} were '
         'chosen to work together and to match the trained weights, and '
         '`pip install --upgrade` will replace one and break four. Change one '
-        'thing, then re-run chapter 4.'))
+        f'thing, then re-run {ch("verifying")}.'))
     s.append(para(
         'If an installation reaches a state that cannot be explained, delete '
-        'the environment and rebuild it from chapter 3. Twenty minutes, and '
+        f'the environment and rebuild it from {ch("installing")}. Twenty minutes, and '
         'it touches no data: `conda deactivate`, `conda env remove -n ghaf`, '
         'then step 1.'))
 
@@ -709,14 +764,14 @@ def chapter_13():
         'The output of `python -c "import sys; print(sys.executable)"`.',
         'The `torch`, `mmcv`, `mmsegmentation`, `mmdet` and `numpy` lines '
         'from `python -m pip list`.',
-        'Whether chapter 4 passes now, and whether it ever did on this '
+        f'Whether {ch("verifying")} passes now, and whether it ever did on this '
         'machine.',
     ]))
     return s
 
 
 # ==========================================================================
-def chapter_14():
+def reference():
     s = chapter(
         'Reference',
         'Every routine command in one place, the released models by digest, '
@@ -726,7 +781,7 @@ def chapter_14():
     s.append(glue(section('Commands'), None))
     s.append(para(
         'All assume `conda activate ghaf` and `cd /d D:\\ghaf-project\\code`, '
-        'with `MODEL` set as in chapter 6.'))
+        f'with `MODEL` set as in {ch("orthomosaic")}.'))
     s.extend(code(
         'python -m pytest tests\\ -q\n'
         'python tools\\smoke_test.py --checkpoints ..\\models\n'
@@ -776,7 +831,7 @@ def chapter_14():
         'Wall-clock time for training or for fine-tuning, on any hardware.',
         'Validation scores for the five models other than FastViT-MA36.',
         'Inference throughput per model.',
-        'GPU memory actually consumed at batch size 4, which is why chapter 6 '
+        f'GPU memory actually consumed at batch size 4, which is why {ch("orthomosaic")} '
         'gives a starting point rather than a recommendation.',
         'The date each released checkpoint was trained, and which run in '
         '`work_dirs` produced it; the logs were not inspected.',
@@ -794,7 +849,7 @@ def chapter_14():
         ['`python tools/<program>.py --help`',
          'What an option is called and what it does'],
         ['`docs/AREA_WIDE_INFERENCE.md`',
-         'How a mosaic is windowed and blended, in more detail than chapter 6'],
+         f'How a mosaic is windowed and blended, in more detail than {ch("orthomosaic")}'],
         ['`docs/MODEL_ZOO.md`', 'Per-class scores and training settings'],
     ], widths=[132, None], size=8.5))
 

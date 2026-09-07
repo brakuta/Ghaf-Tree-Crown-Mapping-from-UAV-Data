@@ -38,10 +38,11 @@ def front_matter():
     """Title page, then the contents.
 
     The signpost matters more than the rest of it. A reader who needs one map
-    made should not have to decide for themselves which of thirteen chapters
+    made should not have to decide for themselves which of sixteen chapters
     they can skip, and a manual that does not say so is read from the front
     until the reader gives up.
     """
+    from order import ch, chapters
     from typeset import HRule, para
 
     s = [
@@ -77,19 +78,26 @@ def front_matter():
         Spacer(1, 16),
         Paragraph('You can stop reading here', T.SS['Section']),
         para(
-            'Chapters 3, 4 and 6 are the whole job if what you need is a '
-            'canopy map from an orthomosaic: install the environment, prove '
-            'it, run the model. Chapter 13 is the error catalogue and the '
-            'only other chapter worth reading before something goes wrong. '
+            f'{chapters("installing", "verifying", "orthomosaic").capitalize()}'
+            ' are the whole job if what you need is a canopy map from an '
+            'orthomosaic: install the environment, prove it, run the model. '
+            f'{ch("errors").capitalize()} is the error catalogue and the only '
+            'other chapter worth reading before something goes wrong. '
             'Everything between exists for the reader who has to change '
             'something.'),
         para(
-            'Read chapter 2 when you have to find a file, and chapter 5 '
-            'before building a dataset of your own — the mask encoding is the '
-            'part that fails silently. Skip 10 and 11 unless you are '
-            'training: six trained models are supplied, and reproducing one '
-            'of them costs a day of GPU time. Chapter 12 is for whoever has '
-            'to hand the system on again.'),
+            'The chapters run in the order the work is done: the data, then '
+            'what the configuration will do with it, then training, scoring '
+            'and prediction. Read '
+            f'{ch("repository")} when you have to find a file, and '
+            f'{chapters("data", "configuration")} before building a '
+            'dataset of your own — the mask encoding is the part that fails '
+            f'silently, and {ch("configuration")} says which settings can be '
+            'changed without invalidating the published scores. Skip '
+            f'{ch("training")} and {ch("adapting")} unless you are training: '
+            'six trained models are supplied, and reproducing one of them '
+            f'costs a day of GPU time. {ch("handover").capitalize()} is for '
+            'whoever has to hand the system on again.'),
     ]
     # No PageBreak here on purpose. Chapter 1 carries CondPageBreak(200): it
     # opens a new page only if too little room is left, and otherwise starts
@@ -138,9 +146,12 @@ def glue_headings(story):
     every call site means a heading cannot be stranded by an edit that adds a
     paragraph above it.
 
-    A heading is paired with a paragraph unconditionally, and with a table
-    only when the table is short enough that carrying it over cannot leave a
-    half-empty page behind — the same trade the engine makes for code blocks.
+    A heading is paired with a paragraph unconditionally, and with a table or
+    a code block only when it is short enough that carrying it over cannot
+    leave a half-empty page behind — the same trade the engine makes for code
+    blocks. Section 9.1 of the reordered manual is where the code-block case
+    was found: a heading whose next block is a command, and nothing else,
+    was set as the last line on the page.
     """
     def heading_of(flowable):
         if isinstance(flowable, T._Anchored):
@@ -166,9 +177,37 @@ def glue_headings(story):
                 out.append(KeepTogether([head, rest[0], rest[1]]))
                 i += 3
                 continue
+            if _short_code_block(rest[0]):
+                # Flattened rather than nested: a KeepTogether inside a
+                # KeepTogether measures as taller than its contents in
+                # ReportLab, and nesting them broke six pages.
+                out.append(KeepTogether([head] + list(rest[0]._content)))
+                i += 2
+                continue
         out.append(story[i])
         i += 1
     return out
+
+
+def _short_code_block(flowable, limit=6):
+    """Is this a code block short enough to carry over with a heading?
+
+    ``code()`` returns one ``KeepTogether`` holding a spacer, a one-column
+    table of lines, and a spacer. Anything longer than ``limit`` lines is
+    left alone: dragging it to the next page would leave more white space
+    behind than a stranded heading costs.
+    """
+    if not isinstance(flowable, KeepTogether):
+        return False
+    parts = getattr(flowable, '_content', [])
+    # [Spacer, Table, Spacer] is a code block. A callout is one Table on its
+    # own inside a KeepTogether, and is far too tall to drag after a heading:
+    # gluing those as well took the manual from 27 pages to 33, nine of them
+    # under 70 per cent full.
+    if len(parts) != 3 or not isinstance(parts[1], Table):
+        return False
+    return (len(parts[1]._cellvalues) <= limit
+            and len(parts[1]._argW) == 1)
 
 
 def main():
