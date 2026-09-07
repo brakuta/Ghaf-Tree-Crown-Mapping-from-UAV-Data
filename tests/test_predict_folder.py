@@ -81,15 +81,20 @@ def test_the_order_is_the_same_on_every_operating_system(tmp_path):
     """The listing must not be sorted the way the platform sorts paths.
 
     Windows compares paths without regard to case and Linux compares by code
-    point, so plain sorting puts PLOT2 before plot1 on one machine and after
-    it on the other. --limit keeps the first few entries, which would then be
-    a different few images depending on where the command was typed.
+    point, so plain sorting puts an upper-case name first on one machine and
+    last on the other. --limit keeps the first few entries, which would then
+    be a different few images depending on where the command was typed.
+
+    The three names differ by more than their case on purpose. NTFS holds one
+    file where POSIX holds two, so a case-only difference cannot be written to
+    disk here at all; that comparison belongs in tests/test_paths.py, which
+    orders paths without creating them.
     """
-    for name in ('b.tif', 'A.tif', 'a.tif', 'B.tif'):
+    for name in ('C_west.tif', 'a_east.tif', 'B_north.tif'):
         touch(tmp_path, name)
 
     assert [p.name for p in F.list_images(tmp_path)] == [
-        'A.tif', 'a.tif', 'B.tif', 'b.tif']
+        'a_east.tif', 'B_north.tif', 'C_west.tif']
 
 
 def test_the_output_folder_is_not_read_back_in(tmp_path):
